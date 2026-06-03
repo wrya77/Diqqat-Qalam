@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دقة قلم — Diqqat Qalam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#07090f;--bg1:#0d1117;--bg2:#161b22;
+      --border:#21262d;--accent:#2f81f7;--accent-h:#58a6ff;
+      --green:#3fb950;--text:#e6edf3;--text2:#b1bac4;--text3:#8b949e;
+      --red:#f85149;--amber:#d29922;--purple:#bc8cff;
+    }
+    html{scroll-behavior:smooth}
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:'Tajawal',system-ui,sans-serif;
+      font-size:16px;line-height:1.6;overflow-x:hidden;
+    }
+
+    /* ── NAV ── */
+    nav{
+      position:fixed;top:0;inset-inline:0;z-index:100;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 5%;
+      background:rgba(7,9,15,.85);backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .nav-logo{font-size:20px;font-weight:900;letter-spacing:-1px;color:var(--text)}
+    .nav-logo span{color:var(--accent-h)}
+    .nav-actions{display:flex;gap:10px}
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:9px 20px;border-radius:8px;font-size:14px;
+      font-weight:600;cursor:pointer;text-decoration:none;
+      font-family:inherit;transition:.15s;border:none;
+    }
+    .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
+    .btn-outline:hover{border-color:var(--accent);color:var(--accent-h)}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover{background:var(--accent-h);transform:translateY(-1px)}
+    .btn-lg{padding:14px 32px;font-size:16px;border-radius:10px}
+    .btn-google{
+      background:#fff;color:#1a1a1a;
+      padding:12px 24px;border-radius:8px;
+      font-size:15px;font-weight:600;gap:10px;
+    }
+    .btn-google:hover{background:#f0f0f0;transform:translateY(-1px)}
+
+    /* ── HERO ── */
+    .hero{
+      min-height:100vh;display:flex;align-items:center;justify-content:center;
+      text-align:center;padding:100px 5% 60px;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%,rgba(47,129,247,.15),transparent),
+        radial-gradient(ellipse 60% 40% at 80% 80%,rgba(63,185,80,.08),transparent),
+        var(--bg);
+    }
+    .hero-inner{max-width:800px}
+    .hero-badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:5px 14px;border-radius:20px;font-size:13px;
+      background:rgba(47,129,247,.1);border:1px solid rgba(47,129,247,.3);
+      color:var(--accent-h);margin-bottom:28px;
+    }
+    h1{
+      font-size:clamp(2.2rem,6vw,4rem);font-weight:900;
+      line-height:1.15;margin-bottom:20px;
+      background:linear-gradient(135deg,#e6edf3 0%,#79c0ff 50%,#3fb950 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .hero-sub{
+      font-size:1.15rem;color:var(--text2);max-width:560px;
+      margin:0 auto 36px;
+    }
+    .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+    /* ── STATS ── */
+    .stats{
+      display:flex;gap:32px;justify-content:center;flex-wrap:wrap;
+      padding:40px 5%;border-top:1px solid var(--border);
+      border-bottom:1px solid var(--border);background:var(--bg1);
+    }
+    .stat{text-align:center}
+    .stat-num{font-size:2rem;font-weight:900;color:var(--accent-h);line-height:1}
+    .stat-lbl{font-size:13px;color:var(--text3);margin-top:4px}
+
+    /* ── FEATURES ── */
+    .section{padding:80px 5%;max-width:1100px;margin:0 auto}
+    .sec-label{
+      font-size:12px;letter-spacing:2px;text-transform:uppercase;
+      color:var(--accent-h);font-weight:700;margin-bottom:12px;
+    }
+    .sec-title{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;margin-bottom:12px}
+    .sec-sub{font-size:1rem;color:var(--text2);max-width:520px;margin-bottom:48px}
+
+    .features-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+      gap:20px;
+    }
+    .feat-card{
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:14px;padding:24px;
+      transition:.2s;cursor:default;
+    }
+    .feat-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(47,129,247,.12)}
+    .feat-icon{font-size:28px;margin-bottom:14px;display:block}
+    .feat-card h3{font-size:1.05rem;font-weight:700;margin-bottom:8px}
+    .feat-card p{font-size:14px;color:var(--text3);line-height:1.6}
+    .feat-tag{
+      display:inline-block;margin-top:10px;padding:2px 10px;
+      border-radius:20px;font-size:11px;font-weight:600;
+      background:rgba(63,185,80,.12);color:var(--green);
+    }
+
+    /* ── HOW IT WORKS ── */
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0}
+    .step{
+      text-align:center;padding:32px 24px;
+      border-right:1px solid var(--border);position:relative;
+    }
+    .step:last-child{border-right:none}
+    .step-num{
+      width:48px;height:48px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(47,129,247,.12);border:1px solid rgba(47,129,247,.3);
+      color:var(--accent-h);font-size:18px;font-weight:900;
+      margin:0 auto 16px;
+    }
+    .step h3{font-size:1rem;font-weight:700;margin-bottom:6px}
+    .step p{font-size:13px;color:var(--text3)}
+
+    /* ── CTA SECTION ── */
+    .cta-section{
+      text-align:center;padding:80px 5%;
+      background:linear-gradient(135deg,rgba(47,129,247,.06) 0%,rgba(63,185,80,.06) 100%);
+      border-top:1px solid var(--border);
+    }
+    .cta-section h2{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;margin-bottom:16px}
+    .cta-section p{color:var(--text2);margin-bottom:32px;font-size:1.05rem}
+
+    /* ── FOOTER ── */
+    footer{
+      border-top:1px solid var(--border);padding:24px 5%;
+      display:flex;align-items:center;justify-content:space-between;
+      flex-wrap:wrap;gap:12px;
+      font-size:13px;color:var(--text3);
+    }
+
+    /* ── TECH STACK ── */
+    .tech-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:24px}
+    .tech-badge{
+      padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
+      background:var(--bg2);border:1px solid var(--border);color:var(--text2);
+    }
+
+    @media(max-width:600px){
+      .step{border-right:none;border-bottom:1px solid var(--border)}
+      .step:last-child{border-bottom:none}
+      .stats{gap:20px}
+      nav{padding:10px 4%}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">✏ دقة<span>قلم</span></div>
+  <div class="nav-actions">
+    <a href="/auth" class="btn btn-outline">تسجيل الدخول</a>
+    <a href="/auth" class="btn btn-primary">ابدأ مجاناً</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">✏ دقة قلم — Diqqat Qalam</div>
+    <h1>من التصميم إلى<br>آلة CNC في ثوانٍ</h1>
+    <p class="hero-sub">
+      ارسم تصاميمك، وليّد G-Code دقيق للحفر والقطع والنقش،
+      وتحكم بآلتك مباشرةً من المتصفح.
+    </p>
+    <div class="hero-cta">
+      <a href="/auth" class="btn btn-primary btn-lg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.28 5 12c0-4.2 3.29-7.27 7.19-7.27 3.095 0 4.76 1.168 5.744 2.205l2.332-2.281C18.29 2.957 15.56 1 12.19 1 5.71 1 1 6.29 1 12s4.66 11 11.19 11c6.42 0 10.52-4.5 10.52-10.84 0-.65-.06-1.34-.16-1.96z"/></svg>
+        ابدأ مع Google
+      </a>
+      <a href="#features" class="btn btn-outline btn-lg">اكتشف الميزات</a>
+    </div>
+    <div class="tech-row">
+      <span class="tech-badge">Node.js</span>
+      <span class="tech-badge">G-Code</span>
+      <span class="tech-badge">GRBL</span>
+      <span class="tech-badge">Supabase</span>
+      <span class="tech-badge">AI Optimizer</span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="stat-num">20+</div><div class="stat-lbl">أداة رسم</div></div>
+  <div class="stat"><div class="stat-num">80%</div><div class="stat-lbl">توفير في وقت العمل</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-lbl">Post-Processors</div></div>
+  <div class="stat"><div class="stat-num">∞</div><div class="stat-lbl">مشاريع محفوظة</div></div>
+</div>
+
+<!-- FEATURES -->
+<div id="features" class="section">
+  <div class="sec-label">الميزات</div>
+  <div class="sec-title">كل ما تحتاجه لآلة CNC</div>
+  <p class="sec-sub">من الرسم حتى التصنيع — كل شيء في مكان واحد</p>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <span class="feat-icon">✏️</span>
+      <h3>أدوات رسم متكاملة</h3>
+      <p>خط، مستطيل، دائرة، بيضاوي، مضلع، فتحة، متعدد الأضلاع، ورسم حر. نسخ، مرآة، تدوير، تحجيم، ومصفوفة.</p>
+      <span class="feat-tag">11 أداة</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">⚡</span>
+      <h3>توليد G-Code فوري</h3>
+      <p>يولّد G-code صحيح لـ GRBL، Mach3، Fanuc، LinuxCNC مع خيارات هبوط Ramp وHelical.</p>
+      <span class="feat-tag">5 Post-Processors</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🤖</span>
+      <h3>تحسين بالذكاء الاصطناعي</h3>
+      <p>Claude AI يُحسّن ترتيب المسارات وسرعات التغذية لتقليل وقت التشغيل.</p>
+      <span class="feat-tag">Claude API</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🖥</span>
+      <h3>تحكم مباشر بالآلة</h3>
+      <p>اتصال USB/Serial أو TCP/WiFi. Jog، E-Stop، تدفق G-Code، ومراقبة موضع الآلة في الوقت الفعلي.</p>
+      <span class="feat-tag">GRBL + Socket.io</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🖼</span>
+      <h3>تحويل الصور إلى مسارات</h3>
+      <p>استيراد PNG/JPG وتحويلها تلقائياً إلى مسارات قابلة للنقش. تحكم بالعتبة والتبسيط.</p>
+      <span class="feat-tag">جديد</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📦</span>
+      <h3>Pocket Milling + Tabs</h3>
+      <p>ملء داخل الأشكال بمسارات متوازية للحفر الكامل. جسور تثبيت لمنع اهتزاز القطعة.</p>
+      <span class="feat-tag">جديد</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📂</span>
+      <h3>استيراد SVG · DXF · G-Code</h3>
+      <p>افتح ملفات من أي برنامج CAD. يدعم LINE, CIRCLE, ARC, SPLINE, POLYLINE, ELLIPSE.</p>
+      <span class="feat-tag">متعدد الصيغ</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">💾</span>
+      <h3>تصدير DXF + PDF</h3>
+      <p>صدّر تصميمك كملف DXF R12 لفتحه في AutoCAD أو LibreCAD. أو احطبه مباشرةً.</p>
+      <span class="feat-tag">DXF R12</span>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🔩</span>
+      <h3>مكتبة أدوات + مشاريع</h3>
+      <p>احفظ إعدادات كل أداة. حفظ واستعادة المشاريع كاملةً بما فيها التصميم والإعدادات.</p>
+      <span class="feat-tag">Cloud Save</span>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div style="background:var(--bg1);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 5%">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <div class="sec-label">كيف يعمل</div>
+    <div class="sec-title" style="margin-bottom:40px">أربع خطوات بسيطة</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>ارسم التصميم</h3>
+        <p>استخدم أدوات الرسم أو استورد SVG/DXF/صورة</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>اضبط الإعدادات</h3>
+        <p>قطر الأداة، الأعماق، السرعات، نوع الآلة</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>ولّد G-Code</h3>
+        <p>اضغط ⚡ وراجع المحاكاة قبل الإرسال</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>أرسل للآلة</h3>
+        <p>USB أو WiFi — التحكم الكامل من المتصفح</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <h2>جاهز لتسريع إنتاجك؟</h2>
+  <p>سجّل الدخول مجاناً وابدأ خلال ثوانٍ</p>
+  <a href="/auth" class="btn btn-primary btn-lg">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.28 5 12c0-4.2 3.29-7.27 7.19-7.27 3.095 0 4.76 1.168 5.744 2.205l2.332-2.281C18.29 2.957 15.56 1 12.19 1 5.71 1 1 6.29 1 12s4.66 11 11.19 11c6.42 0 10.52-4.5 10.52-10.84 0-.65-.06-1.34-.16-1.96z"/></svg>
+    سجّل بـ Google — مجاناً
+  </a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>✏ دقة قلم — Diqqat Qalam</span>
+  <span>مبني بـ Node.js + Supabase + Claude AI</span>
+  <a href="https://github.com" style="color:var(--text3);text-decoration:none">GitHub ↗</a>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دقة قلم — Diqqat Qalam</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═══ TOOLBAR ═══ -->
+<header class="toolbar">
+  <div class="logo">✏ دقة<span>قلم</span></div>
+
+  <div class="tool-group">
+    <button class="tbtn" id="btn-import" title="استيراد SVG · DXF · G-Code">📂 استيراد</button>
+    <button class="tbtn" id="btn-image-trace" title="تحويل صورة إلى مسارات">🖼 تتبع</button>
+    <button class="tbtn" id="btn-save-project" title="حفظ المشروع">💾 حفظ</button>
+    <button class="tbtn" id="btn-load-project" title="فتح مشروع محفوظ">📁 فتح</button>
+    <span class="tbtn-div"></span>
+    <button class="tbtn icon-only" id="btn-undo"  title="تراجع Ctrl+Z">↩</button>
+    <button class="tbtn icon-only" id="btn-redo"  title="إعادة Ctrl+Y">↪</button>
+    <button class="tbtn icon-only" id="btn-clear" title="مسح التصميم">🗑</button>
+  </div>
+
+  <div class="tool-group">
+    <button class="tbtn primary" id="btn-generate">⚡ توليد G-Code</button>
+    <button class="tbtn"         id="btn-simulate">▶ محاكاة</button>
+    <button class="tbtn"         id="btn-export">⬇ تصدير</button>
+    <button class="tbtn icon-only" id="btn-validate-gcode" title="التحقق من G-Code">✔</button>
+    <span class="tbtn-div"></span>
+    <button class="tbtn icon-only" id="btn-pocket-toggle" title="وضع حفر الجيوب (Pocket)">⬛</button>
+    <button class="tbtn icon-only" id="btn-tool-library" title="مكتبة الأدوات">🔩</button>
+    <button class="tbtn icon-only" id="btn-machine-panel" title="لوحة التحكم بالآلة">🖥</button>
+  </div>
+
+  <div class="status-pill" id="status-pill">جاهز</div>
+  <div id="user-pill" class="user-pill" style="display:none"></div>
+</header>
+
+<main class="app-layout">
+
+  <!-- ═══ SETTINGS ═══ -->
+  <aside class="settings-panel">
+
+    <details class="section" open>
+      <summary class="sec-title">🔩 الأداة</summary>
+      <label>قطر الأداة (mm)
+        <input type="number" id="tool-diameter" value="3" min="0.1" max="50" step="0.1">
+      </label>
+      <label>نوع الأداة
+        <select id="tool-type">
+          <option value="flat">Flat End Mill</option>
+          <option value="ball">Ball Nose</option>
+          <option value="vbit">V-Bit</option>
+          <option value="drill">مثقاب</option>
+          <option value="laser">ليزر</option>
+        </select>
+      </label>
+      <label>تعويض الأداة
+        <select id="tool-compensation">
+          <option value="none">بدون</option>
+          <option value="left">يسار G41</option>
+          <option value="right">يمين G42</option>
+        </select>
+      </label>
+      <label>رقم الأداة T#
+        <input type="number" id="tool-number" value="1" min="1" max="99">
+      </label>
+    </details>
+
+    <details class="section" open>
+      <summary class="sec-title">📏 الأعماق</summary>
+      <label>العمق الكلي (mm)
+        <input type="number" id="total-depth" value="5" min="0.1" max="500" step="0.1">
+      </label>
+      <label>عمق كل طبقة (mm)
+        <input type="number" id="pass-depth" value="1" min="0.1" max="50" step="0.1">
+      </label>
+      <label>ارتفاع السلامة (mm)
+        <input type="number" id="safe-height" value="5" min="1" max="200" step="0.5">
+      </label>
+    </details>
+
+    <details class="section" open>
+      <summary class="sec-title">⚡ السرعات</summary>
+      <label>تغذية XY (mm/min)
+        <input type="number" id="feed-rate-xy" value="1000" min="1" max="50000">
+      </label>
+      <label>تغذية Z (mm/min)
+        <input type="number" id="feed-rate-z" value="300" min="1" max="10000">
+      </label>
+      <label>دوران المغزل (RPM)
+        <input type="number" id="spindle-speed" value="18000" min="0" max="60000" step="500">
+      </label>
+      <label>اتجاه الدوران
+        <select id="spindle-dir">
+          <option value="cw">M03 — CW</option>
+          <option value="ccw">M04 — CCW</option>
+        </select>
+      </label>
+    </details>
+
+    <details class="section">
+      <summary class="sec-title">📐 الإحداثيات</summary>
+      <label>وحدة القياس
+        <select id="units">
+          <option value="mm">ميلليمتر mm</option>
+          <option value="inch">إنش inch</option>
+        </select>
+      </label>
+      <label>نقطة الصفر
+        <select id="origin">
+          <option value="bottom-left">أسفل يسار</option>
+          <option value="center">مركز</option>
+          <option value="top-left">أعلى يسار</option>
+        </select>
+      </label>
+      <label>نظام الإحداثيات
+        <select id="coord-system">
+          <option value="G54">G54</option>
+          <option value="G55">G55</option>
+          <option value="G56">G56</option>
+        </select>
+      </label>
+    </details>
+
+    <details class="section">
+      <summary class="sec-title">⬇ استراتيجية الهبوط</summary>
+      <label>طريقة الدخول
+        <select id="plunge-strategy">
+          <option value="straight">مباشر (Straight)</option>
+          <option value="ramp">مائل (Ramp)</option>
+          <option value="helical">حلزوني (Helical)</option>
+        </select>
+      </label>
+      <label id="ramp-angle-row" style="display:none">زاوية الميل (°)
+        <input type="number" id="ramp-angle" value="3" min="1" max="15" step="0.5">
+      </label>
+    </details>
+
+    <details class="section">
+      <summary class="sec-title">🖥 ملف الآلة</summary>
+      <select id="machine-profile">
+        <option value="">مخصص...</option>
+        <option value="generic">Generic CNC</option>
+        <option value="grbl">GRBL</option>
+        <option value="mach3">Mach3</option>
+        <option value="fanuc">Fanuc</option>
+        <option value="haas">HAAS</option>
+      </select>
+      <div class="sec-spacer"></div>
+      <label>حد X (mm) <input type="number" id="travel-x" placeholder="مثال: 300"></label>
+      <label>حد Y (mm) <input type="number" id="travel-y" placeholder="مثال: 200"></label>
+      <label>حد Z (mm) <input type="number" id="travel-z" placeholder="مثال: 100"></label>
+    </details>
+
+    <details class="section">
+      <summary class="sec-title">🤖 التحسين</summary>
+      <label class="toggle-row"><input type="checkbox" id="ai-optimize" checked><span>تحسين AI</span></label>
+      <label class="toggle-row"><input type="checkbox" id="arc-detect"  checked><span>اكتشاف أقواس G02/G03</span></label>
+      <label class="toggle-row"><input type="checkbox" id="sort-paths"  checked><span>ترتيب المسارات</span></label>
+      <label class="toggle-row"><input type="checkbox" id="add-comments" checked><span>تعليقات</span></label>
+      <label class="toggle-row"><input type="checkbox" id="line-numbers"><span>أرقام الأسطر</span></label>
+    </details>
+
+  </aside>
+
+  <!-- ═══ CANVAS ═══ -->
+  <div class="canvas-wrap">
+    <div class="canvas-topbar">
+      <span class="coord-display">X: <b id="cur-x">0.000</b> &nbsp; Y: <b id="cur-y">0.000</b></span>
+
+      <span id="opt-polygon" class="tool-opt" style="display:none">
+        <label class="opt-label">أضلاع
+          <input type="number" id="polygon-sides" value="6" min="3" max="32" style="width:46px">
+        </label>
+      </span>
+      <span id="opt-slot" class="tool-opt" style="display:none">
+        <label class="opt-label">عرض mm
+          <input type="number" id="slot-width" value="10" min="1" max="200" step="0.5" style="width:56px">
+        </label>
+      </span>
+
+      <span class="canvas-tools">
+        <label><input type="checkbox" id="show-grid" checked> شبكة</label>
+        <label><input type="checkbox" id="snap-grid" checked> التقاط</label>
+        <label><input type="number" id="grid-size" value="10" min="1" max="100">mm</label>
+        <button class="icon-btn" id="btn-zoom-in"  title="تكبير">+</button>
+        <button class="icon-btn" id="btn-zoom-out" title="تصغير">−</button>
+        <button class="icon-btn" id="btn-zoom-fit" title="ملاءمة">⊞</button>
+      </span>
+    </div>
+
+    <!-- Shape Transform Toolbar (visible when shape selected) -->
+    <div class="shape-toolbar" id="shape-toolbar" style="display:none">
+      <span class="st-label">تحويل:</span>
+      <button class="st-btn" id="st-copy"     title="نسخ Ctrl+C">📋</button>
+      <button class="st-btn" id="st-paste"    title="لصق Ctrl+V">📌</button>
+      <button class="st-btn" id="st-duplicate" title="تكرار Ctrl+D">⊕</button>
+      <span class="st-sep"></span>
+      <button class="st-btn" id="st-mirror-h" title="مرآة أفقي">⇔</button>
+      <button class="st-btn" id="st-mirror-v" title="مرآة عمودي">⇕</button>
+      <button class="st-btn" id="st-rotate"   title="تدوير">↻</button>
+      <button class="st-btn" id="st-scale"    title="تغيير الحجم">⇲</button>
+      <span class="st-sep"></span>
+      <button class="st-btn" id="st-array"    title="مصفوفة الأشكال">⊞</button>
+      <span class="st-sep"></span>
+      <button class="st-btn st-danger" id="st-delete" title="حذف Del">🗑</button>
+    </div>
+
+    <div class="canvas-main">
+      <!-- Tools Rail -->
+      <div class="tools-rail" id="tools-rail">
+        <button class="tr-btn active" data-tool="select"   title="تحديد [V]">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 2l12 7-5.5 2L8 17 3 2z"/><line x1="13" y1="13" x2="17" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="hand" title="تحريك [H]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M10 2v8M10 2a1.5 1.5 0 013 0v6M13 4a1.5 1.5 0 013 0v5M7 6a1.5 1.5 0 00-3 0v6l2 4h6l2-4V9"/>
+          </svg>
+        </button>
+
+        <div class="tr-sep"></div>
+
+        <button class="tr-btn" data-tool="line"     title="خط [L]">
+          <svg viewBox="0 0 20 20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="17" x2="17" y2="3"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="rect"     title="مستطيل [R]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="14" height="12" rx="1"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="circle"   title="دائرة [C]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="ellipse"  title="بيضاوي [E]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="10" cy="10" rx="8" ry="5"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="arc"      title="قوس [A]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 16 A9 9 0 0 1 17 16"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="polygon"  title="مضلع [G]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="10,2 17,6.5 17,13.5 10,18 3,13.5 3,6.5"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="slot"     title="فتحة [S]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="6" rx="3"/></svg>
+        </button>
+
+        <div class="tr-sep"></div>
+
+        <button class="tr-btn" data-tool="polyline" title="متعدد الأضلاع [P]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 6,8 10,12 14,5 18,9"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="freehand" title="رسم حر [F]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 14 C5 11 8 17 11 13 S15 8 18 10"/></svg>
+        </button>
+      </div>
+
+      <div class="canvas-area" id="canvas-area">
+        <canvas id="main-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="canvas-footer">
+      <span id="shape-count">أشكال: 0</span>
+      <span class="cf-div">│</span>
+      <span id="path-length">مسار: 0 mm</span>
+      <span class="cf-div">│</span>
+      <span id="est-time">وقت: --</span>
+      <span class="cf-div">│</span>
+      <span id="canvas-zoom">100%</span>
+    </div>
+  </div>
+
+  <!-- ═══ OUTPUT PANEL ═══ -->
+  <aside class="output-panel">
+    <div class="out-tabs">
+      <button class="otab active" data-tab="gcode">G-Code</button>
+      <button class="otab" data-tab="stats">إحصائيات</button>
+      <button class="otab" data-tab="sim">محاكاة</button>
+    </div>
+
+    <!-- G-Code Tab -->
+    <div class="out-pane active" id="pane-gcode">
+      <div class="gc-bar">
+        <span id="gc-line-count">0 سطر</span>
+        <span class="gc-acts">
+          <button class="mbtn" id="btn-copy-gcode" title="نسخ">📋</button>
+          <button class="mbtn" id="btn-dl-gcode"   title="تحميل">⬇</button>
+          <button class="mbtn" id="btn-clr-gcode"  title="مسح">✕</button>
+        </span>
+      </div>
+      <div class="gc-body" id="gc-body">
+        <div class="gc-placeholder" id="gc-placeholder">
+          <div style="font-size:48px;opacity:.2">⚙</div>
+          <p>ارسم تصميمك<br>ثم اضغط <b>⚡ توليد G-Code</b></p>
+        </div>
+        <pre class="gc-pre" id="gc-pre"></pre>
+      </div>
+      <div class="gc-search">
+        <input type="text" id="gc-search" placeholder="🔍 بحث في الكود...">
+        <span id="gc-search-info"></span>
+      </div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div class="out-pane" id="pane-stats">
+      <div class="stats-grid">
+        <div class="scard"><div class="sc-i">🕒</div><div class="sc-l">وقت التشغيل</div><div class="sc-v" id="st-time">--</div></div>
+        <div class="scard"><div class="sc-i">📏</div><div class="sc-l">مسافة XY</div><div class="sc-v" id="st-xy">--</div></div>
+        <div class="scard"><div class="sc-i">⬇</div><div class="sc-l">مسافة Z</div><div class="sc-v" id="st-z">--</div></div>
+        <div class="scard"><div class="sc-i">🔢</div><div class="sc-l">حركات</div><div class="sc-v" id="st-moves">--</div></div>
+        <div class="scard"><div class="sc-i">⬆</div><div class="sc-l">رفعات</div><div class="sc-v" id="st-lifts">--</div></div>
+        <div class="scard"><div class="sc-i">🔄</div><div class="sc-l">طبقات</div><div class="sc-v" id="st-passes">--</div></div>
+        <div class="scard"><div class="sc-i">📝</div><div class="sc-l">أسطر</div><div class="sc-v" id="st-lines">--</div></div>
+        <div class="scard accent"><div class="sc-i">💡</div><div class="sc-l">توفير AI</div><div class="sc-v" id="st-saving">--</div></div>
+      </div>
+      <div class="ai-box" id="ai-box"></div>
+    </div>
+
+    <!-- Sim Tab -->
+    <div class="out-pane sim-pane" id="pane-sim">
+      <div class="sim-canvas-wrap" id="sim-canvas-wrap">
+        <canvas id="sim-canvas"></canvas>
+      </div>
+      <div class="sim-bottom">
+        <div class="sim-legend">
+          <span><span class="ld rapid"></span>تنقل</span>
+          <span><span class="ld cut"></span>قطع</span>
+          <span><span class="ld arc"></span>قوس</span>
+        </div>
+        <div class="sim-ctrl">
+          <button class="sim-btn" id="sim-play"  title="تشغيل">▶</button>
+          <button class="sim-btn" id="sim-pause" title="إيقاف مؤقت">⏸</button>
+          <button class="sim-btn" id="sim-step"  title="خطوة واحدة">⏭</button>
+          <button class="sim-btn" id="sim-reset" title="إعادة للبداية">⏮</button>
+          <button class="sim-btn" id="sim-fit"   title="ملاءمة الشاشة">⊞</button>
+          <input type="range" id="sim-speed" min="1" max="500" value="60">
+          <span id="sim-spd-lbl" class="sim-spd">×60</span>
+        </div>
+        <div class="sim-prog-track"><div class="sim-prog-fill" id="sim-prog-fill"></div></div>
+        <div class="sim-foot">
+          <span id="sim-ln">سطر: 0/0</span>
+          <span id="sim-pct">0%</span>
+          <span class="sim-hint">عجلة الفأرة للتكبير · سحب للتحريك</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</main>
+
+<!-- ════ IMPORT DIALOG ════ -->
+<dialog id="dlg-import" class="modal">
+  <button class="mdl-close" id="cls-import">✕</button>
+  <h3>📂 استيراد ملف تصميم</h3>
+  <div class="drop-zone" id="drop-zone">
+    <div class="dz-icon">📁</div>
+    <p>اسحب الملف هنا أو</p>
+    <button class="btn-sec" id="btn-browse">اختر ملفاً</button>
+    <p class="dz-hint">SVG · DXF · PNG · G-Code</p>
+    <input type="file" id="file-input" accept=".svg,.dxf,.png,.jpg,.jpeg,.nc,.gcode" hidden>
+  </div>
+  <div id="import-preview-area"></div>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-import-ok" disabled>✓ استيراد</button>
+    <button class="btn-cnl" id="btn-import-cancel">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- ════ EXPORT DIALOG ════ -->
+<dialog id="dlg-export" class="modal">
+  <button class="mdl-close" id="cls-export">✕</button>
+  <h3>💾 تصدير G-Code</h3>
+  <label>اسم الملف<input type="text" id="exp-filename" value="my_design"></label>
+  <label>نوع الملف
+    <select id="exp-ext">
+      <option value=".nc">.nc — عام</option>
+      <option value=".gcode">.gcode — GRBL</option>
+      <option value=".tap">.tap — Mach3</option>
+      <option value=".cnc">.cnc</option>
+      <option value=".txt">.txt</option>
+      <option value=".dxf">.dxf — تصدير CAD</option>
+      <option value=".pdf">طباعة / PDF</option>
+    </select>
+  </label>
+  <label class="toggle-row"><input type="checkbox" id="exp-comments" checked><span>تضمين التعليقات</span></label>
+  <label class="toggle-row"><input type="checkbox" id="exp-linenums"><span>أرقام الأسطر</span></label>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-export-ok">💾 تحميل</button>
+    <button class="btn-cnl" id="btn-export-cancel">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- ════ AI REVIEW DIALOG ════ -->
+<dialog id="dlg-ai-review" class="modal">
+  <button class="mdl-close" id="cls-ai-review">✕</button>
+  <h3>🤖 مراجعة اقتراحات AI</h3>
+  <div id="ai-review-meta" style="margin-bottom:8px;color:var(--text3)"></div>
+  <div class="ai-analysis-list" id="ai-analysis-list" style="max-height:360px;overflow:auto;margin-bottom:8px;">
+    <table class="ai-table" style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr>
+          <th style="width:36px">✓</th><th>#</th><th>النوع</th><th>الطول</th>
+          <th>Feed</th><th>MaxRec</th><th>Ft(N)</th><th>Fr(N)</th><th>Eng.</th>
+        </tr>
+      </thead>
+      <tbody id="ai-analysis-tbody"></tbody>
+    </table>
+  </div>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-ai-apply-all">✓ تطبيق الكل</button>
+    <button class="btn-pri" id="btn-ai-apply-feeds">⚙ تطبيق التغذيات</button>
+    <button class="btn-sec" id="btn-ai-ignore">✕ تجاهل</button>
+  </div>
+</dialog>
+
+<!-- ════ MACHINE CONTROL DIALOG ════ -->
+<dialog id="dlg-machine" class="modal modal-wide">
+  <button class="mdl-close" id="cls-machine">✕</button>
+  <h3>🖥 التحكم بالآلة</h3>
+
+  <div class="mc-section">
+    <div class="mc-row">
+      <button class="conn-type-btn active" data-type="tcp">TCP / WiFi</button>
+      <button class="conn-type-btn" data-type="serial">Serial / USB</button>
+      <span id="cnc-conn-pill" class="cnc-pill disc">🔴 غير متصل</span>
+    </div>
+    <div id="tcp-fields" class="mc-fields">
+      <input id="cnc-host" type="text" placeholder="192.168.1.100" value="192.168.1.100">
+      <input id="cnc-port" type="number" placeholder="منفذ" value="23" style="width:80px">
+    </div>
+    <div id="serial-fields" class="mc-fields hidden">
+      <select id="serial-port" style="flex:1"><option value="">-- اختر منفذ --</option></select>
+      <select id="serial-baud" style="width:110px">
+        <option value="115200">115200</option>
+        <option value="9600">9600</option>
+        <option value="57600">57600</option>
+        <option value="250000">250000</option>
+      </select>
+      <button class="icon-btn" id="btn-refresh-ports" title="تحديث">🔄</button>
+    </div>
+    <div class="mc-row">
+      <button class="tbtn primary" id="btn-cnc-connect">🔌 اتصال</button>
+      <button class="tbtn danger"  id="btn-cnc-disconnect" style="display:none">⛔ قطع</button>
+    </div>
+  </div>
+
+  <div class="mc-section">
+    <div class="mc-pos-header">
+      <span id="machine-state" class="machine-state">--</span>
+      <span style="margin-right:auto;color:var(--text3);font-size:11px">WPos / MPos</span>
+    </div>
+    <div class="mc-pos-grid">
+      <div class="pos-row"><span class="axis-x">X</span><b id="pos-x">+0.000</b><span class="mpos-val" id="mpos-x">+0.000</span></div>
+      <div class="pos-row"><span class="axis-y">Y</span><b id="pos-y">+0.000</b><span class="mpos-val" id="mpos-y">+0.000</span></div>
+      <div class="pos-row"><span class="axis-z">Z</span><b id="pos-z">+0.000</b><span class="mpos-val" id="mpos-z">+0.000</span></div>
+    </div>
+  </div>
+
+  <div class="mc-section">
+    <button id="btn-estop" class="estop-btn" disabled>⛔ EMERGENCY STOP</button>
+    <div class="mc-row" style="margin-top:8px">
+      <button class="tbtn" id="btn-home">🏠 Home</button>
+      <button class="tbtn" id="btn-home-xy">Home XY</button>
+      <button class="tbtn" id="btn-zero-work">Zero Work</button>
+    </div>
+  </div>
+
+  <div class="mc-section">
+    <div class="jog-step-row">
+      <span>خطوة:</span>
+      <button class="jog-step-btn" data-step="0.1">0.1</button>
+      <button class="jog-step-btn active" data-step="1">1</button>
+      <button class="jog-step-btn" data-step="10">10</button>
+      <button class="jog-step-btn" data-step="50">50</button>
+      <span style="margin-right:8px">mm</span>
+    </div>
+    <div class="jog-grid">
+      <div></div>
+      <button class="jog-btn" id="jog-y-pos">▲ Y+</button>
+      <button class="jog-btn jog-z" id="jog-z-pos">Z+</button>
+      <button class="jog-btn" id="jog-x-neg">◀ X−</button>
+      <div class="jog-center">JOG</div>
+      <button class="jog-btn" id="jog-x-pos">X+ ▶</button>
+      <div></div>
+      <button class="jog-btn" id="jog-y-neg">▼ Y−</button>
+      <button class="jog-btn jog-z" id="jog-z-neg">Z−</button>
+    </div>
+  </div>
+
+  <div class="mc-section mc-overrides">
+    <label>تغذية: <input type="range" id="feed-override" min="10" max="200" value="100"> <span id="feed-override-val">100%</span></label>
+    <label>مغزل: <input type="range" id="spindle-override" min="0" max="200" value="100"> <span id="spindle-override-val">100%</span></label>
+  </div>
+
+  <div class="mc-section">
+    <div class="stream-ctrl">
+      <button class="tbtn primary" id="btn-send-gcode" disabled>📡 إرسال G-Code للآلة</button>
+      <button class="tbtn danger"  id="btn-stop-stream" style="display:none">⏹ إيقاف</button>
+    </div>
+    <div id="stream-progress" style="display:none;margin-top:6px">
+      <div class="stream-prog-track"><div class="stream-prog-fill" id="stream-prog-fill" style="width:0%"></div></div>
+      <span id="stream-prog-label" style="font-size:11px;color:var(--text3)">0/0 (0%)</span>
+    </div>
+  </div>
+
+  <div class="mc-section mc-manual">
+    <input id="manual-cmd" type="text" placeholder="أمر مباشر (مثال: $$ أو G28)">
+    <button class="tbtn" id="btn-send-cmd">إرسال</button>
+  </div>
+  <div id="cnc-log" class="cnc-log"></div>
+</dialog>
+
+<!-- ════ TOOL LIBRARY ════ -->
+<dialog id="dlg-tools" class="modal modal-wide">
+  <button class="mdl-close" id="cls-tools">✕</button>
+  <h3>🔩 مكتبة الأدوات</h3>
+  <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+    <button class="tbtn primary" id="btn-add-tool">+ إضافة أداة</button>
+    <span style="color:var(--text3);font-size:12px">اختر أداة لتحميل إعداداتها تلقائياً</span>
+  </div>
+  <div id="tool-list" class="tool-list"></div>
+</dialog>
+
+<!-- ════ ADD/EDIT TOOL ════ -->
+<dialog id="dlg-tool-edit" class="modal">
+  <button class="mdl-close" id="cls-tool-edit">✕</button>
+  <h3 id="tool-edit-title">إضافة أداة</h3>
+  <input type="hidden" id="tool-edit-id">
+  <label>اسم الأداة<input type="text" id="tool-edit-name" placeholder="مثال: Flat 6mm 2-Flute"></label>
+  <label>القطر (mm)<input type="number" id="tool-edit-dia" value="6" min="0.1" step="0.1"></label>
+  <label>النوع
+    <select id="tool-edit-type">
+      <option value="flat">Flat End Mill</option>
+      <option value="ball">Ball Nose</option>
+      <option value="vbit">V-Bit</option>
+      <option value="drill">Drill</option>
+    </select>
+  </label>
+  <label>عدد الشفرات<input type="number" id="tool-edit-flutes" value="2" min="1" max="8"></label>
+  <label>RPM<input type="number" id="tool-edit-rpm" value="18000" min="0" step="500"></label>
+  <label>تغذية XY (mm/min)<input type="number" id="tool-edit-feed-xy" value="1000"></label>
+  <label>تغذية Z (mm/min)<input type="number" id="tool-edit-feed-z" value="300"></label>
+  <label>ملاحظات<input type="text" id="tool-edit-notes"></label>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-tool-save">✓ حفظ</button>
+    <button class="btn-cnl" id="btn-tool-cancel">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- ════ PROJECTS ════ -->
+<dialog id="dlg-projects" class="modal modal-wide">
+  <button class="mdl-close" id="cls-projects">✕</button>
+  <h3>📁 المشاريع المحفوظة</h3>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <input type="text" id="save-project-name" placeholder="اسم المشروع..." style="flex:1">
+    <button class="tbtn primary" id="btn-project-save-ok">💾 حفظ الحالي</button>
+  </div>
+  <div id="project-list" class="project-list"></div>
+</dialog>
+
+<!-- ════ IMAGE TRACE DIALOG ════ -->
+<dialog id="dlg-image-trace" class="modal trace-modal">
+  <button class="mdl-close" id="cls-image-trace">✕</button>
+  <h3>🖼 تحويل صورة إلى مسارات CNC</h3>
+
+  <div class="trace-body">
+    <!-- يسار: رفع الصورة + معاينة الأصلية -->
+    <div class="trace-col">
+      <div class="trace-drop-zone" id="trace-drop-zone">
+        <div class="trace-dz-icon">🖼</div>
+        <p>اسحب صورة هنا</p>
+        <button class="btn-sec" id="btn-trace-browse">اختر صورة</button>
+        <p class="trace-hint">PNG · JPG · BMP · GIF · WebP</p>
+        <input type="file" id="trace-file-input" accept="image/*" hidden>
+      </div>
+      <div class="trace-canvas-wrap">
+        <div class="trace-canvas-label">الصورة الأصلية</div>
+        <canvas id="trace-orig-canvas" class="trace-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- يمين: الضبط + المعاينة -->
+    <div class="trace-col">
+      <div class="trace-controls">
+        <label class="trace-ctrl-row">
+          <span>العتبة (Threshold)</span>
+          <input type="range" id="trace-threshold" min="0" max="255" value="128">
+          <span class="trace-val" id="trace-threshold-val">128</span>
+        </label>
+        <label class="trace-ctrl-row">
+          <span>تبسيط المسار</span>
+          <input type="range" id="trace-simplify" min="0.1" max="15" step="0.1" value="1.5">
+          <span class="trace-val" id="trace-simplify-val">1.5</span>
+        </label>
+        <label class="trace-ctrl-row">
+          <span>عرض الناتج (mm)</span>
+          <input type="number" id="trace-width-mm" value="100" min="1" max="3000" step="5" style="width:80px">
+        </label>
+        <label class="toggle-row" style="padding:0;margin-top:4px">
+          <input type="checkbox" id="trace-invert">
+          <span>عكس الألوان (Invert)</span>
+        </label>
+      </div>
+
+      <div class="trace-canvas-wrap">
+        <div class="trace-canvas-label">المسارات المستخرجة</div>
+        <canvas id="trace-result-canvas" class="trace-canvas"></canvas>
+      </div>
+
+      <div class="trace-stats" id="trace-stats">لم تُتبع صورة بعد</div>
+    </div>
+  </div>
+
+  <div class="mdl-foot">
+    <button class="btn-pri"  id="btn-trace-run">⚡ تتبع الآن</button>
+    <button class="btn-pri"  id="btn-trace-import" disabled>✓ استيراد للرسم</button>
+    <button class="btn-cnl"  id="btn-trace-cancel">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- ════ ROTATE DIALOG ════ -->
+<dialog id="dlg-rotate" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-rotate').close()">✕</button>
+  <h3>↻ تدوير الشكل</h3>
+  <div class="mini-preset-row">
+    <button class="mini-preset" data-angle="90">+90°</button>
+    <button class="mini-preset" data-angle="180">180°</button>
+    <button class="mini-preset" data-angle="-90">-90°</button>
+    <button class="mini-preset" data-angle="45">+45°</button>
+  </div>
+  <label>زاوية مخصصة (°)
+    <input type="number" id="rotate-angle" value="45" min="-360" max="360" step="1">
+  </label>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-rotate-apply">↻ تطبيق</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-rotate').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- ════ SCALE DIALOG ════ -->
+<dialog id="dlg-scale" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-scale').close()">✕</button>
+  <h3>⇲ تغيير الحجم</h3>
+  <label class="toggle-row"><input type="checkbox" id="scale-uniform" checked><span>قياس موحد X=Y</span></label>
+  <label>X (%)
+    <input type="number" id="scale-x" value="100" min="1" max="1000" step="5">
+  </label>
+  <label id="scale-y-row" style="display:none">Y (%)
+    <input type="number" id="scale-y" value="100" min="1" max="1000" step="5">
+  </label>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-scale-apply">⇲ تطبيق</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-scale').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- ════ ARRAY DIALOG ════ -->
+<dialog id="dlg-array" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-array').close()">✕</button>
+  <h3>⊞ مصفوفة الأشكال</h3>
+  <div class="mini-tabs">
+    <button class="mini-tab active" data-arr="rect">مستطيل</button>
+    <button class="mini-tab" data-arr="circular">دائري</button>
+  </div>
+  <div id="arr-rect-opts">
+    <label>صفوف <input type="number" id="arr-rows" value="3" min="1" max="50"></label>
+    <label>أعمدة <input type="number" id="arr-cols" value="3" min="1" max="50"></label>
+    <label>مسافة X (mm) <input type="number" id="arr-sx" value="20" min="0.1" step="1"></label>
+    <label>مسافة Y (mm) <input type="number" id="arr-sy" value="20" min="0.1" step="1"></label>
+  </div>
+  <div id="arr-circ-opts" style="display:none">
+    <label>عدد النسخ <input type="number" id="arr-count" value="6" min="2" max="100"></label>
+    <label>نصف القطر (mm) <input type="number" id="arr-radius" value="30" min="1" step="1"></label>
+  </div>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-array-apply">⊞ إنشاء</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-array').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- Toast -->
+<div id="toasts"></div>
+
+<!-- Loading -->
+<div id="loading" class="loading-cover" hidden>
+  <div class="loading-box">
+    <div class="spin"></div>
+    <p id="load-msg">جاري المعالجة...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-auth.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/gcode-generator.js"></script>
+<script src="js/svg-parser.js"></script>
+<script src="js/image-tracer.js"></script>
+<script src="js/canvas-editor.js"></script>
+<script src="js/gcode-preview.js"></script>
+<script src="js/simulator-3d.js"></script>
+<script src="js/file-importer.js"></script>
+<script src="js/ui-controls.js"></script>
+<script src="js/machine-control.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

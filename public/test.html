@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Test</title></head>
+<body style="background:#0a0e14;color:#fff;font-family:sans-serif;padding:40px">
+<h1>✅ Server is working!</h1>
+<div id="log" style="white-space:pre-line;margin-top:20px;font-size:14px"></div>
+<script>
+const log = (msg) => { document.getElementById('log').textContent += msg + '\n'; };
+log('1. HTML loaded OK');
+
+// Test CSS
+fetch('/css/style.css').then(r => {
+  log('2. CSS: ' + r.status + ' (' + r.headers.get('content-length') + ' bytes)');
+}).catch(e => log('2. CSS ERROR: ' + e.message));
+
+// Test API
+fetch('/api/info').then(r => r.json()).then(d => {
+  log('3. API: OK - v' + d.version + ' AI:' + d.aiEnabled);
+}).catch(e => log('3. API ERROR: ' + e.message));
+
+// Test all JS files load
+const jsFiles = [
+  'js/gcode-generator.js','js/svg-parser.js','js/canvas-editor.js',
+  'js/gcode-preview.js','js/simulator-3d.js','js/file-importer.js',
+  'js/ui-controls.js','js/app.js'
+];
+Promise.all(jsFiles.map(f =>
+  fetch('/' + f).then(r => ({ f, ok: r.ok, size: r.headers.get('content-length') }))
+)).then(results => {
+  results.forEach(r => log('4. ' + r.f + ': ' + (r.ok ? '✅' : '❌') + ' (' + r.size + 'b)'));
+}).catch(e => log('4. JS ERROR: ' + e.message));
+
+// Test Canvas
+try {
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'green';
+  ctx.fillRect(0,0,10,10);
+  log('5. Canvas2D: ✅ OK');
+} catch(e) {
+  log('5. Canvas2D: ❌ ' + e.message);
+}
+
+// Test ResizeObserver
+log('6. ResizeObserver: ' + (typeof ResizeObserver !== 'undefined' ? '✅' : '❌'));
+
+// Test loading main app
+setTimeout(() => {
+  log('\n--- Loading main app scripts ---');
+  let loaded = 0;
+  jsFiles.forEach(f => {
+    const s = document.createElement('script');
+    s.src = '/' + f;
+    s.onload = () => {
+      loaded++;
+      log('  Loaded: ' + f);
+      if (loaded === jsFiles.length) {
+        log('\n--- All scripts loaded ---');
+        try {
+          log('GCodeGenerator: ' + (typeof GCodeGenerator));
+          log('SVGParser: ' + (typeof SVGParser));
+          log('CanvasEditor: ' + (typeof CanvasEditor));
+          log('GCodePreview: ' + (typeof GCodePreview));
+          log('GCodeSimulator: ' + (typeof GCodeSimulator));
+          log('FileImporter: ' + (typeof FileImporter));
+          log('UIControls: ' + (typeof UIControls));
+          log('DiqqatQalamApp: ' + (typeof DiqqatQalamApp));
+          log('\n✅ All classes available!');
+        } catch(e) {
+          log('❌ Class check error: ' + e.message);
+        }
+      }
+    };
+    s.onerror = () => log('  ❌ FAILED: ' + f);
+    document.body.appendChild(s);
+  });
+}, 500);
+</script>
+</body>
+</html>
