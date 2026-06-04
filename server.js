@@ -384,14 +384,13 @@ io.on('connection', socket => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`
-  ╔════════════════════════════════════════════╗
-  ║   ✏  دقة قلم — Diqqat Qalam  v1.0.0      ║
-  ║   http://localhost:${PORT}                    ║
-  ║   AI: ${process.env.ANTHROPIC_API_KEY ? '✅ Enabled' : '⚠️  Disabled'}                       ║
-  ╚════════════════════════════════════════════╝`);
-});
-
-module.exports = { app, server };
+// In serverless environments (Vercel), export the app instead of listening
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`Diqqat Qalam running on port ${PORT}`);
+  });
+  module.exports = { app, server };
+}
