@@ -46,6 +46,7 @@ class CanvasEditor {
     this._resize();
     this._bindEvents();
     this.render();
+    if (typeof this.initExtraTools === 'function') this.initExtraTools();
   }
 
   /* ────────── INIT ────────── */
@@ -818,6 +819,33 @@ class CanvasEditor {
     const sc=document.getElementById('shape-count'),pl=document.getElementById('path-length');
     if(sc) sc.textContent=`أشكال: ${this.shapes.length}`;
     if(pl){ let t=0; this.shapes.forEach(s=>{t+=this._shapeLen(s);}); pl.textContent=`مسار: ${t.toFixed(1)} mm`; }
+    this._scheduleAutosave();
+  }
+
+  /* ────────── AUTOSAVE (localStorage, debounced) ────────── */
+  _scheduleAutosave() {
+    clearTimeout(this._autosaveTimer);
+    this._autosaveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem('dq_autosave', JSON.stringify({
+          shapes: this.shapes,
+          savedAt: new Date().toISOString(),
+        }));
+      } catch (e) { /* quota exceeded — skip silently */ }
+    }, 1200);
+  }
+
+  // يُستدعى من App عند الإقلاع — يرجع true إذا استُرجع تصميم سابق
+  restoreAutosave() {
+    try {
+      const raw = localStorage.getItem('dq_autosave');
+      if (!raw) return false;
+      const saved = JSON.parse(raw);
+      if (!saved || !Array.isArray(saved.shapes) || !saved.shapes.length) return false;
+      this.shapes = saved.shapes;
+      this.render(); this._updateStatus();
+      return true;
+    } catch (e) { return false; }
   }
 
   _shapeLen(s){

@@ -21,6 +21,12 @@ class DiqqatQalamApp {
 
     this._bindMain();
     this._checkServer();
+
+    // استرجاع التصميم المحفوظ تلقائياً من الجلسة السابقة
+    if (this.editor && this.editor.restoreAutosave()) {
+      this.toast('📂 تم استرجاع تصميمك السابق تلقائياً', 'info');
+    }
+
     console.log('✏ دقة قلم — Diqqat Qalam v1.1 ready');
   }
 
@@ -33,6 +39,7 @@ class DiqqatQalamApp {
     document.getElementById('btn-validate-gcode')?.addEventListener('click', ()=>this.validateGCode());
     document.getElementById('btn-pocket-toggle')?.addEventListener('click',  ()=>this._togglePocketMode());
     this._bindImageTrace();
+    this._bind3DView();
 
     // Machine Control Panel
     document.getElementById('btn-machine-panel')?.addEventListener('click', ()=>document.getElementById('dlg-machine')?.showModal());
@@ -222,8 +229,36 @@ class DiqqatQalamApp {
   simulate() {
     if (!this.gcode) { this.generate(); return; }
     this.controls.activateTab('sim');
-    this.simulator.load(this.gcode);
-    this.simulator.play();
+    const in3D = document.getElementById('sim3d-wrap')?.style.display !== 'none';
+    if (in3D && typeof Toolpath3D !== 'undefined') {
+      Toolpath3D.show(this.gcode).then(() => Toolpath3D.play()).catch(()=>{});
+    } else {
+      this.simulator.load(this.gcode);
+      this.simulator.play();
+    }
+  }
+
+  /* ══ 3D VIEW TOGGLE ══ */
+  _bind3DView() {
+    const w2d = document.getElementById('sim-canvas-wrap');
+    const w3d = document.getElementById('sim3d-wrap');
+    const btn = document.getElementById('sim-3d-toggle');
+    if (!w2d || !w3d || !btn) return;
+
+    btn.addEventListener('click', async () => {
+      const turnOn = w3d.style.display === 'none';
+      w3d.style.display = turnOn ? 'block' : 'none';
+      w2d.style.display = turnOn ? 'none'  : 'block';
+      btn.classList.toggle('active', turnOn);
+      if (turnOn) {
+        try { await Toolpath3D.show(this.gcode || ''); }
+        catch (e) { this.toast('تعذر تحميل العارض ثلاثي الأبعاد — تحقق من الاتصال', 'error'); }
+      } else {
+        Toolpath3D.hide();
+      }
+    });
+    document.getElementById('sim3d-play')?.addEventListener('click', ()=>Toolpath3D.play());
+    document.getElementById('sim3d-fit')?.addEventListener('click',  ()=>Toolpath3D.fit());
   }
 
   /* ══ EXPORT ══ */

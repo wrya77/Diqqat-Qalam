@@ -1,16 +1,29 @@
+# Dependencies & build
 node_modules/
-.env
+dist/
 coverage/
-tmp_root.html
+.vercel
+
+# Secrets — never commit credentials
+.env
+.env.*
+!.env.example
+
+# Runtime data (server-generated)
 uploads/
 projects/
 exports/
+backups/
+data/
 tools.json
-*.log
-.DS_Store
-Thumbs.db
+
+# Local tooling
+.claude/settings.local.json
 .vscode/
 *.local
-node_modules/
-.env
-dist/
+*.log
+tmp_root.html
+
+# OS
+.DS_Store
+Thumbs.db

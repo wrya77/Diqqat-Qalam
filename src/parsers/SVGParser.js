@@ -309,9 +309,9 @@ class SVGParser {
       const cos = Math.cos(r), sin = Math.sin(r);
       const [a, b, c, dd, e, f] = m;
       m[0] = a * cos + c * sin;
-      m[1] = b * cos + d * sin;
+      m[1] = b * cos + dd * sin;
       m[2] = -a * sin + c * cos;
-      m[3] = -b * sin + d * cos;
+      m[3] = -b * sin + dd * cos;
     }
     return m;
   }

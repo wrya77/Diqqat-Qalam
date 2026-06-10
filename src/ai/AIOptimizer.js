@@ -26,11 +26,17 @@ class AIOptimizer {
     const prompt = this._buildPrompt(shapes, config);
 
     try {
-      const message = await client.messages.create({
-        model:      'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        messages:   [{ role: 'user', content: prompt }],
-      });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('AI request timed out after 30s')), 30000)
+      );
+      const message = await Promise.race([
+        client.messages.create({
+          model:      'claude-sonnet-4-6',
+          max_tokens: 2048,
+          messages:   [{ role: 'user', content: prompt }],
+        }),
+        timeoutPromise,
+      ]);
 
       const raw = (message && message.content && message.content[0] && message.content[0].text) || '';
       return this._parseResponse(raw, shapes);
@@ -150,8 +156,11 @@ class AIOptimizer {
     const lines  = gcode.split('\n');
     const sample = lines.slice(0, 50).join('\n');
 
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-20250514',
+    const timeoutPromise2 = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('AI request timed out after 30s')), 30000)
+    );
+    const message = await Promise.race([client.messages.create({
+      model:      'claude-sonnet-4-6',
       max_tokens: 1024,
       messages:   [{
         role:    'user',
@@ -170,7 +179,7 @@ ${sample}
   "safetyWarnings": ["تحذير 1"]
 }`,
       }],
-    });
+    }), timeoutPromise2]);
 
     try {
       const cleaned = message.content[0].text.replace(/```json|```/g, '').trim();

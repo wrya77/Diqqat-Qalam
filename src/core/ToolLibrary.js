@@ -84,6 +84,11 @@ class ToolLibrary {
     return this._tools;
   }
 
+  // الأدوات الافتراضية المدمجة (متاحة للجميع — لا تُخزَّن لكل مستخدم)
+  getDefaults() {
+    return JSON.parse(JSON.stringify(DEFAULT_TOOLS));
+  }
+
   getById(id) {
     this._load();
     return this._tools.find(t => t.id === id) || null;

@@ -4,222 +4,553 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تسجيل الدخول — دقة قلم</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --bg:#07090f;--bg2:#161b22;--border:#21262d;
+      --bg:#07090f;--bg2:#161b22;--bg3:#1c2128;--border:#21262d;--border2:#30363d;
       --accent:#2f81f7;--accent-h:#58a6ff;--green:#3fb950;
       --text:#e6edf3;--text2:#b1bac4;--text3:#8b949e;--red:#f85149;
     }
+    html,body{height:100%}
     body{
       background:var(--bg);color:var(--text);
       font-family:'Tajawal',system-ui,sans-serif;
       min-height:100vh;display:flex;flex-direction:column;
       align-items:center;justify-content:center;
-      background:
-        radial-gradient(ellipse 70% 50% at 50% 0%,rgba(47,129,247,.12),transparent),
-        var(--bg);
+      background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(47,129,247,.14),transparent),var(--bg);
     }
-    .auth-wrap{
-      width:100%;max-width:420px;
-      padding:20px;
-    }
-    .auth-logo{
-      text-align:center;margin-bottom:36px;
-    }
-    .auth-logo .icon{
-      font-size:48px;margin-bottom:10px;display:block;
-    }
-    .auth-logo h1{
-      font-size:28px;font-weight:900;letter-spacing:-1px;
-    }
-    .auth-logo span{color:var(--accent-h)}
-    .auth-logo p{font-size:14px;color:var(--text3);margin-top:6px}
 
+    /* ── Layout ── */
+    .auth-wrap{width:100%;max-width:440px;padding:16px}
+    .auth-logo{text-align:center;margin-bottom:28px}
+    .auth-logo img{height:52px;width:auto;filter:brightness(0) invert(1)}
+    .auth-logo p{font-size:13px;color:var(--text3);margin-top:10px}
+
+    /* ── Card ── */
     .auth-card{
-      background:var(--bg2);
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:32px;
-    }
-    .auth-card h2{
-      font-size:20px;font-weight:700;
-      margin-bottom:6px;text-align:center;
-    }
-    .auth-card p{
-      font-size:14px;color:var(--text3);
-      text-align:center;margin-bottom:28px;
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:16px;padding:28px 32px;
     }
 
-    .btn-google{
+    /* ── Tabs ── */
+    .auth-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--border)}
+    .tab-btn{
+      flex:1;padding:10px 0;font-size:14px;font-weight:700;font-family:inherit;
+      background:none;border:none;cursor:pointer;color:var(--text3);
+      border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;
+    }
+    .tab-btn.active{color:var(--accent-h);border-bottom-color:var(--accent)}
+
+    /* ── Form elements ── */
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:12px;color:var(--text3);margin-bottom:5px;font-weight:600}
+    .field input{
+      width:100%;padding:11px 14px;
+      background:var(--bg3);border:1px solid var(--border2);
+      color:var(--text);border-radius:8px;font-size:14px;
+      font-family:inherit;outline:none;transition:border-color .15s;
+    }
+    .field input:focus{border-color:var(--accent)}
+    .field input::placeholder{color:var(--text3)}
+
+    .pw-wrap{position:relative}
+    .pw-toggle{
+      position:absolute;left:10px;top:50%;transform:translateY(-50%);
+      background:none;border:none;cursor:pointer;color:var(--text3);
+      font-size:16px;padding:2px 4px;line-height:1;
+    }
+    .pw-toggle:hover{color:var(--text2)}
+
+    /* ── Buttons ── */
+    .btn{
       width:100%;display:flex;align-items:center;justify-content:center;
-      gap:12px;padding:14px 20px;
-      background:#fff;color:#1a1a1a;
-      border:none;border-radius:10px;
-      font-size:15px;font-weight:700;
-      font-family:inherit;cursor:pointer;
+      gap:10px;padding:13px 20px;border:none;border-radius:10px;
+      font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;
       transition:.15s;
     }
-    .btn-google:hover{background:#f0f0f0;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.3)}
-    .btn-google:active{transform:none}
-    .btn-google img{width:22px;height:22px;flex-shrink:0}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover:not(:disabled){background:#4191ff;transform:translateY(-1px);box-shadow:0 4px 16px rgba(47,129,247,.35)}
+    .btn-primary:active{transform:none}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
 
+    .btn-google{background:#fff;color:#1a1a1a}
+    .btn-google:hover{background:#f0f0f0;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+    .btn-google img{width:20px;height:20px;flex-shrink:0}
+
+    /* ── Divider ── */
     .divider{
-      display:flex;align-items:center;gap:12px;
-      margin:20px 0;color:var(--text3);font-size:12px;
+      display:flex;align-items:center;gap:10px;
+      margin:16px 0;color:var(--text3);font-size:12px;
     }
-    .divider::before,.divider::after{
-      content:'';flex:1;height:1px;background:var(--border);
-    }
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border2)}
 
-    .auth-footer{
-      text-align:center;margin-top:24px;
-      font-size:13px;color:var(--text3);
+    /* ── Alerts ── */
+    .alert{
+      border-radius:8px;padding:10px 14px;
+      font-size:13px;margin-bottom:14px;display:none;
+      line-height:1.5;white-space:pre-line;
     }
+    .alert-error{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red)}
+    .alert-success{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);color:var(--green)}
+    .alert-info{background:rgba(47,129,247,.1);border:1px solid rgba(47,129,247,.3);color:var(--accent-h)}
+
+    /* ── Spinner ── */
+    .spin{
+      width:18px;height:18px;border:2px solid rgba(255,255,255,.25);
+      border-top-color:#fff;border-radius:50%;
+      animation:_spin .7s linear infinite;display:none;flex-shrink:0;
+    }
+    @keyframes _spin{to{transform:rotate(360deg)}}
+
+    /* ── Sub-links ── */
+    .auth-sub{text-align:center;margin-top:14px;font-size:13px;color:var(--text3)}
+    .auth-sub a{color:var(--accent-h);text-decoration:none;cursor:pointer}
+    .auth-sub a:hover{text-decoration:underline}
+
+    /* ── Success state ── */
+    .success-panel{text-align:center;padding:16px 0;display:none}
+    .success-panel .icon{font-size:52px;margin-bottom:12px;display:block}
+    .success-panel p{color:var(--text2);font-size:14px;line-height:1.6}
+    .success-panel .email-sent{color:var(--accent-h);font-weight:700;word-break:break-all}
+
+    /* ── Footer ── */
+    .auth-footer{text-align:center;margin-top:20px;font-size:13px;color:var(--text3)}
     .auth-footer a{color:var(--accent-h);text-decoration:none}
     .auth-footer a:hover{text-decoration:underline}
 
-    .features-mini{
-      display:grid;grid-template-columns:1fr 1fr;
-      gap:8px;margin-top:20px;
-    }
-    .fm{
-      display:flex;gap:8px;align-items:center;
-      font-size:13px;color:var(--text3);
-    }
-    .fm span:first-child{font-size:16px}
+    /* ── Password strength ── */
+    .pw-strength{height:3px;border-radius:2px;margin-top:6px;background:var(--border2);overflow:hidden}
+    .pw-strength-bar{height:100%;width:0;border-radius:2px;transition:width .3s,background .3s}
 
-    .error-msg{
-      background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);
-      color:var(--red);border-radius:8px;padding:10px 14px;
-      font-size:13px;margin-bottom:16px;display:none;
+    /* ── Not configured warning ── */
+    .setup-required{
+      background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.3);
+      border-radius:10px;padding:16px;margin-top:16px;font-size:13px;color:#e0a811;
     }
-    .loading{
-      width:20px;height:20px;border:2px solid rgba(0,0,0,.2);
-      border-top-color:#333;border-radius:50%;
-      animation:spin .7s linear infinite;display:none;
-    }
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    .success-state{
-      text-align:center;padding:20px 0;display:none;
-    }
-    .success-state .check{font-size:48px;margin-bottom:12px}
-    .success-state p{color:var(--green);font-size:15px}
-
-    .no-auth-note{
-      background:rgba(47,129,247,.08);border:1px solid rgba(47,129,247,.2);
-      border-radius:8px;padding:12px 16px;
-      font-size:13px;color:var(--text2);margin-top:16px;
-      text-align:center;
+    .setup-required code{
+      display:block;background:rgba(0,0,0,.3);border-radius:6px;
+      padding:8px 10px;margin:8px 0;font-size:12px;
+      font-family:'Cascadia Code','Fira Code',monospace;color:#79c0ff;
     }
   </style>
 </head>
 <body>
 
 <div class="auth-wrap">
+
   <div class="auth-logo">
-    <span class="icon">✏</span>
-    <h1>دقة<span>قلم</span></h1>
-    <p>Diqqat Qalam — مولّد G-Code الاحترافي</p>
+    <img src="/images/logo.png" alt="Diqqat Qalam">
+    <p>مولّد G-Code الاحترافي لآلات CNC</p>
   </div>
 
-  <div class="auth-card">
-    <h2>مرحباً بك</h2>
-    <p>سجّل الدخول للوصول إلى جميع الأدوات</p>
+  <div class="auth-card" id="auth-card">
 
-    <div class="error-msg" id="error-msg"></div>
+    <!-- Tabs -->
+    <div class="auth-tabs" id="auth-tabs">
+      <button class="tab-btn active" onclick="switchTab('signin')">تسجيل الدخول</button>
+      <button class="tab-btn"        onclick="switchTab('signup')">إنشاء حساب</button>
+    </div>
 
-    <div id="login-form">
-      <button class="btn-google" id="btn-google" onclick="signInWithGoogle()">
-        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E" alt="Google">
-        <span id="google-btn-text">تسجيل الدخول بـ Google</span>
-        <div class="loading" id="google-loading"></div>
+    <!-- Alerts (shared) -->
+    <div class="alert alert-error"   id="alert-error"></div>
+    <div class="alert alert-success" id="alert-success"></div>
+    <div class="alert alert-info"    id="alert-info"></div>
+
+    <!-- ═══ SIGN IN PANEL ═══ -->
+    <div id="panel-signin">
+      <!-- Google -->
+      <button class="btn btn-google" id="btn-google" onclick="signInGoogle()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E" alt="">
+        <span id="google-label">تسجيل الدخول بـ Google</span>
+        <div class="spin" id="google-spin"></div>
       </button>
 
-      <div id="no-auth-fallback" class="no-auth-note" style="display:none">
-        ⚠️ لم يتم تهيئة Supabase بعد.<br>
-        <a href="/app" style="color:var(--accent-h)">الدخول بدون تسجيل (وضع محلي)</a>
+      <div class="divider">أو بالبريد الإلكتروني</div>
+
+      <form id="form-signin" onsubmit="return false">
+        <div class="field">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="si-email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label>كلمة المرور</label>
+          <div class="pw-wrap">
+            <input type="password" id="si-password" placeholder="••••••••" autocomplete="current-password" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('si-password',this)">👁</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="signInEmail()" id="btn-signin">
+          <span>دخول</span>
+          <div class="spin" id="signin-spin" style="border-top-color:#fff"></div>
+        </button>
+      </form>
+
+      <div class="auth-sub">
+        <a onclick="switchTab('forgot')">نسيت كلمة المرور؟</a>
+        &nbsp;·&nbsp;
+        <a onclick="switchTab('signup')">إنشاء حساب جديد</a>
       </div>
     </div>
 
-    <div class="success-state" id="success-state">
-      <div class="check">✅</div>
-      <p>تم تسجيل الدخول بنجاح!<br>جاري التوجيه...</p>
+    <!-- ═══ SIGN UP PANEL ═══ -->
+    <div id="panel-signup" style="display:none">
+      <form id="form-signup" onsubmit="return false">
+        <div class="field">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="su-email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label>كلمة المرور (8 أحرف على الأقل)</label>
+          <div class="pw-wrap">
+            <input type="password" id="su-password" placeholder="••••••••" autocomplete="new-password"
+                   oninput="checkPwStrength(this.value)" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('su-password',this)">👁</button>
+          </div>
+          <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
+        </div>
+        <div class="field">
+          <label>تأكيد كلمة المرور</label>
+          <div class="pw-wrap">
+            <input type="password" id="su-confirm" placeholder="••••••••" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('su-confirm',this)">👁</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="signUpEmail()" id="btn-signup">
+          <span>إنشاء الحساب</span>
+          <div class="spin" id="signup-spin" style="border-top-color:#fff"></div>
+        </button>
+      </form>
+
+      <div class="divider">أو</div>
+      <button class="btn btn-google" onclick="signInGoogle()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E" alt="">
+        إنشاء حساب بـ Google
+      </button>
+
+      <div class="auth-sub"><a onclick="switchTab('signin')">لديك حساب بالفعل؟ سجّل الدخول</a></div>
     </div>
 
-    <div class="divider">الميزات المتاحة</div>
-    <div class="features-mini">
-      <div class="fm"><span>✏️</span><span>أدوات رسم</span></div>
-      <div class="fm"><span>⚡</span><span>توليد G-Code</span></div>
-      <div class="fm"><span>🖥</span><span>تحكم بالآلة</span></div>
-      <div class="fm"><span>🤖</span><span>تحسين AI</span></div>
+    <!-- ═══ FORGOT PASSWORD PANEL ═══ -->
+    <div id="panel-forgot" style="display:none">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.
+      </p>
+      <form id="form-forgot" onsubmit="return false">
+        <div class="field">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="fp-email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <button class="btn btn-primary" onclick="sendReset()" id="btn-reset">
+          <span>إرسال رابط الاسترداد</span>
+          <div class="spin" id="reset-spin" style="border-top-color:#fff"></div>
+        </button>
+      </form>
+      <div class="auth-sub"><a onclick="switchTab('signin')">← العودة لتسجيل الدخول</a></div>
     </div>
-  </div>
+
+    <!-- ═══ EMAIL SENT SUCCESS ═══ -->
+    <div class="success-panel" id="panel-email-sent">
+      <span class="icon">📬</span>
+      <p>تم الإرسال!<br>راجع بريدك الإلكتروني<br>
+        <span class="email-sent" id="sent-email-addr"></span>
+      </p>
+      <br>
+      <div class="auth-sub" style="margin-top:12px">
+        <a onclick="switchTab('signin')">← العودة لتسجيل الدخول</a>
+      </div>
+    </div>
+
+    <!-- ═══ ALREADY SIGNED IN ═══ -->
+    <div class="success-panel" id="panel-signed-in">
+      <span class="icon">✅</span>
+      <p>تم تسجيل الدخول بنجاح!<br>جاري التوجيه إلى التطبيق...</p>
+    </div>
+
+    <!-- ═══ SUPABASE NOT CONFIGURED ═══ -->
+    <div id="panel-no-config" style="display:none">
+      <div class="setup-required">
+        <b>⚙️ إعداد Supabase مطلوب</b><br><br>
+        أضف المتغيرات التالية في ملف <code>.env</code> أو إعدادات Vercel:
+        <code>SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=your-anon-key</code>
+        ثم أنشئ مشروعاً في <a href="https://supabase.com" target="_blank" style="color:var(--accent-h)">supabase.com</a>
+        وفعّل Google و/أو Email auth.
+      </div>
+    </div>
+
+  </div><!-- auth-card -->
 
   <div class="auth-footer">
-    <a href="/">← العودة للرئيسية</a>
+    <a href="/">← العودة للصفحة الرئيسية</a>
   </div>
+
 </div>
 
 <script>
-let _supabase = null;
+'use strict';
 
+/* ── State ── */
+let _sb = null;
+let _configChecked = false;
+
+/* ── Init ── */
 async function initSupabase() {
+  if (_sb) return _sb;
   try {
     const res = await fetch('/api/config');
     const cfg = await res.json();
+    _configChecked = true;
     if (!cfg.supabaseUrl || !cfg.supabaseKey) {
-      document.getElementById('no-auth-fallback').style.display = 'block';
+      showPanel('no-config');
+      hideTabs();
       return null;
     }
-    _supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
-    return _supabase;
+    _sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+    return _sb;
   } catch (e) {
-    document.getElementById('no-auth-fallback').style.display = 'block';
+    showError('تعذّر الاتصال بالخادم. تحقق من تشغيل الخادم.');
     return null;
   }
 }
 
-async function signInWithGoogle() {
-  const client = _supabase || await initSupabase();
-  if (!client) { window.location.href = '/app'; return; }
+/* ── Tab / Panel switching ── */
+function switchTab(tab) {
+  clearAlerts();
+  const panels = ['signin','signup','forgot','email-sent','signed-in','no-config'];
+  panels.forEach(p => {
+    const el = document.getElementById('panel-'+p);
+    if (el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&tab==='signin')||(i===1&&tab==='signup'));
+  });
+  const tabs = document.getElementById('auth-tabs');
+  tabs.style.display = (tab === 'forgot' || tab === 'email-sent' || tab === 'signed-in') ? 'none' : 'flex';
+  const panel = document.getElementById('panel-'+tab);
+  if (panel) panel.style.display = '';
+}
 
-  const btn  = document.getElementById('btn-google');
-  const txt  = document.getElementById('google-btn-text');
-  const spin = document.getElementById('google-loading');
-  btn.disabled = true; txt.textContent = 'جاري التوجيه...'; spin.style.display = 'block';
+function showPanel(name) {
+  switchTab(name);
+  const tabs = document.getElementById('auth-tabs');
+  if (tabs) tabs.style.display = 'none';
+}
+
+function hideTabs() {
+  const tabs = document.getElementById('auth-tabs');
+  if (tabs) tabs.style.display = 'none';
+}
+
+/* ── Alert helpers ── */
+function showError(msg)   { const e=document.getElementById('alert-error');   e.textContent=msg; e.style.display='block'; }
+function showSuccess(msg) { const e=document.getElementById('alert-success'); e.textContent=msg; e.style.display='block'; }
+function showInfo(msg)    { const e=document.getElementById('alert-info');    e.textContent=msg; e.style.display='block'; }
+function clearAlerts()    { ['alert-error','alert-success','alert-info'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; }); }
+
+/* ── Loading states ── */
+function setLoading(btnId, spinId, loading) {
+  const btn = document.getElementById(btnId);
+  const spin = document.getElementById(spinId);
+  if (btn)  btn.disabled = loading;
+  if (spin) spin.style.display = loading ? 'block' : 'none';
+}
+
+/* ── Password toggle ── */
+function togglePw(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+/* ── Password strength ── */
+function checkPwStrength(pw) {
+  const bar = document.getElementById('pw-bar');
+  if (!bar) return;
+  let score = 0;
+  if (pw.length >= 8)  score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const colors = ['#f85149','#d29922','#d29922','#3fb950','#3fb950'];
+  const widths  = ['20%','40%','60%','80%','100%'];
+  bar.style.width     = pw.length ? widths[Math.min(score,4)] : '0';
+  bar.style.background = pw.length ? colors[Math.min(score,4)] : '';
+}
+
+/* ── Google OAuth ── */
+async function signInGoogle() {
+  const client = await initSupabase();
+  if (!client) return;
+
+  const btn = document.getElementById('btn-google');
+  const lbl = document.getElementById('google-label');
+  const spin = document.getElementById('google-spin');
+
+  if (btn) btn.disabled = true;
+  if (lbl) lbl.textContent = 'جاري التوجيه...';
+  if (spin) spin.style.display = 'block';
+  clearAlerts();
+
+  const timeout = setTimeout(() => {
+    if (btn) btn.disabled = false;
+    if (lbl) lbl.textContent = 'تسجيل الدخول بـ Google';
+    if (spin) spin.style.display = 'none';
+    showError(
+      'لم يتم التوجيه إلى Google.\n' +
+      'تأكد من:\n' +
+      '١. تفعيل Google Provider في Supabase Dashboard → Authentication → Providers\n' +
+      '٢. إضافة ' + window.location.origin + '/app في Redirect URLs\n' +
+      '٣. ضبط Client ID و Secret من Google Cloud Console'
+    );
+  }, 9000);
 
   const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin + '/app' }
   });
+
+  clearTimeout(timeout);
+
   if (error) {
-    showError('فشل تسجيل الدخول: ' + error.message);
-    btn.disabled = false; txt.textContent = 'تسجيل الدخول بـ Google'; spin.style.display = 'none';
+    if (btn) btn.disabled = false;
+    if (lbl) lbl.textContent = 'تسجيل الدخول بـ Google';
+    if (spin) spin.style.display = 'none';
+    showError('خطأ Google: ' + error.message);
   }
 }
 
-function showError(msg) {
-  const el = document.getElementById('error-msg');
-  el.textContent = msg; el.style.display = 'block';
+/* ── Email sign-in ── */
+async function signInEmail() {
+  const client = await initSupabase();
+  if (!client) return;
+
+  const email = document.getElementById('si-email')?.value?.trim();
+  const pass  = document.getElementById('si-password')?.value;
+  if (!email || !pass) { showError('يرجى تعبئة جميع الحقول.'); return; }
+
+  clearAlerts();
+  setLoading('btn-signin','signin-spin',true);
+
+  const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
+
+  setLoading('btn-signin','signin-spin',false);
+
+  if (error) {
+    let msg = error.message;
+    if (msg.includes('Invalid login'))    msg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+    if (msg.includes('Email not confirmed')) msg = 'يرجى تأكيد بريدك الإلكتروني أولاً. راجع صندوق الوارد.';
+    showError(msg);
+    return;
+  }
+
+  if (data?.user) {
+    showPanel('signed-in');
+    setTimeout(() => { window.location.href = '/app'; }, 800);
+  }
 }
 
-async function checkExistingSession() {
+/* ── Email sign-up ── */
+async function signUpEmail() {
+  const client = await initSupabase();
+  if (!client) return;
+
+  const email   = document.getElementById('su-email')?.value?.trim();
+  const pass    = document.getElementById('su-password')?.value;
+  const confirm = document.getElementById('su-confirm')?.value;
+
+  if (!email || !pass || !confirm) { showError('يرجى تعبئة جميع الحقول.'); return; }
+  if (pass.length < 8) { showError('كلمة المرور يجب أن تكون 8 أحرف على الأقل.'); return; }
+  if (pass !== confirm) { showError('كلمتا المرور غير متطابقتين.'); return; }
+
+  clearAlerts();
+  setLoading('btn-signup','signup-spin',true);
+
+  const { data, error } = await client.auth.signUp({
+    email,
+    password: pass,
+    options: { emailRedirectTo: window.location.origin + '/app' }
+  });
+
+  setLoading('btn-signup','signup-spin',false);
+
+  if (error) {
+    let msg = error.message;
+    if (msg.includes('already registered')) msg = 'هذا البريد مسجّل بالفعل. سجّل الدخول أو استخدم "نسيت كلمة المرور".';
+    showError(msg);
+    return;
+  }
+
+  // If user is immediately active (email confirmations disabled in Supabase)
+  if (data?.session) {
+    showPanel('signed-in');
+    setTimeout(() => { window.location.href = '/app'; }, 800);
+    return;
+  }
+
+  // Show email confirmation notice
+  document.getElementById('sent-email-addr').textContent = email;
+  showPanel('email-sent');
+}
+
+/* ── Forgot password ── */
+async function sendReset() {
+  const client = await initSupabase();
+  if (!client) return;
+
+  const email = document.getElementById('fp-email')?.value?.trim();
+  if (!email) { showError('يرجى إدخال بريدك الإلكتروني.'); return; }
+
+  clearAlerts();
+  setLoading('btn-reset','reset-spin',true);
+
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/auth?reset=1'
+  });
+
+  setLoading('btn-reset','reset-spin',false);
+
+  if (error) { showError('خطأ: ' + error.message); return; }
+
+  document.getElementById('sent-email-addr').textContent = email;
+  showPanel('email-sent');
+}
+
+/* ── Check existing session → redirect immediately ── */
+async function checkSession() {
   const client = await initSupabase();
   if (!client) return;
   const { data: { session } } = await client.auth.getSession();
   if (session) {
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('success-state').style.display = 'block';
-    setTimeout(() => window.location.href = '/app', 1000);
+    showPanel('signed-in');
+    setTimeout(() => { window.location.href = '/app'; }, 500);
   }
 }
 
-checkExistingSession();
+/* ── Handle password-reset redirect ── */
+async function handleResetCallback() {
+  const params = new URLSearchParams(window.location.hash.replace('#','?'));
+  const type   = params.get('type');
+  if (type === 'recovery') {
+    const client = await initSupabase();
+    if (!client) return;
+    // The user clicked the reset link — show a new password form
+    // (In production you'd show a new-password dialog here)
+    showInfo('رابط الاسترداد صحيح. يمكنك الآن ضبط كلمة مرور جديدة من إعدادات الحساب.');
+    window.location.href = '/app';
+  }
+}
+
+/* ── Boot ── */
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.location.hash.includes('type=recovery')) {
+    handleResetCallback();
+  } else {
+    checkSession();
+  }
+});
 </script>
 </body>
 </html>

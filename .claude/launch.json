@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "diqqat-qalam",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 8080,
+      "autoPort": false
+    }
+  ]
+}

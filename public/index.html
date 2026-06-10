@@ -4,37 +4,80 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>دقة قلم — Diqqat Qalam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/images/icon.svg">
+  <meta name="theme-color" content="#0d1117">
   <link rel="stylesheet" href="css/style.css">
+  <!-- Auth gate: hides body until session confirmed, prevents FOUC -->
+  <style id="_auth-init-style">
+    body > *:not(#_auth-gate) { visibility: hidden; pointer-events: none; }
+  </style>
 </head>
 <body>
 
+<!-- Auth Gate — removed by supabase-auth.js once session is confirmed -->
+<div id="_auth-gate" style="position:fixed;inset:0;background:#07090f;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .4s ease">
+  <img src="/images/logo.png" alt="Diqqat Qalam" style="height:52px;width:auto;filter:brightness(0) invert(1)">
+  <div id="_gate-msg" style="font-size:13px;color:#8b949e;font-family:'Tajawal',sans-serif">جاري التحقق من الهوية…</div>
+  <div style="width:36px;height:36px;border:3px solid #21262d;border-top-color:#2f81f7;border-radius:50%;animation:_ag_spin .75s linear infinite"></div>
+  <style>@keyframes _ag_spin{to{transform:rotate(360deg)}}</style>
+</div>
+
 <!-- ═══ TOOLBAR ═══ -->
 <header class="toolbar">
-  <div class="logo">✏ دقة<span>قلم</span></div>
+  <a href="/" class="logo"><img src="/images/logo.png" alt="Diqqat Qalam"></a>
 
   <div class="tool-group">
-    <button class="tbtn" id="btn-import" title="استيراد SVG · DXF · G-Code">📂 استيراد</button>
-    <button class="tbtn" id="btn-image-trace" title="تحويل صورة إلى مسارات">🖼 تتبع</button>
-    <button class="tbtn" id="btn-save-project" title="حفظ المشروع">💾 حفظ</button>
-    <button class="tbtn" id="btn-load-project" title="فتح مشروع محفوظ">📁 فتح</button>
+    <button class="tbtn" id="btn-import" title="استيراد SVG · DXF · G-Code">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M1.5 4.5a1 1 0 011-1h3l1.5 1.5h6a1 1 0 011 1v6a1 1 0 01-1 1h-10.5a1 1 0 01-1-1z"/><path d="M8 7v4M6 9l2-2 2 2"/></svg>
+      استيراد</button>
+    <button class="tbtn" id="btn-image-trace" title="تحويل صورة إلى مسارات">
+      <svg class="ti" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="1"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 11l3.5-3 3 2.5 3-2.5 2.5 2"/></svg>
+      تتبع</button>
+    <button class="tbtn" id="btn-save-project" title="حفظ المشروع">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M2.5 2.5h9l2 2v9h-11z"/><path d="M5 2.5v3.5h6V2.5M5 13.5V9h6v4.5"/></svg>
+      حفظ</button>
+    <button class="tbtn" id="btn-load-project" title="فتح مشروع محفوظ">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M1.5 4a1 1 0 011-1h3L7 4.5h6.5a1 1 0 011 1V6h-12z"/><path d="M1.5 6h13l-1.5 7h-10z"/></svg>
+      فتح</button>
     <span class="tbtn-div"></span>
-    <button class="tbtn icon-only" id="btn-undo"  title="تراجع Ctrl+Z">↩</button>
-    <button class="tbtn icon-only" id="btn-redo"  title="إعادة Ctrl+Y">↪</button>
-    <button class="tbtn icon-only" id="btn-clear" title="مسح التصميم">🗑</button>
+    <button class="tbtn icon-only" id="btn-undo"  title="تراجع Ctrl+Z">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M6.5 3.5L3 7l3.5 3.5"/><path d="M3 7h6a4 4 0 014 4v1.5"/></svg></button>
+    <button class="tbtn icon-only" id="btn-redo"  title="إعادة Ctrl+Y">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M9.5 3.5L13 7l-3.5 3.5"/><path d="M13 7H7a4 4 0 00-4 4v1.5"/></svg></button>
+    <button class="tbtn icon-only" id="btn-clear" title="مسح التصميم">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M3 4.5h10M5.5 4.5V3a1 1 0 011-1h3a1 1 0 011 1v1.5M4.5 4.5l.7 8.5a1 1 0 001 1h3.6a1 1 0 001-1l.7-8.5"/></svg></button>
   </div>
 
   <div class="tool-group">
-    <button class="tbtn primary" id="btn-generate">⚡ توليد G-Code</button>
-    <button class="tbtn"         id="btn-simulate">▶ محاكاة</button>
-    <button class="tbtn"         id="btn-export">⬇ تصدير</button>
-    <button class="tbtn icon-only" id="btn-validate-gcode" title="التحقق من G-Code">✔</button>
+    <button class="tbtn primary" id="btn-generate">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M9 1.5L3 9h4l-1 5.5L12 7H8z"/></svg>
+      توليد G-Code</button>
+    <button class="tbtn" id="btn-simulate">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M4.5 3l8 5-8 5z"/></svg>
+      محاكاة</button>
+    <button class="tbtn" id="btn-export">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2.5 11v2a1 1 0 001 1h9a1 1 0 001-1v-2"/></svg>
+      تصدير</button>
+    <button class="tbtn icon-only" id="btn-validate-gcode" title="التحقق من G-Code">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M2.5 8.5L6 12l7.5-8"/></svg></button>
     <span class="tbtn-div"></span>
-    <button class="tbtn icon-only" id="btn-pocket-toggle" title="وضع حفر الجيوب (Pocket)">⬛</button>
-    <button class="tbtn icon-only" id="btn-tool-library" title="مكتبة الأدوات">🔩</button>
-    <button class="tbtn icon-only" id="btn-machine-panel" title="لوحة التحكم بالآلة">🖥</button>
+    <button class="tbtn icon-only" id="btn-pocket-toggle" title="وضع حفر الجيوب (Pocket)">
+      <svg class="ti" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/><rect x="5.5" y="5.5" width="5" height="5"/></svg></button>
+    <button class="tbtn icon-only" id="btn-tool-library" title="مكتبة الأدوات">
+      <svg class="ti" viewBox="0 0 16 16"><path d="M9.5 2.5a4 4 0 00-4.6 5.6L2 11l3 3 2.9-2.9a4 4 0 005.6-4.6L11 9 7 5z"/></svg></button>
+    <button class="tbtn icon-only" id="btn-machine-panel" title="لوحة التحكم بالآلة">
+      <svg class="ti" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="8.5" rx="1"/><path d="M6 14h4M8 11v3"/></svg></button>
   </div>
 
   <div class="status-pill" id="status-pill">جاهز</div>
+  <button class="tbtn upgrade-btn" id="btn-upgrade" title="ترقية الاشتراك">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M2 5.5l3 2.5 3-5 3 5 3-2.5-1 7.5H3z"/></svg>
+    ترقية
+  </button>
   <div id="user-pill" class="user-pill" style="display:none"></div>
 </header>
 
@@ -171,15 +214,72 @@
     <div class="canvas-topbar">
       <span class="coord-display">X: <b id="cur-x">0.000</b> &nbsp; Y: <b id="cur-y">0.000</b></span>
 
+      <!-- Existing option panels -->
       <span id="opt-polygon" class="tool-opt" style="display:none">
-        <label class="opt-label">أضلاع
-          <input type="number" id="polygon-sides" value="6" min="3" max="32" style="width:46px">
-        </label>
+        <label class="opt-label">أضلاع<input type="number" id="polygon-sides" value="6" min="3" max="32" style="width:46px"></label>
       </span>
       <span id="opt-slot" class="tool-opt" style="display:none">
-        <label class="opt-label">عرض mm
-          <input type="number" id="slot-width" value="10" min="1" max="200" step="0.5" style="width:56px">
-        </label>
+        <label class="opt-label">عرض mm<input type="number" id="slot-width" value="10" min="1" max="200" step="0.5" style="width:56px"></label>
+      </span>
+      <!-- Extra tool option panels (class opt-extra so setTool hides them all) -->
+      <span id="opt-star" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">رؤوس<input type="number" id="star-points" value="5" min="3" max="20" style="width:42px"></label>
+        <label class="opt-label">نسبة داخلي<input type="number" id="star-inner" value="0.4" min="0.1" max="0.9" step="0.05" style="width:48px"></label>
+      </span>
+      <span id="opt-rrect" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">نصف قطر mm<input type="number" id="corner-radius" value="8" min="0.5" max="50" step="0.5" style="width:48px"></label>
+      </span>
+      <span id="opt-chamfer" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">شطب mm<input type="number" id="chamfer-size" value="8" min="0.5" max="50" step="0.5" style="width:48px"></label>
+      </span>
+      <span id="opt-donut" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">نسبة الثقب<input type="number" id="donut-ratio" value="0.5" min="0.1" max="0.95" step="0.05" style="width:48px"></label>
+      </span>
+      <span id="opt-spiral" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">لفات<input type="number" id="spiral-turns" value="3" min="1" max="20" step="0.5" style="width:42px"></label>
+      </span>
+      <span id="opt-wave" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">تكرار<input type="number" id="wave-freq" value="4" min="1" max="30" style="width:40px"></label>
+        <label class="opt-label">ارتفاع mm<input type="number" id="wave-amp" value="8" min="0.5" max="50" step="0.5" style="width:44px"></label>
+      </span>
+      <span id="opt-zigzag" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">عدد<input type="number" id="zigzag-count" value="8" min="2" max="60" style="width:40px"></label>
+      </span>
+      <span id="opt-gear" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">أسنان<input type="number" id="gear-teeth" value="12" min="4" max="120" style="width:44px"></label>
+      </span>
+      <span id="opt-hatch" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">تباعد mm<input type="number" id="hatch-spacing" value="8" min="1" max="50" step="0.5" style="width:44px"></label>
+        <label class="opt-label">زاوية °<input type="number" id="hatch-angle" value="45" min="0" max="180" style="width:44px"></label>
+      </span>
+      <span id="opt-honeycomb" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">حجم الخلية mm<input type="number" id="honeycomb-size" value="15" min="3" max="100" step="0.5" style="width:50px"></label>
+      </span>
+      <span id="opt-livehinge" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">تباعد mm<input type="number" id="livehinge-gap" value="4" min="1" max="20" step="0.5" style="width:44px"></label>
+      </span>
+      <span id="opt-finger" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">عرض الإصبع mm<input type="number" id="finger-size" value="10" min="1" max="50" step="0.5" style="width:50px"></label>
+      </span>
+      <span id="opt-voronoi" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">بذور<input type="number" id="voronoi-seeds" value="25" min="5" max="80" style="width:44px"></label>
+      </span>
+      <span id="opt-maze" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">حجم خلية mm<input type="number" id="maze-cell" value="12" min="5" max="50" step="1" style="width:48px"></label>
+      </span>
+      <span id="opt-starburst" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">خطوط<input type="number" id="starburst-lines" value="24" min="4" max="60" style="width:42px"></label>
+        <label class="opt-label">حلقات<input type="number" id="starburst-rings" value="3" min="1" max="8" style="width:38px"></label>
+      </span>
+      <span id="opt-lattice" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">تباعد mm<input type="number" id="lattice-spacing" value="12" min="3" max="50" step="0.5" style="width:44px"></label>
+      </span>
+      <span id="opt-wavefill" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">تباعد mm<input type="number" id="wavefill-spacing" value="10" min="2" max="50" step="0.5" style="width:44px"></label>
+      </span>
+      <span id="opt-tabslot" class="tool-opt opt-extra" style="display:none">
+        <label class="opt-label">عدد<input type="number" id="tab-count" value="5" min="2" max="30" style="width:40px"></label>
+        <label class="opt-label">عمق mm<input type="number" id="tab-depth" value="6" min="1" max="50" step="0.5" style="width:44px"></label>
       </span>
 
       <span class="canvas-tools">
@@ -210,49 +310,142 @@
     </div>
 
     <div class="canvas-main">
-      <!-- Tools Rail -->
+      <!-- Tools Rail — CorelDraw Style Groups -->
       <div class="tools-rail" id="tools-rail">
-        <button class="tr-btn active" data-tool="select"   title="تحديد [V]">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 2l12 7-5.5 2L8 17 3 2z"/><line x1="13" y1="13" x2="17" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+
+        <!-- ── GROUP 1: التحديد ── -->
+        <div class="tr-group-label">تحديد</div>
+        <button class="tr-btn active" data-tool="select" title="تحديد [V]">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 2l12 7-5.5 2L8 17 3 2z"/></svg>
         </button>
         <button class="tr-btn" data-tool="hand" title="تحريك [H]">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
             <path d="M10 2v8M10 2a1.5 1.5 0 013 0v6M13 4a1.5 1.5 0 013 0v5M7 6a1.5 1.5 0 00-3 0v6l2 4h6l2-4V9"/>
           </svg>
         </button>
+        <button class="tr-btn" data-tool="lasso" title="لاسو [Q]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10 C4 5 16 5 16 10 C16 15 4 15 6 12 L3 9"/></svg>
+        </button>
 
+        <!-- ── GROUP 2: الخطوط ── -->
         <div class="tr-sep"></div>
-
-        <button class="tr-btn" data-tool="line"     title="خط [L]">
+        <div class="tr-group-label">خطوط</div>
+        <button class="tr-btn" data-tool="line" title="خط [L]">
           <svg viewBox="0 0 20 20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="17" x2="17" y2="3"/></svg>
         </button>
-        <button class="tr-btn" data-tool="rect"     title="مستطيل [R]">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="14" height="12" rx="1"/></svg>
+        <button class="tr-btn" data-tool="bezier" title="بيزير [B]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 16 C6 4 14 4 17 16"/><circle cx="3" cy="16" r="1.5" fill="currentColor"/><circle cx="17" cy="16" r="1.5" fill="currentColor"/></svg>
         </button>
-        <button class="tr-btn" data-tool="circle"   title="دائرة [C]">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/></svg>
+        <button class="tr-btn" data-tool="spline" title="سبلاين [K]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 14 C4 8 8 16 10 10 S16 4 18 8"/></svg>
         </button>
-        <button class="tr-btn" data-tool="ellipse"  title="بيضاوي [E]">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="10" cy="10" rx="8" ry="5"/></svg>
-        </button>
-        <button class="tr-btn" data-tool="arc"      title="قوس [A]">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 16 A9 9 0 0 1 17 16"/></svg>
-        </button>
-        <button class="tr-btn" data-tool="polygon"  title="مضلع [G]">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="10,2 17,6.5 17,13.5 10,18 3,13.5 3,6.5"/></svg>
-        </button>
-        <button class="tr-btn" data-tool="slot"     title="فتحة [S]">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="6" rx="3"/></svg>
-        </button>
-
-        <div class="tr-sep"></div>
-
-        <button class="tr-btn" data-tool="polyline" title="متعدد الأضلاع [P]">
+        <button class="tr-btn" data-tool="polyline" title="بولي خط [P]">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 6,8 10,12 14,5 18,9"/></svg>
         </button>
         <button class="tr-btn" data-tool="freehand" title="رسم حر [F]">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 14 C5 11 8 17 11 13 S15 8 18 10"/></svg>
         </button>
+
+        <!-- ── GROUP 3: أشكال أساسية ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">أشكال</div>
+        <button class="tr-btn" data-tool="rect" title="مستطيل [R]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="14" height="10" rx="0"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="rounded-rect" title="مستطيل مدوّر [U]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="14" height="10" rx="3"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="chamfer-rect" title="مستطيل مشطوف [J]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="6,5 14,5 17,8 17,12 14,15 6,15 3,12 3,8"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="circle" title="دائرة [C]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="ellipse" title="بيضاوي [E]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="10" cy="10" rx="8" ry="5"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="triangle" title="مثلث [T]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="10,3 18,17 2,17"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="polygon" title="مضلع [G]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="10,2 17,6.5 17,13.5 10,18 3,13.5 3,6.5"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="star" title="نجمة [Y]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="arrow" title="سهم [N]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><line x1="3" y1="10" x2="15" y2="10"/><polyline points="11,6 15,10 11,14"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="slot" title="فتحة [S]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="6" rx="3"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="donut" title="حلقة [D]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3.5"/></svg>
+        </button>
+
+        <!-- ── GROUP 4: منحنيات ومسارات ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">منحنيات</div>
+        <button class="tr-btn" data-tool="arc" title="قوس [A]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 16 A9 9 0 0 1 17 16"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="spiral" title="حلزون [I]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 10 C10 7 13 7 13 10 C13 14 7 14 7 10 C7 5 15 5 15 10 C15 16 4 16 4 10"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="wave" title="موجة [W]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 10 C4 6 6 14 8 10 S12 6 14 10 S18 6 18 10"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="zigzag" title="متعرج [Z]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,14 6,6 10,14 14,6 18,14"/></svg>
+        </button>
+
+        <!-- ── GROUP 5: هندسة CNC ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">هندسة</div>
+        <button class="tr-btn" data-tool="gear" title="تروس [O]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3l1 2.5h1L13 3h1.5l.5 2.5L17 7l-1.5 1L16 10l1.5.5L17 13l-2.5.5L13 16l.5 2-1 .5-1.5-2h-2l-1 2-1.5-.5L7 16l-2.5-.5L4 13l1.5-.5L6 10 4.5 8.5 5 7l2-1.5L7.5 3z"/><circle cx="10" cy="10" r="3"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="crosshair" title="علامة تمركز [X]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="5"/><line x1="10" y1="2" x2="10" y2="18"/><line x1="2" y1="10" x2="18" y2="10"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="dimension" title="قياس [M]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="13" x2="17" y2="13"/><line x1="3" y1="10" x2="3" y2="16"/><line x1="17" y1="10" x2="17" y2="16"/><line x1="10" y1="7" x2="10" y2="11"/></svg>
+        </button>
+
+        <!-- ── GROUP 6: الابتكار ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">ابتكار</div>
+        <button class="tr-btn" data-tool="honeycomb" title="خلايا النحل [1]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><polygon points="10,2 13.5,4 13.5,8 10,10 6.5,8 6.5,4"/><polygon points="4,10 7.5,12 7.5,16 4,18 0.5,16 0.5,12"/><polygon points="16,10 19.5,12 19.5,16 16,18 12.5,16 12.5,12"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="living-hinge" title="مفصل مرن [2]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="5" x2="15" y2="5"/><line x1="5" y1="8" x2="18" y2="8"/><line x1="2" y1="11" x2="15" y2="11"/><line x1="5" y1="14" x2="18" y2="14"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="finger-joint" title="وصلة أصابع [3]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polyline points="2,14 2,8 5,8 5,4 8,4 8,8 11,8 11,4 14,4 14,8 18,8 18,14"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="voronoi" title="نمط فورونوي [4]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="10,3 16,7 14,14 6,14 4,7"/><line x1="10" y1="3" x2="7" y2="10"/><line x1="16" y1="7" x2="7" y2="10"/><line x1="14" y1="14" x2="7" y2="10"/><line x1="6" y1="14" x2="13" y2="10"/><line x1="4" y1="7" x2="13" y2="10"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="maze" title="متاهة [5]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="2" width="16" height="16"/><polyline points="6,2 6,8 12,8 12,14 18,14"/><line x1="2" y1="6" x2="4" y2="6"/><line x1="4" y1="2" x2="4" y2="6"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="starburst" title="نجمة شعاعية [6]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="10" y1="10" x2="10" y2="2"/><line x1="10" y1="10" x2="16.9" y2="6"/><line x1="10" y1="10" x2="16.9" y2="14"/><line x1="10" y1="10" x2="10" y2="18"/><line x1="10" y1="10" x2="3.1" y2="14"/><line x1="10" y1="10" x2="3.1" y2="6"/><circle cx="10" cy="10" r="5"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="hatch" title="تظليل هاشير [7]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="14" height="14"/><line x1="3" y1="10" x2="10" y2="3"/><line x1="3" y1="14" x2="14" y2="3"/><line x1="6" y1="17" x2="17" y2="6"/><line x1="10" y1="17" x2="17" y2="10"/><line x1="14" y1="17" x2="17" y2="14"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="lattice" title="شبكة خفيفة [8]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="10" x2="10" y2="2"/><line x1="2" y1="18" x2="18" y2="2"/><line x1="10" y1="18" x2="18" y2="10"/><line x1="2" y1="14" x2="14" y2="2"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="wave-fill" title="تعبئة موجية [9]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 6 C4 4 6 8 8 6 S12 4 14 6 S18 4 18 6"/><path d="M2 10 C4 8 6 12 8 10 S12 8 14 10 S18 8 18 10"/><path d="M2 14 C4 12 6 16 8 14 S12 12 14 14 S18 12 18 14"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="tab-slot" title="وصلة تابس [0]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polyline points="2,16 2,10 5,10 5,6 8,6 8,10 12,10 12,6 15,6 15,10 18,10 18,16"/></svg>
+        </button>
+
       </div>
 
       <div class="canvas-area" id="canvas-area">
@@ -322,6 +515,16 @@
       <div class="sim-canvas-wrap" id="sim-canvas-wrap">
         <canvas id="sim-canvas"></canvas>
       </div>
+      <!-- 3D Toolpath View (Three.js — lazy loaded) -->
+      <div class="sim-canvas-wrap" id="sim3d-wrap" style="display:none;position:relative">
+        <div id="sim3d-canvas-host" style="position:absolute;inset:0"></div>
+        <div class="sim3d-hud">
+          <button class="sim-btn" id="sim3d-play" title="تشغيل المحاكاة">▶</button>
+          <button class="sim-btn" id="sim3d-fit"  title="ملاءمة العرض">⊞</button>
+          <span id="sim3d-progress">--</span>
+          <span class="sim3d-hint">سحب: تدوير · يمين: تحريك · عجلة: تكبير</span>
+        </div>
+      </div>
       <div class="sim-bottom">
         <div class="sim-legend">
           <span><span class="ld rapid"></span>تنقل</span>
@@ -334,6 +537,7 @@
           <button class="sim-btn" id="sim-step"  title="خطوة واحدة">⏭</button>
           <button class="sim-btn" id="sim-reset" title="إعادة للبداية">⏮</button>
           <button class="sim-btn" id="sim-fit"   title="ملاءمة الشاشة">⊞</button>
+          <button class="sim-btn" id="sim-3d-toggle" title="عرض ثلاثي الأبعاد">3D</button>
           <input type="range" id="sim-speed" min="1" max="500" value="60">
           <span id="sim-spd-lbl" class="sim-spd">×60</span>
         </div>
@@ -679,6 +883,55 @@
   </div>
 </dialog>
 
+<!-- ════ UPGRADE / PAYMENT DIALOG ════ -->
+<dialog id="dlg-upgrade" class="modal">
+  <button class="mdl-close" id="cls-upgrade">✕</button>
+  <h3>⭐ ترقية الاشتراك</h3>
+
+  <div class="plan-cards" id="plan-cards">
+    <button class="plan-card selected" data-plan="pro">
+      <div class="pc-name">احترافي</div>
+      <div class="pc-price">39,000 <small>د.ع/شهر</small></div>
+      <ul class="pc-feats">
+        <li>500 مهمة شهرياً</li>
+        <li>تحسين AI ×100</li>
+        <li>معالجة دفعات + Webhooks</li>
+      </ul>
+    </button>
+    <button class="plan-card" data-plan="enterprise">
+      <div class="pc-name">مؤسسي</div>
+      <div class="pc-price">265,000 <small>د.ع/شهر</small></div>
+      <ul class="pc-feats">
+        <li>مهام غير محدودة</li>
+        <li>AI غير محدود</li>
+        <li>تحليلات + نسخ احتياطي + API</li>
+      </ul>
+    </button>
+  </div>
+
+  <div class="pay-methods">
+    <div class="pm-label">اختر طريقة الدفع:</div>
+    <button class="pay-btn" id="pay-fib" data-method="fib">
+      <span class="pay-logo fib">FIB</span>
+      الدفع عبر تطبيق FIB
+    </button>
+    <button class="pay-btn" id="pay-card" data-method="card">
+      <span class="pay-logo visa">VISA</span><span class="pay-logo mc">MC</span>
+      بطاقة Visa / Mastercard
+    </button>
+  </div>
+
+  <div id="pay-status" class="pay-status" style="display:none">
+    <div class="spin" style="width:22px;height:22px"></div>
+    <span id="pay-status-msg">بانتظار إتمام الدفع…</span>
+  </div>
+  <div id="pay-qr-wrap" style="display:none;text-align:center;margin-top:10px">
+    <img id="pay-qr" alt="QR" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px">
+    <div id="pay-code" style="margin-top:6px;font-family:var(--font-mono);font-size:15px;color:var(--cyan)"></div>
+    <div style="font-size:11px;color:var(--text3)">امسح الرمز من تطبيق FIB أو أدخل الكود</div>
+  </div>
+</dialog>
+
 <!-- Toast -->
 <div id="toasts"></div>
 
@@ -697,11 +950,21 @@
 <script src="js/svg-parser.js"></script>
 <script src="js/image-tracer.js"></script>
 <script src="js/canvas-editor.js"></script>
+<script src="js/tools-extra.js"></script>
 <script src="js/gcode-preview.js"></script>
 <script src="js/simulator-3d.js"></script>
+<script src="js/simulator-three.js"></script>
 <script src="js/file-importer.js"></script>
 <script src="js/ui-controls.js"></script>
 <script src="js/machine-control.js"></script>
+<script src="js/tools-rail-flyout.js"></script>
+<script src="js/payments.js"></script>
 <script src="js/app.js"></script>
+<script>
+// PWA: تسجيل Service Worker للعمل دون اتصال
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
+</script>
 </body>
 </html>

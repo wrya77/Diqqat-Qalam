@@ -1,0 +1,16 @@
+{
+  "name": "دقة قلم — مولّد G-Code الاحترافي",
+  "short_name": "دقة قلم",
+  "description": "محرر تصميم ومولّد G-Code لآلات CNC — يعمل دون اتصال",
+  "dir": "rtl",
+  "lang": "ar",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0a0e14",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "/images/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
