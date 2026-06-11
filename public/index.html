@@ -77,11 +77,15 @@
       <div class="menu-drop">
         <button class="mi" data-act="view-zoom-in">تكبير <span class="mi-key">+</span></button>
         <button class="mi" data-act="view-zoom-out">تصغير <span class="mi-key">−</span></button>
+        <button class="mi" data-act="view-zoom-100">الحجم الفعلي 1:1</button>
         <button class="mi" data-act="view-fit">ملاءمة الشاشة</button>
         <div class="mi-sep"></div>
         <button class="mi" data-act="view-grid"  data-check="show-grid">الشبكة</button>
         <button class="mi" data-act="view-snap"  data-check="snap-grid">التقاط الشبكة</button>
         <button class="mi" data-act="view-osnap" data-check="snap-objects">التقاط الكائنات</button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="view-order">① أرقام تسلسل القطع</button>
+        <button class="mi" data-act="view-dir">➤ أسهم اتجاه القطع</button>
       </div>
     </div>
 
@@ -116,6 +120,14 @@
         <button class="mi" data-act="tr-scale">⇲ تغيير الحجم…</button>
         <button class="mi" data-act="tr-array">⊞ مصفوفة…</button>
         <button class="mi" data-act="tr-offset">⊚ إزاحة المسار…</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">تجهيز للقطع</div>
+        <button class="mi" data-act="cnc-nesting">▦ رصف على الخامة…</button>
+        <button class="mi" data-act="cnc-bolt">⚙ دائرة براغي…</button>
+        <button class="mi" data-act="cnc-join">⌁ دمج المسارات المحددة</button>
+        <button class="mi" data-act="cnc-centermark">✛ علامة مركز للمحدد</button>
+        <button class="mi" data-act="cnc-bbox">⬚ مستطيل إحاطة</button>
+        <button class="mi" data-act="cnc-unlock">🔓 فك قفل الكل</button>
       </div>
     </div>
 
@@ -399,6 +411,18 @@
       <button class="st-btn" id="st-array"    title="مصفوفة الأشكال">⊞</button>
       <button class="st-btn" id="st-offset"   title="إزاحة المسار (مخطط داخلي/خارجي)">⊚</button>
       <span class="st-sep"></span>
+      <button class="st-btn" id="st-rot90l"   title="تدوير 90° يسار">⟲</button>
+      <button class="st-btn" id="st-rot90r"   title="تدوير 90° يمين">⟳</button>
+      <button class="st-btn" id="st-fillet"   title="تدوير الزوايا (Fillet)">⌒</button>
+      <span class="st-sep"></span>
+      <button class="st-btn" id="st-tabs"     title="جسور تثبيت (تمنع طيران القطعة)">⊥</button>
+      <button class="st-btn" id="st-reverse"  title="عكس اتجاه القطع">⮂</button>
+      <button class="st-btn" id="st-startpoint" title="تحريك نقطة بداية القطع">◉</button>
+      <span class="st-sep"></span>
+      <button class="st-btn" id="st-lock"     title="قفل (يمنع التحريك بالخطأ)">🔒</button>
+      <button class="st-btn" id="st-disable"  title="تعطيل من G-Code">⊘</button>
+      <button class="st-btn" id="st-info"     title="معلومات وموضع دقيق">ⓘ</button>
+      <span class="st-sep"></span>
       <button class="st-btn st-danger" id="st-delete" title="حذف Del">🗑</button>
     </div>
 
@@ -492,6 +516,15 @@
         </button>
         <button class="tr-btn" data-tool="stairs" title="درج">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polyline points="2,16 2,12 6,12 6,8 10,8 10,4 14,4 14,2 18,2 18,16 2,16"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="double-arrow" title="سهم مزدوج">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><line x1="5" y1="10" x2="15" y2="10"/><polyline points="7,6 3,10 7,14"/><polyline points="13,6 17,10 13,14"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="frame" title="إطار">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="16" height="14"/><rect x="5.5" y="6.5" width="9" height="7"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="arc3" title="قوس بثلاث نقاط (3 نقرات)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 15 A9 8 0 0 1 17 15"/><circle cx="3" cy="15" r="1.6" fill="currentColor"/><circle cx="10" cy="7.4" r="1.6" fill="currentColor"/><circle cx="17" cy="15" r="1.6" fill="currentColor"/></svg>
         </button>
 
         <!-- ── GROUP 4: منحنيات ومسارات ── -->
@@ -997,6 +1030,80 @@
   </div>
 </dialog>
 
+<!-- ════ TABS / FILLET / NESTING / BOLT / INFO DIALOGS ════ -->
+<dialog id="dlg-tabs" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-tabs').close()">✕</button>
+  <h3>⊥ جسور التثبيت</h3>
+  <label>عدد الجسور<input type="number" id="tabs-count" value="4" min="2" max="20"></label>
+  <label>عرض الجسر (mm)<input type="number" id="tabs-width" value="5" min="0.5" max="50" step="0.5"></label>
+  <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">فجوات صغيرة تُبقي القطعة متصلة بالخامة فلا تطير عند نهاية القطع — تُكسر يدوياً بعد التشغيل</div>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-tabs-apply">⊥ تطبيق</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-tabs').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-fillet" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-fillet').close()">✕</button>
+  <h3>⌒ تدوير الزوايا</h3>
+  <label>نصف القطر (mm)<input type="number" id="fillet-radius" value="5" min="0.2" max="100" step="0.5"></label>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-fillet-apply">⌒ تطبيق</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-fillet').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-nesting" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-nesting').close()">✕</button>
+  <h3>▦ رصف على الخامة</h3>
+  <div style="display:flex;gap:8px">
+    <label style="flex:1">عرض الخامة (mm)<input type="number" id="nest-w" value="600" min="10"></label>
+    <label style="flex:1">طولها (mm)<input type="number" id="nest-h" value="400" min="10"></label>
+  </div>
+  <label>المسافة بين القطع (mm)<input type="number" id="nest-gap" value="5" min="0" step="0.5"></label>
+  <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">يرصّ الأشكال المحددة (أو الكل) تلقائياً لتقليل هدر الخامة</div>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-nesting-apply">▦ رصف</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-nesting').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-boltcircle" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-boltcircle').close()">✕</button>
+  <h3>⚙ دائرة براغي</h3>
+  <div style="display:flex;gap:8px">
+    <label style="flex:1">مركز X<input type="number" id="bolt-cx" value="50" step="0.5"></label>
+    <label style="flex:1">مركز Y<input type="number" id="bolt-cy" value="50" step="0.5"></label>
+  </div>
+  <div style="display:flex;gap:8px">
+    <label style="flex:1">عدد الثقوب<input type="number" id="bolt-n" value="6" min="2" max="60"></label>
+    <label style="flex:1">⌀ الدائرة (mm)<input type="number" id="bolt-d" value="60" min="1"></label>
+  </div>
+  <label>⌀ الثقب (mm)<input type="number" id="bolt-hole" value="6" min="0.2" step="0.5"></label>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-bolt-apply">⚙ إنشاء</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-boltcircle').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-shapeinfo" class="modal mini-modal">
+  <button class="mdl-close" onclick="document.getElementById('dlg-shapeinfo').close()">✕</button>
+  <h3>ⓘ معلومات الشكل</h3>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:8px">
+    النوع: <b id="si-type" style="color:var(--cyan)">--</b> ·
+    الأبعاد: <b id="si-w">--</b>×<b id="si-h">--</b>mm ·
+    طول المسار: <b id="si-len">--</b>mm
+  </div>
+  <div style="display:flex;gap:8px">
+    <label style="flex:1">الموضع X (mm)<input type="number" id="si-x" step="0.1"></label>
+    <label style="flex:1">الموضع Y (mm)<input type="number" id="si-y" step="0.1"></label>
+  </div>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="btn-si-apply">✓ تطبيق الموضع</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-shapeinfo').close()">إغلاق</button>
+  </div>
+</dialog>
+
 <!-- ════ TEXT ENGRAVING DIALOG ════ -->
 <dialog id="dlg-text" class="modal mini-modal">
   <button class="mdl-close" onclick="document.getElementById('dlg-text').close()">✕</button>
@@ -1146,6 +1253,7 @@
 <script src="js/tools-extra.js"></script>
 <script src="js/tools-pro.js"></script>
 <script src="js/tools-arrange.js"></script>
+<script src="js/tools-cnc.js"></script>
 <script src="js/menu-bar.js"></script>
 <script src="js/gcode-preview.js"></script>
 <script src="js/simulator-3d.js"></script>

@@ -816,8 +816,19 @@ app.post('/api/cnc/jog', requireAuthOrApiKey, async (req, res) => {
 io.on('connection', socket => {
   console.log('Client connected:', socket.id);
 
+  // حماية: حد معدل لكل اتصال + حد حجم الحمولة
+  let streamCalls = [];
   socket.on('generate-stream', async ({ shapes, config: rawConfig }) => {
     try {
+      const now = Date.now();
+      streamCalls = streamCalls.filter(t => now - t < 60000);
+      if (streamCalls.length >= 10) {
+        return socket.emit('stream-error', { error: 'تجاوزت حد الطلبات — انتظر دقيقة' });
+      }
+      streamCalls.push(now);
+      if (!Array.isArray(shapes) || shapes.length > 5000) {
+        return socket.emit('stream-error', { error: 'عدد الأشكال غير صالح (الحد 5000)' });
+      }
       const config = new MachineConfig(rawConfig).toObject();
       const opt    = new PathOptimizer(config);
       const gen    = new GCodeGenerator(config);

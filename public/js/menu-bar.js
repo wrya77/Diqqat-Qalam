@@ -31,10 +31,13 @@
     // عرض
     'view-zoom-in':  () => document.getElementById('btn-zoom-in')?.click(),
     'view-zoom-out': () => document.getElementById('btn-zoom-out')?.click(),
+    'view-zoom-100': () => ed()?.zoom100(),
     'view-fit':      () => document.getElementById('btn-zoom-fit')?.click(),
     'view-grid':     () => toggleCheck('show-grid'),
     'view-snap':     () => toggleCheck('snap-grid'),
     'view-osnap':    () => toggleCheck('snap-objects'),
+    'view-order':    () => ed()?.toggleCutOrder(),
+    'view-dir':      () => ed()?.toggleDirection(),
 
     // كائن
     'obj-precise':  () => document.getElementById('btn-precise')?.click(),
@@ -57,6 +60,12 @@
     'tr-scale':     () => document.getElementById('st-scale')?.click(),
     'tr-array':     () => document.getElementById('st-array')?.click(),
     'tr-offset':    () => document.getElementById('st-offset')?.click(),
+    'cnc-nesting':    () => document.getElementById('dlg-nesting')?.showModal(),
+    'cnc-bolt':       () => document.getElementById('dlg-boltcircle')?.showModal(),
+    'cnc-join':       () => ed()?.joinSelected(),
+    'cnc-centermark': () => ed()?.insertCenterMark(),
+    'cnc-bbox':       () => ed()?.insertBoundingBox(),
+    'cnc-unlock':     () => ed()?.unlockAll(),
 
     // أدوات
     'tool-validate': () => document.getElementById('btn-validate-gcode')?.click(),

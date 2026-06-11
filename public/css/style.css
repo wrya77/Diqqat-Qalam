@@ -211,6 +211,33 @@ body {
 }
 .tbtn:hover    { background: var(--bg3); color: var(--text); border-color: var(--border2); }
 
+/* ────────── DESIGN POLISH ────────── */
+/* حلقات تركيز موحدة لإمكانية الوصول */
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+input[type="number"]:focus, input[type="text"]:focus, select:focus {
+  border-color: var(--accent);
+}
+/* النوافذ المنبثقة: ظهور ناعم وخلفية ضبابية */
+dialog.modal {
+  animation: dlgIn .14s ease-out;
+}
+dialog.modal::backdrop {
+  background: rgba(2, 4, 8, .65);
+  backdrop-filter: blur(2px);
+}
+@keyframes dlgIn { from { opacity: 0; transform: translateY(6px) scale(.985); } to { opacity: 1; transform: none; } }
+/* أزرار شريط الشكل: حالة أوضح */
+.st-btn { transition: all var(--trans); }
+.st-btn:hover { transform: translateY(-1px); }
+/* تمييز أداة القياس "دقيق" */
+#btn-precise { color: var(--text2); }
+#btn-precise:hover { color: var(--accent-h); border-color: var(--accent); }
+/* شارة الحالة أوضح */
+.status-pill { font-weight: 500; letter-spacing: .2px; }
+
 /* ────────── UPGRADE / PAYMENTS ────────── */
 .upgrade-btn {
   background: linear-gradient(135deg, #d29922, #b8860b);

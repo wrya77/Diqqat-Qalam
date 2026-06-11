@@ -1,6 +1,12 @@
 /**
  * app.js — Diqqat Qalam — Main Application Coordinator
  */
+// تعقيم نص قبل حقنه في innerHTML — يمنع XSS من أسماء المشاريع/الأدوات
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
 class DiqqatQalamApp {
   constructor() {
     this.editor    = null;
@@ -386,14 +392,14 @@ class DiqqatQalamApp {
         row.className = 'tool-row';
         row.innerHTML = `
           <div class="tool-info">
-            <b>${tool.name}</b>
-            <span>⌀${tool.diameter}mm · ${tool.type} · ${tool.flutes} شفرات</span>
-            <span>${tool.notes || ''}</span>
+            <b>${esc(tool.name)}</b>
+            <span>⌀${esc(tool.diameter)}mm · ${esc(tool.type)} · ${esc(tool.flutes)} شفرات</span>
+            <span>${esc(tool.notes || '')}</span>
           </div>
           <div class="tool-actions">
-            <button class="tbtn primary" data-id="${tool.id}">✓ اختيار</button>
-            <button class="tbtn" data-edit="${tool.id}">✏</button>
-            <button class="tbtn danger" data-del="${tool.id}">🗑</button>
+            <button class="tbtn primary" data-id="${esc(tool.id)}">✓ اختيار</button>
+            <button class="tbtn" data-edit="${esc(tool.id)}">✏</button>
+            <button class="tbtn danger" data-del="${esc(tool.id)}">🗑</button>
           </div>`;
         // اختيار الأداة
         row.querySelector('[data-id]').addEventListener('click', () => {
@@ -490,12 +496,12 @@ class DiqqatQalamApp {
           const date = new Date(p.savedAt).toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
           row.innerHTML = `
             <div class="proj-info">
-              <b>${p.name}</b>
-              <span>${p.shapeCount} شكل · ${date}</span>
+              <b>${esc(p.name)}</b>
+              <span>${esc(p.shapeCount)} شكل · ${date}</span>
             </div>
             <div class="proj-actions">
-              <button class="tbtn primary" data-id="${p.id}">📂 فتح</button>
-              <button class="tbtn danger"  data-del="${p.id}">🗑</button>
+              <button class="tbtn primary" data-id="${esc(p.id)}">📂 فتح</button>
+              <button class="tbtn danger"  data-del="${esc(p.id)}">🗑</button>
             </div>`;
           row.querySelector('[data-id]').addEventListener('click', () => this._loadProject(p.id, dlg));
           row.querySelector('[data-del]').addEventListener('click', async () => {

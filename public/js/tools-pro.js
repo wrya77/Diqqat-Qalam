@@ -151,6 +151,21 @@
     document.getElementById('btn-text-ok')?.addEventListener('click', () => this._insertText());
   };
 
+  /* ── قلب مجموعة أشكال رأسياً حول مركزها المشترك ──
+     (لاستيراد SVG/الصور حيث المحور Y نازل بعكس عالم CNC) */
+  P.flipShapesY = function (shapes) {
+    if (!shapes || !shapes.length) return shapes;
+    let minY = Infinity, maxY = -Infinity;
+    for (const s of shapes) {
+      const b = this._bounds(s);
+      if (b.minY < minY) minY = b.minY;
+      if (b.maxY > maxY) maxY = b.maxY;
+    }
+    const cy = (minY + maxY) / 2;
+    for (const s of shapes) this._mirrorShape(s, 'v', 0, cy);
+    return shapes;
+  };
+
   /* ══════════════════════════════════════════════════════════
      1) OSNAP — التقاط نهايات/مراكز/منتصفات الأشكال
   ══════════════════════════════════════════════════════════ */

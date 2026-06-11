@@ -65,7 +65,8 @@ class FileImporter {
         const text = await file.text();
         const parser = new SVGParser();
         const shapes = parser.parse(text);
-        this.loaded = { type:'shapes', shapes, name:file.name };
+        // إحداثيات SVG محورها Y نازل — تُقلب عند الإدراج لتطابق عالم CNC
+        this.loaded = { type:'shapes', shapes, name:file.name, flipY:true };
         prev.textContent = `✅ تم التعرف على ${shapes.length} شكل من SVG`;
 
       } else if (ext==='dxf') {
@@ -103,8 +104,10 @@ class FileImporter {
 
     if (this.loaded.type === 'shapes') {
       if(!this.loaded.shapes.length){ this.app.toast('لا أشكال للاستيراد!','warn'); return; }
-      this.app.editor.addShapesFromSVG(this.loaded.shapes);
-      this.app.toast(`✅ تم استيراد ${this.loaded.shapes.length} شكل`, 'success');
+      let shapes = this.loaded.shapes;
+      if (this.loaded.flipY) shapes = this.app.editor.flipShapesY(shapes);
+      this.app.editor.addShapesFromSVG(shapes);
+      this.app.toast(`✅ تم استيراد ${shapes.length} شكل`, 'success');
 
     } else if (this.loaded.type === 'gcode') {
       this.app.setGCode(this.loaded.gcode);

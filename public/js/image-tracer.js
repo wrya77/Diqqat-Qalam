@@ -149,6 +149,9 @@ class ImageTracer {
   /* ── تحويل الحدود إلى أشكال مع التبسيط والتحجيم ── */
   _toShapes(contours, scaleMM, resizeRatio) {
     const s = scaleMM / resizeRatio; // تصحيح تقليص الصورة
+    // إحداثيات الصورة Y نازل بينما عالم CNC صاعد — اقلب رأسياً حول أعلى المحتوى
+    let maxY = 0;
+    for (const pts of contours) for (const p of pts) if (p.y > maxY) maxY = p.y;
     return contours.map(pts => {
       const simple = this._rdp(pts, this.simplify);
       const closed = simple.length > 3 &&
@@ -156,7 +159,7 @@ class ImageTracer {
                    simple[0].y - simple[simple.length-1].y) < 3;
       return {
         type: 'polyline',
-        points: simple.map(p => ({ x: p.x * s, y: p.y * s })),
+        points: simple.map(p => ({ x: p.x * s, y: (maxY - p.y) * s })),
         closed,
       };
     }).filter(s => s.points.length >= 2);
