@@ -43,9 +43,28 @@ class ToolpathGenerator {
       case 'polygon':  return this._genPolygon(shape, depth);
       case 'slot':     return this._genSlot(shape, depth);
       case 'polyline': return this._genPolyline(shape, depth);
+      case 'text':     return this._genText(shape, depth);
       default:
         return this.config.addComments ? [`; شكل غير مدعوم: ${shape.type}`] : [];
     }
+  }
+
+  // نقش نص — strokes: مصفوفة ضربات، كل ضربة نقاط mm نسبية إلى (x,y)
+  _genText(s, depth) {
+    if (!s.strokes || !s.strokes.length) return [];
+    const lines = [];
+    const feed = s.feedRate || this.config.feedRateXY;
+    if (this.config.addComments) lines.push(`; نقش نص: "${(s.text || '').slice(0, 40)}"`);
+    for (const stroke of s.strokes) {
+      if (!stroke || stroke.length < 2) continue;
+      lines.push(...this._rapidTo(s.x + stroke[0].x, s.y + stroke[0].y));
+      lines.push(...this._plunge(depth, s));
+      for (let i = 1; i < stroke.length; i++) {
+        lines.push(...this._feedTo(s.x + stroke[i].x, s.y + stroke[i].y, depth, '', feed));
+      }
+      lines.push(...this._retract());
+    }
+    return lines;
   }
 
   _genEllipse(s, depth) {

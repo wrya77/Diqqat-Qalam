@@ -69,6 +69,16 @@ const geometry = {
           minY: Math.min(...ys), maxY: Math.max(...ys),
         };
       }
+      case 'text': {
+        if (!shape.strokes || !shape.strokes.length)
+          return { minX: shape.x, maxX: shape.x, minY: shape.y, maxY: shape.y };
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const st of shape.strokes) for (const p of st) {
+          if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+        }
+        return { minX: shape.x + minX, maxX: shape.x + maxX, minY: shape.y + minY, maxY: shape.y + maxY };
+      }
       default:
         return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
     }
@@ -102,6 +112,10 @@ const geometry = {
         return shape.points && shape.points.length > 0
           ? { x: shape.points[0].x, y: shape.points[0].y }
           : { x: 0, y: 0 };
+      case 'text': {
+        const st = shape.strokes && shape.strokes[0];
+        return st && st.length ? { x: shape.x + st[0].x, y: shape.y + st[0].y } : { x: shape.x || 0, y: shape.y || 0 };
+      }
       default:
         return { x: 0, y: 0 };
     }
@@ -120,6 +134,13 @@ const geometry = {
         return shape.closed || shape.points.length === 0
           ? shape.points[0]
           : shape.points[shape.points.length - 1];
+      case 'text': {
+        const sts = shape.strokes || [];
+        const st  = sts[sts.length - 1];
+        return st && st.length
+          ? { x: shape.x + st[st.length - 1].x, y: shape.y + st[st.length - 1].y }
+          : { x: shape.x || 0, y: shape.y || 0 };
+      }
       default:
         return { x: 0, y: 0 };
     }
@@ -150,6 +171,15 @@ const geometry = {
         if (shape.closed && shape.points.length > 2) {
           const last = shape.points[shape.points.length - 1];
           len += this.distance(last.x, last.y, shape.points[0].x, shape.points[0].y);
+        }
+        return len;
+      }
+      case 'text': {
+        let len = 0;
+        for (const st of (shape.strokes || [])) {
+          for (let i = 1; i < st.length; i++) {
+            len += this.distance(st[i - 1].x, st[i - 1].y, st[i].x, st[i].y);
+          }
         }
         return len;
       }

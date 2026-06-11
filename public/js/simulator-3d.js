@@ -213,7 +213,7 @@ class GCodeSimulator {
       }
     }
 
-    if (!isFinite(minX)) { this.scale = 3; this.pan = { x: 40, y: 40 }; return; }
+    if (!isFinite(minX)) { this.scale = 3; this.pan = { x: 40, y: (this.canvas.height || 400) - 40 }; return; }
 
     const pad   = 40;
     const cw    = this.canvas.width  - pad * 2;
@@ -224,11 +224,11 @@ class GCodeSimulator {
     this.scale  = Math.min(cw / dw, ch / dh) * 0.9;
     this.scale  = Math.max(0.5, Math.min(this.scale, 500));
 
-    // Center (no Y-flip)
+    // توسيط مع Y صاعد: أعلى قيمة Y تظهر في الأعلى
     const drawW = dw * this.scale;
     const drawH = dh * this.scale;
     this.pan.x  = (this.canvas.width  - drawW) / 2 - minX * this.scale;
-    this.pan.y  = (this.canvas.height - drawH) / 2 - minY * this.scale;
+    this.pan.y  = (this.canvas.height - drawH) / 2 + maxY * this.scale;
   }
 
   // ── Main render: draw grid + moves[0..n] ───────────────────────────────────
@@ -302,9 +302,8 @@ class GCodeSimulator {
     if (isFullCircle) {
       c2.arc(cv.x, cv.y, rs, 0, Math.PI * 2);
     } else {
-      // No Y-flip: angles are same as world coords
-      // G02 (ccw=false) → canvas anticlockwise=true (visually CCW = math CW in Y-down)
-      c2.arc(cv.x, cv.y, rs, sa, ea, !ccw);
+      // Y صاعد على الشاشة: زوايا العالم تُعكس إشارتها واتجاه الدوران يُعكس بصرياً
+      c2.arc(cv.x, cv.y, rs, -sa, -ea, ccw);
     }
     c2.stroke();
   }
@@ -344,11 +343,11 @@ class GCodeSimulator {
     return pts;
   }
 
-  // World → Screen (no Y-flip — matches canvas editor coordinate system)
+  // World → Screen — المحور Y صاعد كما في آلات CNC (يطابق محرر الرسم)
   _w2s(wx, wy) {
     return {
       x: wx * this.scale + this.pan.x,
-      y: wy * this.scale + this.pan.y,
+      y: this.pan.y - wy * this.scale,
     };
   }
 
@@ -382,10 +381,10 @@ class GCodeSimulator {
       ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, canvas.height); ctx.stroke();
     }
 
-    // Horizontal (no Y-flip)
-    const startYworld = Math.floor(-pan.y / scale / worldStep) * worldStep;
-    for (let wy = startYworld; wy * scale + pan.y < canvas.height + minorStep; wy += worldStep) {
-      const sy = wy * scale + pan.y;
+    // Horizontal — Y صاعد: المرئي من (pan.y - H)/scale إلى pan.y/scale
+    const startYworld = Math.floor((pan.y - canvas.height) / scale / worldStep) * worldStep;
+    for (let wy = startYworld; pan.y - wy * scale > -minorStep; wy += worldStep) {
+      const sy = pan.y - wy * scale;
       ctx.strokeStyle = (Math.round(wy / worldStep) % 5 === 0) ? this.colors.grid2 : this.colors.grid;
       ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(canvas.width, sy); ctx.stroke();
     }

@@ -57,6 +57,11 @@ class CanvasEditor {
     if (this.canvas.width === w && this.canvas.height === h) return;
     this.canvas.width  = w;
     this.canvas.height = h;
+    // أول تهيئة: ضع نقطة الصفر أسفل-يسار كما في آلات CNC
+    if (!this._originInit) {
+      this.offset.y = h - 60;
+      this._originInit = true;
+    }
     this.render();
   }
 
@@ -105,9 +110,11 @@ class CanvasEditor {
     });
   }
 
-  /* ────────── COORDINATE UTILS ────────── */
-  _sToW(sx, sy) { return { x:(sx-this.offset.x)/this.scale, y:(sy-this.offset.y)/this.scale }; }
-  _wToS(wx, wy) { return { x:wx*this.scale+this.offset.x,  y:wy*this.scale+this.offset.y }; }
+  /* ────────── COORDINATE UTILS ──────────
+     عرض CNC قياسي: المحور Y صاعد، نقطة الصفر أسفل-يسار —
+     ما تراه على الشاشة يطابق اتجاه القطعة على الآلة */
+  _sToW(sx, sy) { return { x:(sx-this.offset.x)/this.scale, y:(this.offset.y-sy)/this.scale }; }
+  _wToS(wx, wy) { return { x:wx*this.scale+this.offset.x,  y:this.offset.y-wy*this.scale }; }
 
   _snap(pt) {
     if (!this.snapGrid) return pt;
@@ -734,7 +741,7 @@ class CanvasEditor {
       case 'rect': { const p=this._wToS(s.x,s.y); ctx.rect(p.x,p.y,s.w*this.scale,s.h*this.scale); break; }
       case 'circle': { const c=this._wToS(s.cx,s.cy); ctx.arc(c.x,c.y,s.r*this.scale,0,Math.PI*2); break; }
       case 'ellipse': { const c=this._wToS(s.cx,s.cy); ctx.ellipse(c.x,c.y,(s.rx||1)*this.scale,(s.ry||1)*this.scale,0,0,Math.PI*2); break; }
-      case 'arc': { const c=this._wToS(s.cx,s.cy); ctx.arc(c.x,c.y,s.r*this.scale,s.startAngle,s.endAngle,!s.clockwise); break; }
+      case 'arc': { const c=this._wToS(s.cx,s.cy); ctx.arc(c.x,c.y,s.r*this.scale,-s.startAngle,-s.endAngle,s.clockwise); break; }
       case 'polygon': {
         if(!s.points||s.points.length<3) break;
         const p0=this._wToS(s.points[0].x,s.points[0].y); ctx.moveTo(p0.x,p0.y);
@@ -795,7 +802,7 @@ class CanvasEditor {
       case 'rect': { const p=this._wToS(Math.min(start.x,end.x),Math.min(start.y,end.y)); ctx.beginPath();ctx.strokeRect(p.x,p.y,Math.abs(end.x-start.x)*this.scale,Math.abs(end.y-start.y)*this.scale); break; }
       case 'circle': { const c=this._wToS(start.x,start.y); ctx.beginPath();ctx.arc(c.x,c.y,Math.hypot(end.x-start.x,end.y-start.y)*this.scale,0,Math.PI*2);ctx.stroke(); break; }
       case 'ellipse': { const c=this._wToS(start.x,start.y),rx=Math.abs(end.x-start.x)*this.scale,ry=Math.abs(end.y-start.y)*this.scale; if(rx>0.1&&ry>0.1){ctx.beginPath();ctx.ellipse(c.x,c.y,rx,ry,0,0,Math.PI*2);ctx.stroke();} break; }
-      case 'arc': { const c=this._wToS(start.x,start.y); ctx.beginPath();ctx.arc(c.x,c.y,Math.hypot(end.x-start.x,end.y-start.y)*this.scale,0,Math.PI*1.5);ctx.stroke(); break; }
+      case 'arc': { const c=this._wToS(start.x,start.y); ctx.beginPath();ctx.arc(c.x,c.y,Math.hypot(end.x-start.x,end.y-start.y)*this.scale,0,-Math.PI*1.5,true);ctx.stroke(); break; }
       case 'polygon': {
         const r=Math.hypot(end.x-start.x,end.y-start.y)*this.scale,cs=this._wToS(start.x,start.y),sides=this.polygonSides;
         ctx.beginPath();
@@ -889,7 +896,7 @@ class CanvasEditor {
     this.shapes.forEach(s=>{ const b=this._bounds(s); minX=Math.min(minX,b.minX);maxX=Math.max(maxX,b.maxX);minY=Math.min(minY,b.minY);maxY=Math.max(maxY,b.maxY); });
     const pad=50,W=this.canvas.width-2*pad,H=this.canvas.height-2*pad;
     this.scale=Math.min(W/((maxX-minX)||1),H/((maxY-minY)||1),20);
-    this.offset.x=pad-minX*this.scale;this.offset.y=pad-minY*this.scale;
+    this.offset.x=pad-minX*this.scale;this.offset.y=pad+maxY*this.scale;
     this.render();
   }
 
