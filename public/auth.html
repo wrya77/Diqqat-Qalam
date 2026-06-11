@@ -253,11 +253,14 @@
     <!-- ═══ EMAIL SENT SUCCESS ═══ -->
     <div class="success-panel" id="panel-email-sent">
       <span class="icon">📬</span>
-      <p>تم الإرسال!<br>راجع بريدك الإلكتروني<br>
+      <p>تم إنشاء الحساب!<br>أرسلنا رابط التفعيل إلى:<br>
         <span class="email-sent" id="sent-email-addr"></span>
       </p>
+      <p style="font-size:12px;color:#d29922;margin-top:10px">
+        ⚠ إن لم تجد الرسالة خلال دقيقتين، تفقد مجلد <b>Spam / غير المرغوب</b>
+      </p>
       <br>
-      <div class="auth-sub" style="margin-top:12px">
+      <div class="auth-sub" style="margin-top:8px">
         <a onclick="switchTab('signin')">← العودة لتسجيل الدخول</a>
       </div>
     </div>
@@ -551,6 +554,21 @@ window.addEventListener('DOMContentLoaded', () => {
     checkSession();
   }
 });
+
+// أخفِ أزرار Google إن كان المزوّد غير مفعّل في Supabase — زر لا يعمل أسوأ من لا زر
+(async () => {
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    if (!cfg.supabaseUrl || !cfg.supabaseKey) return;
+    const s = await fetch(cfg.supabaseUrl + '/auth/v1/settings', {
+      headers: { apikey: cfg.supabaseKey },
+    }).then(r => r.json());
+    if (!s?.external?.google) {
+      document.querySelectorAll('.btn-google').forEach(b => { b.style.display = 'none'; });
+      document.querySelectorAll('.or-divider, .divider').forEach(d => { d.style.display = 'none'; });
+    }
+  } catch (e) { /* تجاهل — الأزرار تبقى كما هي */ }
+})();
 </script>
 </body>
 </html>

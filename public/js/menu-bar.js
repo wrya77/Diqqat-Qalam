@@ -10,7 +10,7 @@
   /* سجل الإجراءات: اسم → دالة */
   const ACTIONS = {
     // ملف
-    'file-new':     () => { if (confirm('مسح التصميم الحالي بالكامل؟')) document.getElementById('btn-clear')?.click(); },
+    'file-new':     () => window.app?.newProject(),
     'file-open':    () => document.getElementById('btn-load-project')?.click(),
     'file-save':    () => document.getElementById('btn-save-project')?.click(),
     'file-import':  () => document.getElementById('btn-import')?.click(),
@@ -66,6 +66,18 @@
     'cnc-centermark': () => ed()?.insertCenterMark(),
     'cnc-bbox':       () => ed()?.insertBoundingBox(),
     'cnc-unlock':     () => ed()?.unlockAll(),
+
+    // تأثيرات
+    'fx-wave':      () => ed()?.applyEffect('wave'),
+    'fx-roughen':   () => ed()?.applyEffect('roughen'),
+    'fx-smooth':    () => ed()?.applyEffect('smooth'),
+    'fx-simplify':  () => ed()?.applyEffect('simplify'),
+    'fx-perforate': () => ed()?.applyEffect('perforate'),
+    'fx-twirl':     () => ed()?.applyEffect('twirl'),
+    'fx-bloat':     () => ed()?.applyEffect('bloat'),
+    'fx-stair':     () => ed()?.applyEffect('stair'),
+    'fx-hatchfill': () => ed()?.applyEffect('hatchfill'),
+    'fx-shadow':    () => ed()?.applyEffect('shadow'),
 
     // أدوات
     'tool-validate': () => document.getElementById('btn-validate-gcode')?.click(),

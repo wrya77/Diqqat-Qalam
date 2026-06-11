@@ -43,11 +43,47 @@ class ImageTracer {
     }
   }
 
+  /* ── عتبة Otsu التلقائية: تفصل المقدمة عن الخلفية إحصائياً ── */
+  computeOtsu(imgEl) {
+    const MAX = 400;
+    let w = imgEl.naturalWidth || imgEl.width, h = imgEl.naturalHeight || imgEl.height;
+    const r = Math.min(MAX / w, MAX / h, 1);
+    w = Math.round(w * r); h = Math.round(h * r);
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    const ctx = off.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+
+    const hist = new Float64Array(256);
+    const n = w * h;
+    for (let i = 0; i < n; i++) {
+      const o = i * 4;
+      hist[Math.round(0.299 * d[o] + 0.587 * d[o+1] + 0.114 * d[o+2])]++;
+    }
+    let sum = 0;
+    for (let t = 0; t < 256; t++) sum += t * hist[t];
+
+    let sumB = 0, wB = 0, best = 128, maxVar = 0;
+    for (let t = 0; t < 256; t++) {
+      wB += hist[t];
+      if (!wB) continue;
+      const wF = n - wB;
+      if (!wF) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB, mF = (sum - sumB) / wF;
+      const v = wB * wF * (mB - mF) ** 2;
+      if (v > maxVar) { maxVar = v; best = t; }
+    }
+    return best;
+  }
+
   /* ── نقطة الدخول الرئيسية ── */
   trace(imgEl, opts = {}) {
     this.threshold = opts.threshold ?? 128;
     this.simplify  = opts.simplify  ?? 1.5;
     this.invert    = opts.invert    ?? false;
+    this.blur      = opts.smooth    ?? true;
 
     const MAX = 1000;
     let w = imgEl.naturalWidth  || imgEl.width;

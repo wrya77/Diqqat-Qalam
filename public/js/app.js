@@ -39,9 +39,49 @@ class DiqqatQalamApp {
   _bindMain() {
     document.getElementById('btn-generate')?.addEventListener('click', ()=>this.generate());
     document.getElementById('btn-simulate')?.addEventListener('click', ()=>this.simulate());
-    document.getElementById('btn-clear')?.addEventListener('click',    ()=>{ this.editor.clear(); this.toast('تم المسح','info'); });
-    document.getElementById('btn-undo')?.addEventListener('click',     ()=>this.editor.undo());
-    document.getElementById('btn-redo')?.addEventListener('click',     ()=>this.editor.redo());
+    document.getElementById('btn-clear')?.addEventListener('click',    ()=>{ this.editor.clear(); this.resetOutputs(); this.toast('تم المسح','info'); });
+    document.getElementById('btn-undo')?.addEventListener('click',     ()=>{
+      if (!this.editor.history.length) { this.toast('لا شيء للتراجع عنه','info'); return; }
+      this.editor.undo();
+    });
+    document.getElementById('btn-redo')?.addEventListener('click',     ()=>{
+      if (!this.editor.redoStack.length) { this.toast('لا شيء للإعادة','info'); return; }
+      this.editor.redo();
+    });
+
+    // إجراءات سريعة جديدة في الشريط الرئيسي — مع رسائل توضيحية
+    const needSel = () => {
+      if (this.editor.selectedIdx < 0 && !this.editor.msel?.size) { this.toast('حدد شكلاً أولاً (انقر عليه أو Ctrl+A)','warn'); return false; }
+      return true;
+    };
+    document.getElementById('btn-copy')?.addEventListener('click',      ()=>{ if (needSel()) { this.editor._copy(); this.toast('📋 نُسخ','info'); } });
+    document.getElementById('btn-paste')?.addEventListener('click',     ()=>{
+      if (!this.editor._clipboard) { this.toast('لا شيء في الحافظة — انسخ شكلاً أولاً','warn'); return; }
+      this.editor._paste();
+    });
+    document.getElementById('btn-duplicate')?.addEventListener('click', ()=>{ if (needSel()) this.editor._duplicate(); });
+    document.getElementById('btn-delete')?.addEventListener('click',    ()=>{ if (needSel()) this.editor._deleteSelected(); });
+    document.getElementById('btn-select-all')?.addEventListener('click',()=>{
+      if (!this.editor.shapes.length) { this.toast('اللوحة فارغة','info'); return; }
+      this.editor.selectAll();
+    });
+    document.getElementById('btn-fit')?.addEventListener('click',       ()=>this.editor.fitToView());
+
+    // مشروع جديد — نافذة الخيارات الثلاثة
+    document.getElementById('np-save')?.addEventListener('click',    async ()=>{
+      document.getElementById('dlg-newproj')?.close();
+      const name = document.getElementById('save-project-name')?.value?.trim()
+                || 'مشروع ' + new Date().toLocaleString('ar-IQ');
+      const nameEl = document.getElementById('save-project-name');
+      if (nameEl) nameEl.value = name;
+      await this._saveProject();
+      this._startFresh();
+    });
+    document.getElementById('np-discard')?.addEventListener('click', ()=>{
+      document.getElementById('dlg-newproj')?.close();
+      this._startFresh();
+    });
+    document.getElementById('np-cancel')?.addEventListener('click',  ()=>document.getElementById('dlg-newproj')?.close());
     document.getElementById('btn-validate-gcode')?.addEventListener('click', ()=>this.validateGCode());
     document.getElementById('btn-pocket-toggle')?.addEventListener('click',  ()=>this._togglePocketMode());
     this._bindImageTrace();
@@ -621,6 +661,7 @@ class DiqqatQalamApp {
     const simplify  = parseFloat(document.getElementById('trace-simplify')?.value || '1.5');
     const widthMM   = parseFloat(document.getElementById('trace-width-mm')?.value || '100');
     const invert    = document.getElementById('trace-invert')?.checked || false;
+    const smooth    = document.getElementById('trace-smooth')?.checked !== false;
 
     const img = this._traceImg;
     const scale = widthMM / img.naturalWidth; // mm per pixel
@@ -633,7 +674,7 @@ class DiqqatQalamApp {
       try {
         const tracer = new window.ImageTracer();
         const t0 = performance.now();
-        const shapes = tracer.trace(img, { threshold, simplify, invert, scale });
+        const shapes = tracer.trace(img, { threshold, simplify, invert, scale, smooth });
         const ms = Math.round(performance.now() - t0);
 
         this._tracedShapes = shapes;
@@ -713,6 +754,55 @@ class DiqqatQalamApp {
       });
     });
     document.getElementById('trace-width-mm')?.addEventListener('change', () => { if (this._traceImg) rerun(); });
+    document.getElementById('trace-smooth')?.addEventListener('change', () => { if (this._traceImg) rerun(); });
+
+    // عتبة Otsu التلقائية — تحلل الصورة وتختار العتبة المثلى إحصائياً
+    document.getElementById('btn-trace-auto')?.addEventListener('click', () => {
+      if (!this._traceImg) { this.toast('اختر صورة أولاً', 'warn'); return; }
+      const t = new window.ImageTracer().computeOtsu(this._traceImg);
+      const slider = document.getElementById('trace-threshold');
+      const lbl    = document.getElementById('trace-threshold-val');
+      if (slider) slider.value = t;
+      if (lbl) lbl.textContent = t;
+      this.toast(`✨ العتبة المثلى: ${t}`, 'success');
+      this._runTrace();
+    });
+  }
+
+  /* ══ تصفير المخرجات (G-Code + المحاكاة) عند مسح/تجديد التصميم ══ */
+  resetOutputs() {
+    this.gcode = '';
+    try { this.preview.display(''); } catch (e) {}
+    try { this.simulator.load(''); } catch (e) {}
+    const ph = document.getElementById('gc-placeholder');
+    if (ph) ph.style.display = '';
+    ['st-time','st-xy','st-z','st-moves','st-lifts','st-passes','st-lines','st-saving']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '--'; });
+  }
+
+  /* ══ مشروع جديد — احترافي: خيار حفظ قبل البدء ══ */
+  newProject() {
+    if (this.editor.shapes.length) {
+      document.getElementById('dlg-newproj')?.showModal();
+    } else {
+      this._startFresh();
+    }
+  }
+
+  _startFresh() {
+    this.editor._saveHistory();
+    this.editor.shapes = [];
+    this.editor.selectedIdx = -1;
+    this.editor.msel?.clear();
+    this.editor._updateShapeToolbar();
+    this.editor.render();
+    this.editor._updateStatus();
+    this.resetOutputs();
+    localStorage.removeItem('dq_autosave');
+    const nameEl = document.getElementById('save-project-name');
+    if (nameEl) nameEl.value = '';
+    this.controls.setStatus('جاهز');
+    this.toast('📄 مشروع جديد — السابق في التراجع Ctrl+Z إن احتجته', 'info');
   }
 
   /* ══ POCKET MODE ══ */

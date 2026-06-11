@@ -19,8 +19,18 @@
 <body>
 
 <!-- Auth Gate — removed by supabase-auth.js once session is confirmed -->
-<div id="_auth-gate" style="position:fixed;inset:0;background:#07090f;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .4s ease">
-  <img src="/images/logo.png" alt="Diqqat Qalam" style="height:52px;width:auto;filter:brightness(0) invert(1)">
+<div id="_auth-gate" style="position:fixed;inset:0;background:#07090f;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .4s ease">
+  <svg viewBox="0 0 64 64" width="72" height="72" aria-hidden="true">
+    <defs><linearGradient id="dqgGate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/>
+    </linearGradient></defs>
+    <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#dqgGate)"/>
+    <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#ffffff"/>
+    <path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
+    <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
+    <path d="M13 53 Q23 45 32 50 T 51 53" stroke="#ffffff" stroke-opacity=".5" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </svg>
+  <div style="font-family:'Tajawal',sans-serif;font-size:21px;color:#e6edf3">دقة <b style="color:#79c0ff">قلم</b></div>
   <div id="_gate-msg" style="font-size:13px;color:#8b949e;font-family:'Tajawal',sans-serif">جاري التحقق من الهوية…</div>
   <div style="width:36px;height:36px;border:3px solid #21262d;border-top-color:#2f81f7;border-radius:50%;animation:_ag_spin .75s linear infinite"></div>
   <style>@keyframes _ag_spin{to{transform:rotate(360deg)}}</style>
@@ -29,12 +39,15 @@
 <!-- ═══ TOOLBAR — شعار + قوائم + إجراءات رئيسية ═══ -->
 <header class="toolbar">
   <a href="/" class="logo" title="دقة قلم — Diqqat Qalam">
-    <svg class="logo-mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true">
-      <path d="M256 88 L324 256 L256 424 L188 256 Z" fill="#2f81f7"/>
-      <path d="M256 88 L324 256 L256 296 L188 256 Z" fill="#58a6ff"/>
-      <circle cx="256" cy="256" r="26" fill="#0d1117"/>
-      <circle cx="256" cy="256" r="26" fill="none" stroke="#79c0ff" stroke-width="14"/>
-      <path d="M96 368 Q176 320 256 368 T416 368" fill="none" stroke="#3fb950" stroke-width="26" stroke-linecap="round"/>
+    <svg class="logo-mark" viewBox="0 0 64 64" width="27" height="27" aria-hidden="true">
+      <defs><linearGradient id="dqgHead" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/>
+      </linearGradient></defs>
+      <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#dqgHead)"/>
+      <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#ffffff"/>
+      <path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
+      <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
+      <path d="M13 53 Q23 45 32 50 T 51 53" stroke="#ffffff" stroke-opacity=".5" stroke-width="3" fill="none" stroke-linecap="round"/>
     </svg>
     <span class="logo-name">دقة <b>قلم</b></span>
   </a>
@@ -132,6 +145,27 @@
     </div>
 
     <div class="menu">
+      <button class="menu-btn">تأثيرات</button>
+      <div class="menu-drop">
+        <div class="mi-label">تشويه فني</div>
+        <button class="mi" data-act="fx-wave">〰 تموج</button>
+        <button class="mi" data-act="fx-roughen">〜 خشونة</button>
+        <button class="mi" data-act="fx-twirl">🌀 دوامة</button>
+        <button class="mi" data-act="fx-bloat">◯ انتفاخ</button>
+        <button class="mi" data-act="fx-stair">▤ تدريج</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">تحسين المسار</div>
+        <button class="mi" data-act="fx-smooth">∿ تنعيم</button>
+        <button class="mi" data-act="fx-simplify">⌇ تبسيط النقاط</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">للقطع والنقش</div>
+        <button class="mi" data-act="fx-perforate">┄ تخريم (قص متقطع)</button>
+        <button class="mi" data-act="fx-hatchfill">▨ تعبئة هاشير</button>
+        <button class="mi" data-act="fx-shadow">⧉ ظل مزدوج</button>
+      </div>
+    </div>
+
+    <div class="menu">
       <button class="menu-btn">أدوات</button>
       <div class="menu-drop">
         <button class="mi" data-act="tool-validate">التحقق من G-Code</button>
@@ -151,6 +185,19 @@
     <svg class="ti" viewBox="0 0 16 16"><path d="M6.5 3.5L3 7l3.5 3.5"/><path d="M3 7h6a4 4 0 014 4v1.5"/></svg></button>
   <button class="tbtn icon-only" id="btn-redo"  title="إعادة Ctrl+Y">
     <svg class="ti" viewBox="0 0 16 16"><path d="M9.5 3.5L13 7l-3.5 3.5"/><path d="M13 7H7a4 4 0 00-4 4v1.5"/></svg></button>
+  <span class="tbtn-div"></span>
+  <button class="tbtn icon-only" id="btn-select-all" title="تحديد الكل Ctrl+A">
+    <svg class="ti" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke-dasharray="3 2"/><path d="M5.5 8l2 2 3.5-4"/></svg></button>
+  <button class="tbtn icon-only" id="btn-copy" title="نسخ Ctrl+C">
+    <svg class="ti" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 00-1.5-1.5H4A1.5 1.5 0 002.5 4v5A1.5 1.5 0 004 10.5h1.5"/></svg></button>
+  <button class="tbtn icon-only" id="btn-paste" title="لصق Ctrl+V">
+    <svg class="ti" viewBox="0 0 16 16"><rect x="3.5" y="3" width="9" height="11" rx="1.5"/><rect x="5.5" y="1.5" width="5" height="3" rx="1"/><path d="M6 8h4M6 10.5h4"/></svg></button>
+  <button class="tbtn icon-only" id="btn-duplicate" title="تكرار Ctrl+D">
+    <svg class="ti" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="7" height="7" rx="1.5"/><rect x="6.5" y="6.5" width="7" height="7" rx="1.5"/></svg></button>
+  <button class="tbtn icon-only" id="btn-delete" title="حذف المحدد Del">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M3 4.5h10M5.5 4.5V3a1 1 0 011-1h3a1 1 0 011 1v1.5M4.5 4.5l.7 8.5a1 1 0 001 1h3.6a1 1 0 001-1l.7-8.5"/></svg></button>
+  <button class="tbtn icon-only" id="btn-fit" title="ملاءمة الشاشة">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M2 6V3.5A1.5 1.5 0 013.5 2H6M10 2h2.5A1.5 1.5 0 0114 3.5V6M14 10v2.5a1.5 1.5 0 01-1.5 1.5H10M6 14H3.5A1.5 1.5 0 012 12.5V10"/></svg></button>
   <span class="tbtn-div"></span>
   <button class="tbtn primary" id="btn-generate">
     <svg class="ti" viewBox="0 0 16 16"><path d="M9 1.5L3 9h4l-1 5.5L12 7H8z"/></svg>
@@ -939,6 +986,11 @@
           <span>العتبة (Threshold)</span>
           <input type="range" id="trace-threshold" min="0" max="255" value="128">
           <span class="trace-val" id="trace-threshold-val">128</span>
+          <button class="btn-sec" id="btn-trace-auto" title="تحليل الصورة واختيار العتبة المثلى (Otsu)" style="padding:3px 10px;font-size:11px">✨ تلقائي</button>
+        </label>
+        <label class="toggle-row" style="padding:0;margin-top:2px">
+          <input type="checkbox" id="trace-smooth" checked>
+          <span>تنعيم الضجيج (يحذف النقاط المتناثرة)</span>
         </label>
         <label class="trace-ctrl-row">
           <span>تبسيط المسار</span>
@@ -1028,6 +1080,20 @@
   <div class="mdl-foot">
     <button class="btn-pri" id="btn-array-apply">⊞ إنشاء</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-array').close()">إلغاء</button>
+  </div>
+</dialog>
+
+<!-- ════ NEW PROJECT DIALOG ════ -->
+<dialog id="dlg-newproj" class="modal mini-modal">
+  <button class="mdl-close" id="np-cancel-x" onclick="document.getElementById('dlg-newproj').close()">✕</button>
+  <h3>📄 مشروع جديد</h3>
+  <p style="font-size:13px;color:var(--text2);margin:6px 0 14px">
+    لديك تصميم مفتوح — ماذا تريد أن تفعل به؟
+  </p>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn-pri" id="np-save">💾 حفظ المشروع ثم البدء بجديد</button>
+    <button class="btn-sec" id="np-discard">📄 بدء جديد بدون حفظ</button>
+    <button class="btn-cnl" id="np-cancel">إلغاء — البقاء على الحالي</button>
   </div>
 </dialog>
 
@@ -1255,6 +1321,8 @@
 <script src="js/tools-pro.js"></script>
 <script src="js/tools-arrange.js"></script>
 <script src="js/tools-cnc.js"></script>
+<script src="js/tools-transform.js"></script>
+<script src="js/tools-effects.js"></script>
 <script src="js/menu-bar.js"></script>
 <script src="js/gcode-preview.js"></script>
 <script src="js/simulator-3d.js"></script>
@@ -1263,6 +1331,7 @@
 <script src="js/ui-controls.js"></script>
 <script src="js/machine-control.js"></script>
 <script src="js/tools-rail-flyout.js"></script>
+<script src="js/tools-dock.js"></script>
 <script src="js/payments.js"></script>
 <script src="js/app.js"></script>
 <script>

@@ -1313,6 +1313,63 @@ dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(2px); }
   overflow-x: hidden;
   flex-shrink: 0;
 }
+
+/* ────────── إرساء شريط الأدوات (يمين/يسار/أعلى/أسفل) ────────── */
+.rail-grip {
+  cursor: grab;
+  color: var(--text3);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 0 6px;
+  user-select: none;
+  letter-spacing: 2px;
+}
+.rail-grip:hover { color: var(--accent-h); }
+.rail-grip:active { cursor: grabbing; }
+
+.canvas-main.dock-right  { flex-direction: row-reverse; }
+.canvas-main.dock-right .tools-rail { border-right: none; border-left: 1px solid var(--border); }
+
+.canvas-main.dock-top,
+.canvas-main.dock-bottom { flex-direction: column; }
+.canvas-main.dock-bottom { flex-direction: column-reverse; }
+
+.canvas-main.dock-top .tools-rail,
+.canvas-main.dock-bottom .tools-rail {
+  flex-direction: row;
+  width: 100%;
+  height: 48px;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-right: none;
+}
+.canvas-main.dock-top .tools-rail    { border-bottom: 1px solid var(--border); }
+.canvas-main.dock-bottom .tools-rail { border-top: 1px solid var(--border); border-bottom: none; }
+
+/* أفقياً: أخفِ تسميات المجموعات واجعل الفواصل عمودية */
+.canvas-main.dock-top .tr-group-label,
+.canvas-main.dock-bottom .tr-group-label { display: none; }
+.canvas-main.dock-top .tr-sep,
+.canvas-main.dock-bottom .tr-sep { width: 1px; height: 26px; margin: 0 4px; }
+.canvas-main.dock-top .rail-grip,
+.canvas-main.dock-bottom .rail-grip { padding: 0 6px; }
+
+/* تلميح أثناء السحب */
+.canvas-main.dock-dragging { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.canvas-main[class*="-hint"]::after {
+  content: '';
+  position: absolute;
+  background: rgba(47,129,247,.18);
+  border: 2px solid var(--accent);
+  pointer-events: none;
+  z-index: 50;
+}
+.canvas-main { position: relative; }
+.canvas-main.dock-left-hint::after   { inset: 0 auto 0 0; width: 56px; }
+.canvas-main.dock-right-hint::after  { inset: 0 0 0 auto; width: 56px; }
+.canvas-main.dock-top-hint::after    { inset: 0 0 auto 0; height: 52px; }
+.canvas-main.dock-bottom-hint::after { inset: auto 0 0 0; height: 52px; }
 .tools-rail::-webkit-scrollbar { width: 3px; }
 .tools-rail::-webkit-scrollbar-track { background: transparent; }
 .tools-rail::-webkit-scrollbar-thumb { background: var(--border2); }
