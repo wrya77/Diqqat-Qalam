@@ -317,6 +317,8 @@ dialog.modal::backdrop {
   color: var(--text2);
 }
 
+.sim-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
 /* 3D simulation HUD */
 .sim3d-hud {
   position: absolute;

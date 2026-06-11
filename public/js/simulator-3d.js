@@ -42,7 +42,12 @@ class GCodeSimulator {
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
-  load(gcodeText) {
+  load(gcodeText, toolDia) {
+    // قطر الأداة: من البارامتر أو من تعليق رأس الملف
+    this.toolDia = toolDia
+      || parseFloat((gcodeText || '').match(/⌀([\d.]+)mm/)?.[1])
+      || this.toolDia || 3;
+
     this.lines = (gcodeText || '').split('\n')
       .map(l => l.split(';')[0].replace(/\([^)]*\)/g, '').trim().toUpperCase())
       .filter(l => l.length > 0);
@@ -52,6 +57,7 @@ class GCodeSimulator {
 
     // Pre-parse all moves to find bounds → auto-fit
     this._parseAll();
+    this._initHeightmap();
     this._autoFit();
     this._renderFull(0);
     this._updateUI(0);
@@ -88,6 +94,11 @@ class GCodeSimulator {
     document.getElementById('sim-step')?.addEventListener('click',  () => this.step());
     document.getElementById('sim-reset')?.addEventListener('click', () => this.reset());
     document.getElementById('sim-fit')?.addEventListener('click',   () => { this._autoFit(); this._renderFull(this.idx); });
+    document.getElementById('sim-material')?.addEventListener('click', (e) => {
+      this.materialView = this.materialView === false ? true : false;
+      e.target.classList.toggle('active', this.materialView !== false);
+      this._renderFull(this.idx);
+    });
     document.getElementById('sim-speed')?.addEventListener('input', e => {
       this.speed = +e.target.value;
       const lbl = document.getElementById('sim-spd-lbl');
@@ -189,6 +200,148 @@ class GCodeSimulator {
     }
   }
 
+  /* ════════════ إزالة المادة — خريطة ارتفاعات 2.5D ════════════
+     شبكة فوق الخامة؛ كل خلية تحفظ أعمق قطع وصلها رأس الأداة.
+     تُرسم كطبقة خشبية تحت المسارات فترى القطعة تُنحت أمامك. */
+
+  _initHeightmap() {
+    this._hm = null;
+    this._hmIdx = 0;
+    if (!this.moves.length || !this.toolDia) return;
+
+    // حدود مناطق القطع فقط (z<0) + هامش قطر الأداة
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, maxDepth = 0.001;
+    for (const m of this.moves) {
+      if (m.z0 >= 0 && m.z1 >= 0) continue;
+      const r = (m.type >= 2) ? Math.hypot(m.I, m.J) : 0;
+      const cx = m.x0 + m.I, cy = m.y0 + m.J;
+      const xs = m.type >= 2 ? [cx - r, cx + r] : [m.x0, m.x1];
+      const ys = m.type >= 2 ? [cy - r, cy + r] : [m.y0, m.y1];
+      minX = Math.min(minX, ...xs); maxX = Math.max(maxX, ...xs);
+      minY = Math.min(minY, ...ys); maxY = Math.max(maxY, ...ys);
+      maxDepth = Math.max(maxDepth, -Math.min(m.z0, m.z1, 0));
+    }
+    if (!isFinite(minX)) return;
+
+    const margin = this.toolDia;
+    minX -= margin; maxX += margin; minY -= margin; maxY += margin;
+
+    const span = Math.max(maxX - minX, maxY - minY, 1);
+    const cell = Math.max(span / 420, 0.15);
+    const cols = Math.min(900, Math.ceil((maxX - minX) / cell));
+    const rows = Math.min(900, Math.ceil((maxY - minY) / cell));
+
+    // قرص رأس الأداة كإزاحات خلايا
+    const rCells = Math.max(1, Math.round((this.toolDia / 2) / cell));
+    const disk = [];
+    for (let dy = -rCells; dy <= rCells; dy++)
+      for (let dx = -rCells; dx <= rCells; dx++)
+        if (dx * dx + dy * dy <= rCells * rCells) disk.push(dy * cols + dx);
+
+    const off = document.createElement('canvas');
+    off.width = cols; off.height = rows;
+
+    this._hm = {
+      minX, minY, maxX, maxY, cell, cols, rows, maxDepth,
+      grid: new Float32Array(cols * rows),   // 0 = خامة سليمة، >0 = عمق القطع
+      disk, off,
+      octx: off.getContext('2d'),
+      dirty: true,
+    };
+  }
+
+  // ختم قرص الأداة عند نقطة عالمية بعمق محدد
+  _hmStamp(wx, wy, depth) {
+    const h = this._hm;
+    const col = Math.round((wx - h.minX) / h.cell);
+    const row = Math.round((h.maxY - wy) / h.cell);   // الصف 0 = أعلى الخامة
+    if (col < 1 || col >= h.cols - 1 || row < 1 || row >= h.rows - 1) return;
+    const base = row * h.cols + col;
+    for (const o of h.disk) {
+      const i = base + o;
+      if (i >= 0 && i < h.grid.length && h.grid[i] < depth) h.grid[i] = depth;
+    }
+  }
+
+  // ختم الحركات حتى فهرس معين (تراكمي؛ يعاد البناء عند الرجوع)
+  _hmStampTo(idx) {
+    const h = this._hm;
+    if (!h) return;
+    if (idx < this._hmIdx) { h.grid.fill(0); this._hmIdx = 0; h.dirty = true; }
+
+    for (let k = this._hmIdx; k < Math.min(idx, this.moves.length); k++) {
+      const m = this.moves[k];
+      if (m.type === 0) continue;
+      if (m.z0 >= 0 && m.z1 >= 0) continue;
+      h.dirty = true;
+      const stepLen = h.cell * 0.7;
+
+      if (m.type === 1) {
+        const len = Math.hypot(m.x1 - m.x0, m.y1 - m.y0);
+        const steps = Math.max(1, Math.ceil(len / stepLen));
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          const z = m.z0 + (m.z1 - m.z0) * t;
+          if (z < 0) this._hmStamp(m.x0 + (m.x1 - m.x0) * t, m.y0 + (m.y1 - m.y0) * t, -z);
+        }
+      } else {
+        // قوس G02/G03
+        const cx = m.x0 + m.I, cy = m.y0 + m.J;
+        const r  = Math.hypot(m.I, m.J);
+        if (r < 1e-6) continue;
+        let a0 = Math.atan2(m.y0 - cy, m.x0 - cx);
+        let a1 = Math.atan2(m.y1 - cy, m.x1 - cx);
+        const full = Math.abs(m.x0 - m.x1) < 1e-4 && Math.abs(m.y0 - m.y1) < 1e-4;
+        if (m.type === 2) { if (full || a1 >= a0) a1 -= 2 * Math.PI; }   // CW
+        else              { if (full || a1 <= a0) a1 += 2 * Math.PI; }   // CCW
+        const arcLen = Math.abs(a1 - a0) * r;
+        const steps = Math.max(2, Math.ceil(arcLen / stepLen));
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          const a = a0 + (a1 - a0) * t;
+          const z = m.z0 + (m.z1 - m.z0) * t;
+          if (z < 0) this._hmStamp(cx + r * Math.cos(a), cy + r * Math.sin(a), -z);
+        }
+      }
+    }
+    this._hmIdx = Math.min(idx, this.moves.length);
+  }
+
+  // رسم الخامة المنحوتة تحت المسارات
+  _renderMaterial() {
+    const h = this._hm;
+    if (!h) return;
+
+    if (h.dirty) {
+      const img = h.octx.createImageData(h.cols, h.rows);
+      const d = img.data;
+      for (let i = 0; i < h.grid.length; i++) {
+        const depth = h.grid[i];
+        const p = i * 4;
+        if (depth <= 0) {              // خامة سليمة — خشب
+          d[p] = 122; d[p+1] = 92; d[p+2] = 61; d[p+3] = 235;
+        } else {                       // مقطوع — أفتح سطحياً وأدكن عمقاً
+          const t = Math.min(1, depth / h.maxDepth);
+          d[p]   = 202 - 160 * t;
+          d[p+1] = 163 - 130 * t;
+          d[p+2] = 107 - 85  * t;
+          d[p+3] = 255;
+        }
+      }
+      h.octx.putImageData(img, 0, 0);
+      h.dirty = false;
+    }
+
+    const tl = this._w2s(h.minX, h.maxY);   // أعلى-يسار الخامة على الشاشة
+    const w  = (h.maxX - h.minX) * this.scale;
+    const ht = (h.maxY - h.minY) * this.scale;
+    const c  = this.ctx;
+    c.save();
+    c.imageSmoothingEnabled = false;
+    c.drawImage(h.off, tl.x, tl.y, w, ht);
+    c.restore();
+  }
+
   // ── Compute bounding box of all moves → center & scale ─────────────────────
   _autoFit() {
     if (!this.moves.length || !this.canvas) return;
@@ -231,11 +384,17 @@ class GCodeSimulator {
     this.pan.y  = (this.canvas.height - drawH) / 2 + maxY * this.scale;
   }
 
-  // ── Main render: draw grid + moves[0..n] ───────────────────────────────────
+  // ── Main render: draw grid + material + moves[0..n] ────────────────────────
   _renderFull(upToIdx) {
     if (!this.ctx || !this.canvas) return;
     this._clear();
     this._drawGrid();
+
+    // طبقة الخامة المنحوتة (تحت خطوط المسار)
+    if (this.materialView !== false && this._hm) {
+      this._hmStampTo(upToIdx);
+      this._renderMaterial();
+    }
 
     for (let i = 0; i < Math.min(upToIdx, this.moves.length); i++) {
       this._renderMove(this.moves[i]);

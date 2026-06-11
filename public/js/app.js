@@ -239,7 +239,8 @@ class DiqqatQalamApp {
     if (in3D && typeof Toolpath3D !== 'undefined') {
       Toolpath3D.show(this.gcode).then(() => Toolpath3D.play()).catch(()=>{});
     } else {
-      this.simulator.load(this.gcode);
+      const toolDia = parseFloat(document.getElementById('tool-diameter')?.value) || 3;
+      this.simulator.load(this.gcode, toolDia);
       this.simulator.play();
     }
   }
