@@ -10,19 +10,30 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const DIRS = [
-  'public/js','public/css','public/assets',
+  'public/js','public/css','public/images','shared',
   'src/core','src/parsers','src/generators','src/optimizers','src/ai','src/utils',
+  'src/middleware','src/payments',
   'tests','scripts','uploads','exports'
 ];
 
 const REQUIRED_FILES = [
   'package.json','server.js','.env.example',
+  // الواجهة
   'public/index.html','public/css/style.css',
-  'public/js/app.js','public/js/canvas-editor.js',
-  'public/js/gcode-generator.js','public/js/svg-parser.js',
-  'public/js/gcode-preview.js','public/js/simulator-3d.js',
-  'public/js/file-importer.js','public/js/ui-controls.js',
-  'src/core/MachineConfig.js','src/core/PathProcessor.js',
+  'public/manifest.webmanifest','public/sw.js','public/images/icon.svg',
+  'public/js/app.js','public/js/canvas-editor.js','public/js/svg-parser.js',
+  'public/js/gcode-preview.js','public/js/simulator-3d.js','public/js/simulator-three.js',
+  'public/js/file-importer.js','public/js/ui-controls.js','public/js/machine-control.js',
+  'public/js/supabase-auth.js','public/js/payments.js','public/js/menu-bar.js',
+  'public/js/tools-extra.js','public/js/tools-pro.js','public/js/tools-arrange.js',
+  'public/js/tools-rail-flyout.js','public/js/image-tracer.js',
+  // المحرك المشترك (خادم + متصفح)
+  'shared/geometry.js','shared/MachineConfig.js','shared/HeaderGenerator.js',
+  'shared/PocketGenerator.js','shared/ToolpathGenerator.js','shared/GCodeGenerator.js',
+  // الخادم
+  'src/middleware/auth.js',
+  'src/payments/PaymentManager.js','src/payments/providers.js',
+  'src/core/MachineConfig.js','src/core/PathProcessor.js','src/core/CloudStore.js',
   'src/parsers/SVGParser.js','src/parsers/DXFParser.js','src/parsers/ImageParser.js',
   'src/generators/GCodeGenerator.js','src/generators/HeaderGenerator.js','src/generators/ToolpathGenerator.js',
   'src/optimizers/PathOptimizer.js','src/optimizers/ArcDetector.js','src/optimizers/NearestNeighbor.js',
