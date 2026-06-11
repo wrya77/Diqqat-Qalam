@@ -10,6 +10,7 @@ const path       = require('path');
 const fs         = require('fs');
 const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
+const compression = require('compression');
 
 // ── Core modules ──────────────────────────────────────────────────────────────
 const GCodeGenerator    = require('./src/generators/GCodeGenerator');
@@ -114,10 +115,23 @@ const uploadLimiter = rateLimit({
   message: { error: 'تجاوزت حد رفع الملفات. حاول مجدداً.' },
 });
 
+// ── Compression: gzip لكل الاستجابات (يقلص النقل ~75%) ───────────────────────
+app.use(compression());
+
 // ── Static files served BEFORE rate limiting ──────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+// كاش ساعة للملفات الثابتة — Service Worker يتكفل بالتحديث الفوري للعائدين
+const staticOpts = {
+  maxAge: '1h',
+  setHeaders(res, filePath) {
+    // ملف الـ SW نفسه يجب ألا يُكَش حتى تصل التحديثات فوراً
+    if (filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+};
+app.use(express.static(path.join(__dirname, 'public'), staticOpts));
 // المحرك المشترك — نفس الملفات التي يستخدمها الخادم تُخدَّم للمتصفح
-app.use('/shared', express.static(path.join(__dirname, 'shared')));
+app.use('/shared', express.static(path.join(__dirname, 'shared'), staticOpts));
 
 app.use(globalLimiter);
 app.use(express.json({ limit: '50mb' }));
