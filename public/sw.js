@@ -6,7 +6,7 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v7';
+const CACHE = 'diqqat-qalam-v8';
 
 const CORE_ASSETS = [
   '/app',
@@ -45,9 +45,12 @@ const CORE_ASSETS = [
 
 self.addEventListener('install', (e) => {
   // تخزين كل ملف على حدة — فشل ملف واحد لا يلغي التثبيت
+  // cache:'reload' يتجاوز كاش HTTP فيضمن أن النسخة الجديدة تجلب ملفات طازجة
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => Promise.allSettled(CORE_ASSETS.map(a => c.add(a))))
+      .then(c => Promise.allSettled(
+        CORE_ASSETS.map(a => c.add(new Request(a, { cache: 'reload' })))
+      ))
       .then(() => self.skipWaiting())
   );
 });
