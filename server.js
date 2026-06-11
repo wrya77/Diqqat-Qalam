@@ -59,6 +59,9 @@ const matCalc      = new MaterialCostCalculator();
 
 // ── Express app setup ─────────────────────────────────────────────────────────
 const app    = express();
+// خلف proxy الاستضافة (Railway/Render): يصحح req.ip و req.protocol
+// مطلوب لعمل rate limiting وروابط callback الدفع بشكل سليم
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io     = new Server(server, {
   cors: {
