@@ -6,18 +6,24 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v1';
+const CACHE = 'diqqat-qalam-v2';
 
 const CORE_ASSETS = [
   '/app',
   '/css/style.css',
+  '/shared/geometry.js',
+  '/shared/MachineConfig.js',
+  '/shared/HeaderGenerator.js',
+  '/shared/PocketGenerator.js',
+  '/shared/ToolpathGenerator.js',
+  '/shared/GCodeGenerator.js',
   '/js/supabase-auth.js',
-  '/js/gcode-generator.js',
   '/js/svg-parser.js',
   '/js/image-tracer.js',
   '/js/canvas-editor.js',
   '/js/tools-extra.js',
   '/js/tools-rail-flyout.js',
+  '/js/payments.js',
   '/js/gcode-preview.js',
   '/js/simulator-3d.js',
   '/js/simulator-three.js',

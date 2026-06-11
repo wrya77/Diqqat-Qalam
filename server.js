@@ -113,6 +113,8 @@ const uploadLimiter = rateLimit({
 
 // ── Static files served BEFORE rate limiting ──────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
+// المحرك المشترك — نفس الملفات التي يستخدمها الخادم تُخدَّم للمتصفح
+app.use('/shared', express.static(path.join(__dirname, 'shared')));
 
 app.use(globalLimiter);
 app.use(express.json({ limit: '50mb' }));
