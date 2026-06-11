@@ -113,7 +113,7 @@
       if (!inInput && !e.ctrlKey && e.key === 't') this.setTool('text');
     });
 
-    // تحريك بالأسهم: 1mm — Shift: 10mm — Alt: 0.1mm
+    // تحريك بالأسهم: 1mm — Shift: 10mm — Alt: 0.1mm (يشمل التحديد المتعدد)
     document.addEventListener('keydown', e => {
       const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
       if (inInput || this.selectedIdx < 0) return;
@@ -122,8 +122,11 @@
       if (!d) return;
       e.preventDefault();
       const step = e.altKey ? 0.1 : e.shiftKey ? 10 : 1;
+      const targets = (this.msel && this.msel.size) ? [...this.msel] : [this.selectedIdx];
       this._saveHistory();
-      this._offsetShape(this.shapes[this.selectedIdx], d[0] * step, d[1] * step);
+      for (const i of targets) {
+        if (this.shapes[i]) this._offsetShape(this.shapes[i], d[0] * step, d[1] * step);
+      }
       this.render(); this._updateStatus();
     });
 

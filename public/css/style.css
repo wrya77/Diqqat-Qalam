@@ -57,26 +57,112 @@ body {
   flex-shrink: 0;
   flex-wrap: nowrap;
   height: 44px;
-  overflow: hidden;
+  position: relative;
+  z-index: 3000; /* القوائم المنسدلة فوق كل شيء */
 }
 
 .logo {
   display: flex;
   align-items: center;
-  margin-left: 6px;
+  gap: 7px;
+  margin-left: 10px;
   flex-shrink: 0;
   text-decoration: none;
-  background: #ffffff;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0,0,0,.35);
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  transition: background var(--trans);
 }
-.logo img {
-  height: 26px;
-  width: auto;
-  display: block;
+.logo:hover { background: var(--bg3); }
+.logo-mark { display: block; flex-shrink: 0; }
+.logo-name {
+  font-family: 'Tajawal', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text2);
+  letter-spacing: .3px;
+  white-space: nowrap;
 }
+.logo-name b { color: var(--text); font-weight: 700; }
+
+/* ────────── MENU BAR (CorelDraw style) ────────── */
+.menubar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.menu { position: relative; }
+.menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 5px 11px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--trans);
+}
+.menu-btn:hover, .menu.open > .menu-btn {
+  background: var(--bg3);
+  color: var(--text);
+}
+.menu-drop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 210px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.35);
+  z-index: 4000;
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+.menu.open > .menu-drop { display: block; animation: menuIn .1s ease-out; }
+@keyframes menuIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+.mi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: right;
+  padding: 6px 26px 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+}
+.mi:hover { background: var(--accent); color: #fff; }
+.mi:hover .mi-key { color: rgba(255,255,255,.75); }
+.mi-key { font-size: 10.5px; color: var(--text3); font-family: var(--font-mono); }
+.mi-sep { height: 1px; background: var(--border); margin: 5px 8px; }
+.mi-label {
+  font-size: 10px;
+  color: var(--text3);
+  padding: 4px 10px 2px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.mi.checked::before {
+  content: '✓';
+  position: absolute;
+  right: 8px;
+  color: var(--green);
+  font-weight: 700;
+}
+.mi.checked:hover::before { color: #fff; }
 
 .tool-group {
   display: flex;

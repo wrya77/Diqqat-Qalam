@@ -26,52 +26,129 @@
   <style>@keyframes _ag_spin{to{transform:rotate(360deg)}}</style>
 </div>
 
-<!-- ═══ TOOLBAR ═══ -->
+<!-- ═══ TOOLBAR — شعار + قوائم + إجراءات رئيسية ═══ -->
 <header class="toolbar">
-  <a href="/" class="logo"><img src="/images/logo.png" alt="Diqqat Qalam"></a>
+  <a href="/" class="logo" title="دقة قلم — Diqqat Qalam">
+    <svg class="logo-mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true">
+      <path d="M256 88 L324 256 L256 424 L188 256 Z" fill="#2f81f7"/>
+      <path d="M256 88 L324 256 L256 296 L188 256 Z" fill="#58a6ff"/>
+      <circle cx="256" cy="256" r="26" fill="#0d1117"/>
+      <circle cx="256" cy="256" r="26" fill="none" stroke="#79c0ff" stroke-width="14"/>
+      <path d="M96 368 Q176 320 256 368 T416 368" fill="none" stroke="#3fb950" stroke-width="26" stroke-linecap="round"/>
+    </svg>
+    <span class="logo-name">دقة <b>قلم</b></span>
+  </a>
 
-  <div class="tool-group">
-    <button class="tbtn" id="btn-import" title="استيراد SVG · DXF · G-Code">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M1.5 4.5a1 1 0 011-1h3l1.5 1.5h6a1 1 0 011 1v6a1 1 0 01-1 1h-10.5a1 1 0 01-1-1z"/><path d="M8 7v4M6 9l2-2 2 2"/></svg>
-      استيراد</button>
-    <button class="tbtn" id="btn-image-trace" title="تحويل صورة إلى مسارات">
-      <svg class="ti" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="1"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 11l3.5-3 3 2.5 3-2.5 2.5 2"/></svg>
-      تتبع</button>
-    <button class="tbtn" id="btn-save-project" title="حفظ المشروع">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M2.5 2.5h9l2 2v9h-11z"/><path d="M5 2.5v3.5h6V2.5M5 13.5V9h6v4.5"/></svg>
-      حفظ</button>
-    <button class="tbtn" id="btn-load-project" title="فتح مشروع محفوظ">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M1.5 4a1 1 0 011-1h3L7 4.5h6.5a1 1 0 011 1V6h-12z"/><path d="M1.5 6h13l-1.5 7h-10z"/></svg>
-      فتح</button>
-    <span class="tbtn-div"></span>
-    <button class="tbtn icon-only" id="btn-undo"  title="تراجع Ctrl+Z">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M6.5 3.5L3 7l3.5 3.5"/><path d="M3 7h6a4 4 0 014 4v1.5"/></svg></button>
-    <button class="tbtn icon-only" id="btn-redo"  title="إعادة Ctrl+Y">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M9.5 3.5L13 7l-3.5 3.5"/><path d="M13 7H7a4 4 0 00-4 4v1.5"/></svg></button>
-    <button class="tbtn icon-only" id="btn-clear" title="مسح التصميم">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M3 4.5h10M5.5 4.5V3a1 1 0 011-1h3a1 1 0 011 1v1.5M4.5 4.5l.7 8.5a1 1 0 001 1h3.6a1 1 0 001-1l.7-8.5"/></svg></button>
-  </div>
+  <!-- ═══ شريط القوائم (نمط CorelDraw) ═══ -->
+  <nav id="menubar" class="menubar">
+    <div class="menu">
+      <button class="menu-btn">ملف</button>
+      <div class="menu-drop">
+        <button class="mi" data-act="file-new">مشروع جديد <span class="mi-key">مسح الكل</span></button>
+        <button class="mi" data-act="file-open">فتح مشروع…</button>
+        <button class="mi" data-act="file-save">حفظ المشروع…</button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="file-import">استيراد ملف… <span class="mi-key">SVG·DXF·NC</span></button>
+        <button class="mi" data-act="file-trace">تتبع صورة…</button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="file-export">تصدير… <span class="mi-key">NC·DXF·PDF</span></button>
+      </div>
+    </div>
 
-  <div class="tool-group">
-    <button class="tbtn primary" id="btn-generate">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M9 1.5L3 9h4l-1 5.5L12 7H8z"/></svg>
-      توليد G-Code</button>
-    <button class="tbtn" id="btn-simulate">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M4.5 3l8 5-8 5z"/></svg>
-      محاكاة</button>
-    <button class="tbtn" id="btn-export">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2.5 11v2a1 1 0 001 1h9a1 1 0 001-1v-2"/></svg>
-      تصدير</button>
-    <button class="tbtn icon-only" id="btn-validate-gcode" title="التحقق من G-Code">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M2.5 8.5L6 12l7.5-8"/></svg></button>
-    <span class="tbtn-div"></span>
-    <button class="tbtn icon-only" id="btn-pocket-toggle" title="وضع حفر الجيوب (Pocket)">
-      <svg class="ti" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/><rect x="5.5" y="5.5" width="5" height="5"/></svg></button>
-    <button class="tbtn icon-only" id="btn-tool-library" title="مكتبة الأدوات">
-      <svg class="ti" viewBox="0 0 16 16"><path d="M9.5 2.5a4 4 0 00-4.6 5.6L2 11l3 3 2.9-2.9a4 4 0 005.6-4.6L11 9 7 5z"/></svg></button>
-    <button class="tbtn icon-only" id="btn-machine-panel" title="لوحة التحكم بالآلة">
-      <svg class="ti" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="8.5" rx="1"/><path d="M6 14h4M8 11v3"/></svg></button>
-  </div>
+    <div class="menu">
+      <button class="menu-btn">تحرير</button>
+      <div class="menu-drop">
+        <button class="mi" data-act="edit-undo">تراجع <span class="mi-key">Ctrl+Z</span></button>
+        <button class="mi" data-act="edit-redo">إعادة <span class="mi-key">Ctrl+Y</span></button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="edit-copy">نسخ <span class="mi-key">Ctrl+C</span></button>
+        <button class="mi" data-act="edit-paste">لصق <span class="mi-key">Ctrl+V</span></button>
+        <button class="mi" data-act="edit-dup">تكرار <span class="mi-key">Ctrl+D</span></button>
+        <button class="mi" data-act="edit-del">حذف <span class="mi-key">Del</span></button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="sel-all">تحديد الكل <span class="mi-key">Ctrl+A</span></button>
+        <button class="mi" data-act="sel-invert">عكس التحديد</button>
+        <button class="mi" data-act="sel-none">إلغاء التحديد <span class="mi-key">Esc</span></button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-btn">عرض</button>
+      <div class="menu-drop">
+        <button class="mi" data-act="view-zoom-in">تكبير <span class="mi-key">+</span></button>
+        <button class="mi" data-act="view-zoom-out">تصغير <span class="mi-key">−</span></button>
+        <button class="mi" data-act="view-fit">ملاءمة الشاشة</button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="view-grid"  data-check="show-grid">الشبكة</button>
+        <button class="mi" data-act="view-snap"  data-check="snap-grid">التقاط الشبكة</button>
+        <button class="mi" data-act="view-osnap" data-check="snap-objects">التقاط الكائنات</button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-btn">كائن</button>
+      <div class="menu-drop">
+        <button class="mi" data-act="obj-precise">شكل بأبعاد دقيقة…</button>
+        <button class="mi" data-act="obj-pocket">وضع حفر الجيوب</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">محاذاة</div>
+        <button class="mi" data-act="align-left">⫷ يسار</button>
+        <button class="mi" data-act="align-hcenter">⊜ وسط أفقي</button>
+        <button class="mi" data-act="align-right">⫸ يمين</button>
+        <button class="mi" data-act="align-top">⫪ أعلى</button>
+        <button class="mi" data-act="align-vcenter">⊟ منتصف رأسي</button>
+        <button class="mi" data-act="align-bottom">⫫ أسفل</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">توزيع</div>
+        <button class="mi" data-act="dist-h">↹ أفقي متساوٍ</button>
+        <button class="mi" data-act="dist-v">↨ رأسي متساوٍ</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">ترتيب القطع</div>
+        <button class="mi" data-act="order-front">⤒ القطع أخيراً (للمقدمة)</button>
+        <button class="mi" data-act="order-forward">↑ تأخير خطوة</button>
+        <button class="mi" data-act="order-backward">↓ تقديم خطوة</button>
+        <button class="mi" data-act="order-back">⤓ القطع أولاً (للخلفية)</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">تحويل</div>
+        <button class="mi" data-act="tr-mirror-h">⇔ مرآة أفقية</button>
+        <button class="mi" data-act="tr-mirror-v">⇕ مرآة عمودية</button>
+        <button class="mi" data-act="tr-rotate">↻ تدوير…</button>
+        <button class="mi" data-act="tr-scale">⇲ تغيير الحجم…</button>
+        <button class="mi" data-act="tr-array">⊞ مصفوفة…</button>
+        <button class="mi" data-act="tr-offset">⊚ إزاحة المسار…</button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-btn">أدوات</button>
+      <div class="menu-drop">
+        <button class="mi" data-act="tool-validate">التحقق من G-Code</button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="tool-library">مكتبة أدوات القطع…</button>
+        <button class="mi" data-act="tool-machine">لوحة التحكم بالآلة…</button>
+        <div class="mi-sep"></div>
+        <button class="mi" data-act="tool-upgrade">⭐ ترقية الاشتراك…</button>
+      </div>
+    </div>
+  </nav>
+
+  <span style="flex:1"></span>
+
+  <!-- إجراءات سريعة -->
+  <button class="tbtn icon-only" id="btn-undo"  title="تراجع Ctrl+Z">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M6.5 3.5L3 7l3.5 3.5"/><path d="M3 7h6a4 4 0 014 4v1.5"/></svg></button>
+  <button class="tbtn icon-only" id="btn-redo"  title="إعادة Ctrl+Y">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M9.5 3.5L13 7l-3.5 3.5"/><path d="M13 7H7a4 4 0 00-4 4v1.5"/></svg></button>
+  <span class="tbtn-div"></span>
+  <button class="tbtn primary" id="btn-generate">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M9 1.5L3 9h4l-1 5.5L12 7H8z"/></svg>
+    توليد G-Code</button>
+  <button class="tbtn" id="btn-simulate">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M4.5 3l8 5-8 5z"/></svg>
+    محاكاة</button>
+  <button class="tbtn" id="btn-export">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2.5 11v2a1 1 0 001 1h9a1 1 0 001-1v-2"/></svg>
+    تصدير</button>
 
   <div class="status-pill" id="status-pill">جاهز</div>
   <button class="tbtn upgrade-btn" id="btn-upgrade" title="ترقية الاشتراك">
@@ -79,6 +156,19 @@
     ترقية
   </button>
   <div id="user-pill" class="user-pill" style="display:none"></div>
+
+  <!-- أزرار منقولة للقوائم — مخفية لكن معالجاتها فعالة -->
+  <div hidden>
+    <button id="btn-import"></button>
+    <button id="btn-image-trace"></button>
+    <button id="btn-save-project"></button>
+    <button id="btn-load-project"></button>
+    <button id="btn-clear"></button>
+    <button id="btn-validate-gcode"></button>
+    <button id="btn-pocket-toggle"></button>
+    <button id="btn-tool-library"></button>
+    <button id="btn-machine-panel"></button>
+  </div>
 </header>
 
 <main class="app-layout">
@@ -384,6 +474,24 @@
         </button>
         <button class="tr-btn" data-tool="donut" title="حلقة [D]">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3.5"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="heart" title="قلب">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10 17 C4 12 2 8.5 4 6 C6 3.8 9 4.5 10 7 C11 4.5 14 3.8 16 6 C18 8.5 16 12 10 17 Z"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="cross" title="صليب / زائد">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="8,2 12,2 12,8 18,8 18,12 12,12 12,18 8,18 8,12 2,12 2,8 8,8"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="semicircle" title="نصف دائرة">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13 A7 7 0 0 1 17 13 Z"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="crescent" title="هلال">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 3 A7.5 7.5 0 1 0 11 17 A6 6 0 1 1 11 3 Z"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="teardrop" title="قطرة">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10 2 C13 7 16 9.5 16 13 A6 6 0 0 1 4 13 C4 9.5 7 7 10 2 Z"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="stairs" title="درج">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polyline points="2,16 2,12 6,12 6,8 10,8 10,4 14,4 14,2 18,2 18,16 2,16"/></svg>
         </button>
 
         <!-- ── GROUP 4: منحنيات ومسارات ── -->
@@ -1037,6 +1145,8 @@
 <script src="js/canvas-editor.js"></script>
 <script src="js/tools-extra.js"></script>
 <script src="js/tools-pro.js"></script>
+<script src="js/tools-arrange.js"></script>
+<script src="js/menu-bar.js"></script>
 <script src="js/gcode-preview.js"></script>
 <script src="js/simulator-3d.js"></script>
 <script src="js/simulator-three.js"></script>
