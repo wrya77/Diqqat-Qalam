@@ -55,10 +55,12 @@ DIRS.forEach(d => {
   }
 });
 
-// Create .env if missing
+// Create .env if missing — محلياً فقط؛ على منصات الاستضافة تأتي
+// المتغيرات من لوحة التحكم، ونسخ العينة يحقن قيماً وهمية خطيرة
+const onHosting = process.env.RAILWAY_ENVIRONMENT || process.env.CI || process.env.NODE_ENV === 'production';
 const envPath = path.join(ROOT,'.env');
 const envEx   = path.join(ROOT,'.env.example');
-if (!fs.existsSync(envPath) && fs.existsSync(envEx)) {
+if (!onHosting && !fs.existsSync(envPath) && fs.existsSync(envEx)) {
   fs.copyFileSync(envEx, envPath);
   console.log('📄 Created .env from .env.example');
 }
