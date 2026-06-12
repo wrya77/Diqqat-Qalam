@@ -95,6 +95,7 @@ class UIControls {
       feedRateZ:      +document.getElementById('feed-rate-z')?.value    || 300,
       spindleSpeed:   +document.getElementById('spindle-speed')?.value  || 18000,
       spindleDir:     document.getElementById('spindle-dir')?.value     || 'cw',
+      material:       document.getElementById('material')?.value        || 'generic',
       coordSystem:    document.getElementById('coord-system')?.value    || 'G54',
       origin:         document.getElementById('origin')?.value          || 'bottom-left',
       arcDetect:      document.getElementById('arc-detect')?.checked    !== false,
@@ -124,6 +125,7 @@ class UIControls {
     set('feed-rate-z',      config.feedRateZ);
     set('spindle-speed',    config.spindleSpeed);
     set('spindle-dir',      config.spindleDir);
+    set('material',         config.material);
     set('plunge-strategy',  config.plungeStrategy);
     set('ramp-angle',       config.rampAngle);
     set('travel-x',         config.travelX);

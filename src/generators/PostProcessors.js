@@ -10,27 +10,32 @@ function processGRBL(gcode, config) {
   const lines = gcode.split('\n');
   const out   = [];
 
-  // GRBL header: % للبداية، بلا G17 (يُفترض دائماً XY)
-  out.push('%');
-
   for (const raw of lines) {
     let line = raw.trim();
     if (!line) continue;
+    const isComment = line.startsWith(';');
 
-    // إزالة G17 (GRBL لا يدعمها في بعض الإصدارات)
-    line = line.replace(/\bG17\b/g, '').trim();
-
-    // تحويل Laser: M03 Sxxx بدلاً من M03 + G04 منفصلة
-    if (config.toolType === 'laser') {
-      line = line.replace(/M03/g, `M03 S${config.spindleSpeed || 1000}`);
-      line = line.replace(/M04/g, `M04 S${config.spindleSpeed || 1000}`);
+    if (!isComment) {
+      // GRBL يرفض هذه الأوامر بخطأ صريح — يجب إزالتها كلياً:
+      //   M06/T (تغيير أداة) · G41/G42 (تعويض قطر) · G43 (تعويض طول)
+      if (/\bM0?6\b/i.test(line) || /\bG4[123](\.\d)?\b/.test(line)) {
+        const cmt = line.split(';')[1];
+        if (cmt) out.push(';' + cmt + ' (أُزيل — غير مدعوم في GRBL)');
+        continue;
+      }
+      // كلمة T وحدها (بدون M6) تُتجاهل لكن الأنظف إزالتها
+      line = line.replace(/\bT\d+\b/gi, '').trim();
     }
 
-    // تنظيف الأسطر الفارغة الناتجة
+    // تحويل Laser: M03 Sxxx بدلاً من M03 + G04 منفصلة
+    if (!isComment && config.toolType === 'laser') {
+      line = line.replace(/M03(?!\s*S)/g, `M03 S${config.spindleSpeed || 1000}`);
+      line = line.replace(/M04(?!\s*S)/g, `M04 S${config.spindleSpeed || 1000}`);
+    }
+
     if (line) out.push(line);
   }
 
-  out.push('%');
   return out.join('\n');
 }
 
@@ -71,8 +76,9 @@ function processFanuc(gcode, config, programNumber = 1000) {
   const lines = gcode.split('\n');
   const out   = [];
 
-  // رقم البرنامج إلزامي في Fanuc
-  out.push(`O${String(programNumber).padStart(4, '0')} (Diqqat Qalam)`);
+  // شريط Fanuc يبدأ بـ % ثم رقم البرنامج
+  out.push('%');
+  out.push(`O${String(programNumber).padStart(4, '0')} (DIQQAT QALAM)`);
 
   let seqNum = 10;
   for (const raw of lines) {
@@ -87,6 +93,9 @@ function processFanuc(gcode, config, programNumber = 1000) {
 
     // تحويل التعليقات المضمّنة ; → ()
     line = line.replace(/;\s*(.*)/, '($1)').trim();
+
+    // التوقف: في Fanuc «P» بالميلي ثانية — مولّدنا يقصد ثوانٍ ⇒ صيغة X بالثواني
+    line = line.replace(/\bG0?4\s+P(\d+(?:\.\d+)?)\b/i, (_, sec) => `G04 X${parseFloat(sec).toFixed(1)}`);
 
     // أرقام تسلسلية إلزامية
     if (!line.startsWith('N')) {

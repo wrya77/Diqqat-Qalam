@@ -72,6 +72,29 @@ const validator = {
         if (!Array.isArray(shape.points) || shape.points.length < 2)
           errors.push('الخط المتعدد يحتاج نقطتين على الأقل');
         break;
+      case 'ellipse':
+        if (shape.cx === undefined || shape.cy === undefined)
+          errors.push('مركز البيضاوي غير مكتمل');
+        if (!shape.rx || !shape.ry || shape.rx <= 0 || shape.ry <= 0)
+          errors.push('نصفا قطر البيضاوي غير صحيحين');
+        break;
+      case 'polygon':
+        if (!Array.isArray(shape.points) || shape.points.length < 3)
+          errors.push('المضلع يحتاج 3 نقاط على الأقل');
+        break;
+      case 'slot':
+        if (shape.cx1 === undefined || shape.cy1 === undefined ||
+            shape.cx2 === undefined || shape.cy2 === undefined)
+          errors.push('إحداثيات الفتحة غير مكتملة');
+        if (!shape.r || shape.r <= 0)
+          errors.push('نصف قطر الفتحة غير صحيح');
+        break;
+      case 'text':
+        if (!Array.isArray(shape.strokes) || !shape.strokes.length)
+          errors.push('النص بلا ضربات نقش');
+        if (shape.x === undefined || shape.y === undefined)
+          errors.push('موضع النص غير مكتمل');
+        break;
       default:
         errors.push(`نوع الشكل غير مدعوم: ${shape.type}`);
     }

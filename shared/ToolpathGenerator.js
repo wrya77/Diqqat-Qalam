@@ -26,6 +26,13 @@ class ToolpathGenerator {
     this._lineNum = 10;
   }
 
+  // اتجاه وحدة + طول لأول مقطع قطع — يستعمله الهبوط المائل ليبقى داخل المسار
+  _hintFromPts(a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    return len > 1e-6 ? { dx: dx / len, dy: dy / len, len } : null;
+  }
+
   /**
    * توليد G-Code لشكل واحد على عمق محدد
    * @returns {string[]}
@@ -73,7 +80,7 @@ class ToolpathGenerator {
     const feed = s.feedRate || this.config.feedRateXY;
     const segs = Math.max(36, Math.round(Math.PI * (3*(rx+ry) - Math.sqrt((3*rx+ry)*(rx+3*ry))) / 0.5));
     lines.push(...this._rapidTo(cx + rx, cy));
-    lines.push(...this._plunge(depth, s));
+    lines.push(...this._plunge(depth, s, { dx: 0, dy: 1, len: Math.min((rx + ry), 25) }));
     for (let i = 1; i <= segs; i++) {
       const a = (i / segs) * 2 * Math.PI;
       lines.push(...this._feedTo(cx + rx * Math.cos(a), cy + ry * Math.sin(a), depth, '', feed));
@@ -114,7 +121,8 @@ class ToolpathGenerator {
     if (this.config.addComments) lines.push(`; بداية جيب ${s.type}`);
     // Plunge at first point
     lines.push(...this._rapidTo(scanLines[0][0].x, scanLines[0][0].y));
-    lines.push(...this._plunge(depth, s));
+    lines.push(...this._plunge(depth, s,
+      scanLines[0].length > 1 ? this._hintFromPts(scanLines[0][0], scanLines[0][1]) : null));
     for (const scanLine of scanLines) {
       if (!scanLine.length) continue;
       lines.push(...this._rapidTo(scanLine[0].x, scanLine[0].y));
@@ -134,7 +142,7 @@ class ToolpathGenerator {
     const feed  = s.feedRate || this.config.feedRateXY;
 
     lines.push(...this._rapidTo(start.x, start.y));
-    lines.push(...this._plunge(depth, s));
+    lines.push(...this._plunge(depth, s, this._hintFromPts(start, end)));
     lines.push(...this._feedTo(end.x, end.y, depth, '', feed));
     lines.push(...this._retract());
     return lines;
@@ -145,7 +153,7 @@ class ToolpathGenerator {
     const { x, y, w, h } = s;
     const feed = s.feedRate || this.config.feedRateXY;
     lines.push(...this._rapidTo(x, y));
-    lines.push(...this._plunge(depth, s));
+    lines.push(...this._plunge(depth, s, { dx: 1, dy: 0, len: w }));
     lines.push(...this._feedTo(x + w, y,     depth, '', feed));
     lines.push(...this._feedTo(x + w, y + h, depth, '', feed));
     lines.push(...this._feedTo(x,     y + h, depth, '', feed));
@@ -160,7 +168,7 @@ class ToolpathGenerator {
     const startX = cx + r;
     const feed = s.feedRate || this.config.feedRateXY;
     lines.push(...this._rapidTo(startX, cy));
-    lines.push(...this._plunge(depth, s));
+    lines.push(...this._plunge(depth, s, { dx: 0, dy: -1, len: Math.min(Math.PI * r / 2, 25) }));
 
     if (this.config.arcDetect) {
       const ln = `G02 X${this._f(startX)} Y${this._f(cy)} I${this._f(-r)} J${this._f(0)} F${feed}`;
@@ -191,7 +199,12 @@ class ToolpathGenerator {
     const feed = s.feedRate || this.config.feedRateXY;
 
     lines.push(...this._rapidTo(sx, sy));
-    lines.push(...this._plunge(depth, s));
+    {
+      const tx = clockwise ?  Math.sin(startAngle) : -Math.sin(startAngle);
+      const ty = clockwise ? -Math.cos(startAngle) :  Math.cos(startAngle);
+      const span = Math.min(r * Math.abs(endAngle - startAngle), 25);
+      lines.push(...this._plunge(depth, s, { dx: tx, dy: ty, len: span }));
+    }
 
     const code = clockwise ? 'G02' : 'G03';
     const ln   = `${code} X${this._f(ex)} Y${this._f(ey)} I${this._f(i)} J${this._f(j)} F${feed}`;
@@ -212,7 +225,7 @@ class ToolpathGenerator {
     const feed = s.feedRate || this.config.feedRateXY;
 
     lines.push(...this._rapidTo(pts[0].x, pts[0].y));
-    lines.push(...this._plunge(depth, s));
+    lines.push(...this._plunge(depth, s, this._hintFromPts(pts[0], pts[1])));
 
     for (let i = 1; i < pts.length; i++) {
       lines.push(...this._feedTo(pts[i].x, pts[i].y, depth, '', feed));
@@ -247,7 +260,7 @@ class ToolpathGenerator {
     return [comment && this.config.addComments ? `${ln}  ; ${comment}` : ln];
   }
 
-  _plunge(depth, shape) {
+  _plunge(depth, shape, hint) {
     if (Math.abs(this.pos.z - depth) < 0.001) return [];
     const strategy = this.config.plungeStrategy || 'straight';
     const dist = Math.abs(this.pos.z - depth);
@@ -256,9 +269,10 @@ class ToolpathGenerator {
     if (strategy === 'helical' && shape && shape.type === 'circle') {
       return this._helicalPlunge(shape, depth);
     }
-    // Ramp: هبوط مائل خطي
-    if (strategy === 'ramp') {
-      return this._rampPlunge(depth);
+    // Ramp: هبوط مائل ذهاباً وإياباً على امتداد أول مقطع قطع فقط
+    // (بدون hint نهبط مستقيماً — أأمن من الميل في اتجاه عشوائي)
+    if (strategy === 'ramp' && hint && hint.len > 0.5) {
+      return this._rampPlunge(depth, hint);
     }
     // Straight (الافتراضي)
     const ln = `G01 Z${this._f(depth)} F${this.config.feedRateZ}`;
@@ -304,23 +318,44 @@ class ToolpathGenerator {
     return lines;
   }
 
-  // هبوط مائل — G01 بزاوية 3° افتراضياً
-  _rampPlunge(targetZ) {
-    const lines    = [];
-    const startZ   = this.pos.z;
+  // هبوط مائل ذهاباً وإياباً على امتداد أول مقطع قطع (zigzag ramp)
+  // يبقى داخل مسار القطع الفعلي وينتهي عند نقطة البداية بالعمق المطلوب
+  _rampPlunge(targetZ, hint) {
+    const lines     = [];
+    const startZ    = this.pos.z;
     const depthDiff = Math.abs(startZ - targetZ);
     const angleRad  = ((this.config.rampAngle || 3) * Math.PI) / 180;
-    const rampLength = depthDiff / Math.tan(angleRad);
     const feed      = Math.min(this.config.feedRateXY, this.config.feedRateZ * 4);
 
-    // تحريك مائل في محور X
-    const endX = this.pos.x + rampLength;
-    const ln   = `G01 X${this._f(endX)} Y${this._f(this.pos.y)} Z${this._f(targetZ)} F${feed}`;
-    lines.push(this._addComment(ln, `هبوط مائل ${(this.config.rampAngle || 3)}°`));
-    this.stats.moves++;
-    this.stats.totalXY += rampLength;
-    this.stats.totalZ  += depthDiff;
-    this.pos.x = endX; this.pos.z = targetZ;
+    const ux = hint.dx, uy = hint.dy;                       // اتجاه وحدة أول مقطع
+    const legLen = Math.min(hint.len, 25);                  // طول ساق الزجزاج
+    const dzPerLeg = legLen * Math.tan(angleRad);
+
+    const x0 = this.pos.x, y0 = this.pos.y;
+    const far = { x: x0 + ux * legLen, y: y0 + uy * legLen };
+
+    if (this.config.addComments) lines.push(`; هبوط مائل زجزاج ${(this.config.rampAngle || 3)}° على مسار القطع`);
+
+    let z = startZ;
+    let remaining = depthDiff;
+    let guard = 0;
+    while (remaining > 1e-4 && guard++ < 500) {
+      // زوج: ذهاب + إياب، يهبط كلاهما بالتساوي ضمن المتبقي
+      const pairDrop = Math.min(remaining, 2 * dzPerLeg);
+      const half = pairDrop / 2;
+
+      z -= half;
+      lines.push(this._addComment(`G01 X${this._f(far.x)} Y${this._f(far.y)} Z${this._f(z)} F${feed}`, ''));
+      z -= half;
+      lines.push(this._addComment(`G01 X${this._f(x0)} Y${this._f(y0)} Z${this._f(z)} F${feed}`, ''));
+
+      this.stats.moves += 2;
+      this.stats.totalXY += legLen * 2;
+      remaining -= pairDrop;
+    }
+
+    this.stats.totalZ += depthDiff;
+    this.pos.x = x0; this.pos.y = y0; this.pos.z = targetZ;
     return lines;
   }
 

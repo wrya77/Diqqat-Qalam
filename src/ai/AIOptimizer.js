@@ -68,15 +68,22 @@ class AIOptimizer {
       };
     });
 
-    return `أنت خبير برمجة وتهيئة مسارات CNC. لديك ${shapes.length} شكل/أشكال للقص.
+    const base = config.feedRateXY || 1000;
+    return `أنت مهندس CAM خبير في تحسين مسارات CNC. لديك ${shapes.length} شكل/أشكال للقص.
 
   الإعدادات:
-  - قطر الأداة: ${config.toolDiameter} mm
-  - عدد شفرات الأداة: ${config.toolFlutes || 2}
+  - قطر الأداة: ${config.toolDiameter} mm (${config.toolFlutes || 2} شفرات)
   - مادة العمل: ${config.material || 'generic'}
-  - سرعة XY الافتراضية: ${config.feedRateXY} mm/min
-  - سرعة Z الافتراضية: ${config.feedRateZ} mm/min
+  - دوران المغزل: ${config.spindleSpeed || 18000} RPM
+  - سرعة XY الأساسية: ${base} mm/min — سرعة Z: ${config.feedRateZ} mm/min
+  - عمق الطبقة: ${config.passDepth || 1} mm من أصل ${config.totalDepth || 5} mm
   - ارتفاع أمان: ${config.safeHeight} mm
+
+  قواعد إلزامية لاقتراحات التغذية:
+  - أي feed تقترحه يجب أن يكون بين ${Math.round(base * 0.5)} و ${Math.round(base * 1.5)} mm/min
+  - الأشكال الصغيرة والمنحنيات الحادة ⇒ تغذية أبطأ؛ الخطوط الطويلة المستقيمة ⇒ أسرع
+  - رتب الأشكال لتقليل مجموع مسافات التنقل G00 بين نهاية كل شكل وبداية التالي
+  - استعمل reverse عندما يجعل نهايةَ شكلٍ أقربَ لبداية الشكل التالي
 
   الأشكال (JSON):
   ${JSON.stringify(shapesInfo, null, 2)}
@@ -101,19 +108,20 @@ class AIOptimizer {
 
   _parseResponse(text, originalShapes) {
     try {
-      const cleaned = (text || '').replace(/```json|```/g, '').trim();
+      // استخراج أول كائن JSON حتى لو سبقه/تبعه نص
+      let cleaned = (text || '').replace(/```json|```/g, '').trim();
+      const first = cleaned.indexOf('{'), last = cleaned.lastIndexOf('}');
+      if (first >= 0 && last > first) cleaned = cleaned.slice(first, last + 1);
       if (!cleaned) throw new Error('رد فارغ من AI');
       const result = JSON.parse(cleaned);
 
-      const order = Array.isArray(result.optimizedOrder) ? result.optimizedOrder : null;
-      if (!order || order.length !== originalShapes.length) {
-        // إذا أعاد النموذج مجرد ترتيب جزئي، نفترض إبقاء الباقي كما هو
-        if (!order || order.length === 0) throw new Error('ترتيب غير صالح');
-      }
-
-      // تحقق من صلاحية الأرقام
-      const valid = order.every(i => typeof i === 'number' && i >= 0 && i < originalShapes.length);
-      if (!valid) throw new Error('أرقام الأشكال غير صالحة');
+      let order = Array.isArray(result.optimizedOrder) ? result.optimizedOrder : [];
+      // معالجة ذاتية: أرقام صالحة فقط، بلا تكرار، ثم أكمل الفهارس الناقصة
+      // بترتيبها الأصلي — يضمن تبديلة كاملة دائماً فلا يضيع أي شكل
+      const seen = new Set();
+      order = order.filter(i =>
+        Number.isInteger(i) && i >= 0 && i < originalShapes.length && !seen.has(i) && seen.add(i));
+      for (let i = 0; i < originalShapes.length; i++) if (!seen.has(i)) order.push(i);
 
       // بناء مصفوفة الأشكال المحدثة
       const feedMap = result.feedRates || {};

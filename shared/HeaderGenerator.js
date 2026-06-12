@@ -62,11 +62,12 @@ class HeaderGenerator {
       if (c.addComments) lines[lines.length - 1] += `; تغيير الأداة T${T}`;
     }
 
+    // D = رقم سجل التعويض في المتحكم (وليس نصف القطر!) — العرف: نفس رقم الأداة
     if (c.compensation === 'left') {
-      lines.push(`G41 D${(c.toolDiameter / 2).toFixed(3)}`);
+      lines.push(`G41 D${c.toolNumber || 1}`);
       if (c.addComments) lines[lines.length - 1] += '; تعويض أداة يسار';
     } else if (c.compensation === 'right') {
-      lines.push(`G42 D${(c.toolDiameter / 2).toFixed(3)}`);
+      lines.push(`G42 D${c.toolNumber || 1}`);
       if (c.addComments) lines[lines.length - 1] += '; تعويض أداة يمين';
     }
 
@@ -99,13 +100,14 @@ class HeaderGenerator {
     lines.push(`G00 Z${c.safeHeight.toFixed(3)}`);
     if (c.addComments) lines[lines.length - 1] += '; رفع نهائي للارتفاع الآمن';
 
-    lines.push('G00 X0.000 Y0.000');
-    if (c.addComments) lines[lines.length - 1] += '; العودة للموضع الصفري';
-
+    // إلغاء التعويض قبل حركة العودة — وإلا فُسّرت حركة العودة بمسار معوَّض
     if (c.compensation !== 'none') {
       lines.push('G40');
       if (c.addComments) lines[lines.length - 1] += '; إلغاء تعويض الأداة';
     }
+
+    lines.push('G00 X0.000 Y0.000');
+    if (c.addComments) lines[lines.length - 1] += '; العودة للموضع الصفري';
 
     if (c.coolant) {
       lines.push('M09');

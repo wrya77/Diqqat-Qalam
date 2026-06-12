@@ -19,6 +19,7 @@ const FeedrateOptimizer = require('./src/optimizers/FeedrateOptimizer');
 const SVGParser         = require('./src/parsers/SVGParser');
 const DXFParser         = require('./src/parsers/DXFParser');
 const AIOptimizer       = require('./src/ai/AIOptimizer');
+const LocalExpert       = require('./src/ai/LocalExpert');
 const MachineConfig     = require('./src/core/MachineConfig');
 const validator         = require('./src/utils/validator');
 const geometry          = require('./src/utils/geometry');
@@ -298,6 +299,12 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
 
     const feedOpt = new FeedrateOptimizer();
     processedShapes = feedOpt.assignFeedRates(processedShapes, config, { preserveExisting: true });
+
+    // النظام الخبير المحلي — نصائح فيزيائية حتمية تعمل دائماً (مع أو بدون AI سحابي)
+    try {
+      const expertTips = LocalExpert.analyze(processedShapes, config);
+      if (expertTips.length) suggestions = [...suggestions, ...expertTips];
+    } catch (e) { console.warn('LocalExpert:', e.message); }
 
     const generator = new GCodeGenerator(config);
     let { gcode, stats } = generator.generate(processedShapes);

@@ -266,7 +266,11 @@ class CNCConnector extends EventEmitter {
   streamGCode(gcode) {
     if (!this.connected) return Promise.reject(new Error('غير متصل'));
     if (this.stream) return Promise.reject(new Error('البث جارٍ بالفعل'));
-    const lines = gcode.split(/\r?\n/).map(l => l.replace(/\r/, '').trim()).filter(Boolean);
+    // جرّد التعليقات قبل الإرسال: توفير لعرض النطاق وتجنب بايتات UTF-8
+    // العربية على متحكمات لا تتوقعها، وعدم إهدار دورة ack على سطر فارغ
+    const lines = gcode.split(/\r?\n/)
+      .map(l => l.replace(/\(.*?\)/g, '').split(';')[0].trim())
+      .filter(Boolean);
     this.stream     = { lines, index: 0, total: lines.length };
     this._stopStream = false;
     this._emit('cnc-stream-start', { total: lines.length });
