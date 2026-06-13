@@ -27,6 +27,7 @@
     'sel-all':      () => ed()?.selectAll(),
     'sel-invert':   () => ed()?.invertSelection(),
     'sel-none':     () => ed()?.clearSelection(),
+    'delete-all':   () => ed()?.deleteAll(),
 
     // عرض
     'view-zoom-in':  () => document.getElementById('btn-zoom-in')?.click(),

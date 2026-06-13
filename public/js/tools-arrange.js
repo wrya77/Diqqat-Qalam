@@ -27,6 +27,8 @@
       const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
       if (inInput) return;
       if (e.ctrlKey && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); this.selectAll(); }
+      // Ctrl+Delete = حذف كل الأشكال
+      if (e.ctrlKey && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); this.deleteAll(); }
     });
   };
 
@@ -43,6 +45,18 @@
   P.clearSelection = function () {
     this.msel.clear(); this.selectedIdx = -1;
     this._updateShapeToolbar(); this.render();
+  };
+
+  // حذف كل الأشكال دفعة واحدة (مع التراجع)
+  P.deleteAll = function () {
+    if (!this.shapes.length) { window.app?.toast?.('اللوحة فارغة', 'info'); return; }
+    const n = this.shapes.length;
+    this._saveHistory();
+    this.shapes = [];
+    this.msel.clear(); this.selectedIdx = -1;
+    this._updateShapeToolbar(); this.render(); this._updateStatus();
+    window.app?.resetOutputs?.();
+    window.app?.toast?.(`🗑 حُذف ${n} شكلاً — Ctrl+Z للتراجع`, 'success');
   };
 
   P.invertSelection = function () {
