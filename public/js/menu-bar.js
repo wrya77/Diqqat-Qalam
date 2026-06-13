@@ -80,6 +80,8 @@
     'fx-shadow':    () => ed()?.applyEffect('shadow'),
 
     // أدوات
+    'tool-preflight':() => window.app?.preflight(),
+    'tool-presets':  () => document.getElementById('btn-presets')?.click(),
     'tool-validate': () => document.getElementById('btn-validate-gcode')?.click(),
     'tool-library':  () => document.getElementById('btn-tool-library')?.click(),
     'tool-machine':  () => document.getElementById('btn-machine-panel')?.click(),

@@ -110,15 +110,21 @@ class MachineConfig {
 
   static getProfiles() {
     return {
-      generic:  { name: 'Generic CNC',       feedRateXY: 1000, feedRateZ: 300, spindleSpeed: 18000 },
-      grbl:     { name: 'GRBL',              feedRateXY: 800,  feedRateZ: 200, spindleSpeed: 12000 },
-      mach3:    { name: 'Mach3',             feedRateXY: 1500, feedRateZ: 500, spindleSpeed: 24000 },
-      fanuc:    { name: 'Fanuc',             feedRateXY: 2000, feedRateZ: 500, spindleSpeed: 8000  },
-      haas:     { name: 'HAAS',              feedRateXY: 3000, feedRateZ: 800, spindleSpeed: 6000  },
-      wood:     { name: 'Wood Routing',      feedRateXY: 2000, feedRateZ: 500, spindleSpeed: 18000 },
-      aluminum: { name: 'Aluminum Milling',  feedRateXY: 400,  feedRateZ: 100, spindleSpeed: 12000 },
-      pcb:      { name: 'PCB Engraving',     feedRateXY: 300,  feedRateZ: 80,  spindleSpeed: 30000 },
-      laser:    { name: 'Laser Cutting',     feedRateXY: 3000, feedRateZ: 1000, spindleSpeed: 0    },
+      generic:   { name: 'Generic CNC',          feedRateXY: 1000, feedRateZ: 300, spindleSpeed: 18000 },
+      ncstudio:  { name: 'NcStudio / Weihong',   feedRateXY: 2500, feedRateZ: 600, spindleSpeed: 18000 },
+      richauto:  { name: 'RichAuto DSP',         feedRateXY: 2500, feedRateZ: 600, spindleSpeed: 18000 },
+      syntec:    { name: 'Syntec',               feedRateXY: 2000, feedRateZ: 500, spindleSpeed: 15000 },
+      grbl:      { name: 'GRBL',                 feedRateXY: 800,  feedRateZ: 200, spindleSpeed: 12000 },
+      mach3:     { name: 'Mach3',                feedRateXY: 1500, feedRateZ: 500, spindleSpeed: 24000 },
+      mach4:     { name: 'Mach4',                feedRateXY: 1500, feedRateZ: 500, spindleSpeed: 24000 },
+      linuxcnc:  { name: 'LinuxCNC',             feedRateXY: 1500, feedRateZ: 400, spindleSpeed: 18000 },
+      fanuc:     { name: 'Fanuc',                feedRateXY: 2000, feedRateZ: 500, spindleSpeed: 8000  },
+      sinumerik: { name: 'Siemens Sinumerik',    feedRateXY: 2000, feedRateZ: 500, spindleSpeed: 8000  },
+      haas:      { name: 'HAAS',                 feedRateXY: 3000, feedRateZ: 800, spindleSpeed: 6000  },
+      wood:      { name: 'Wood Routing',         feedRateXY: 2000, feedRateZ: 500, spindleSpeed: 18000 },
+      aluminum:  { name: 'Aluminum Milling',     feedRateXY: 400,  feedRateZ: 100, spindleSpeed: 12000 },
+      pcb:       { name: 'PCB Engraving',        feedRateXY: 300,  feedRateZ: 80,  spindleSpeed: 30000 },
+      laser:     { name: 'Laser Cutting',        feedRateXY: 3000, feedRateZ: 1000, spindleSpeed: 0    },
     };
   }
 }

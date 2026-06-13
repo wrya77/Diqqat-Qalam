@@ -168,9 +168,11 @@
     <div class="menu">
       <button class="menu-btn">أدوات</button>
       <div class="menu-drop">
+        <button class="mi" data-act="tool-preflight">✅ فحص الجاهزية قبل التشغيل…</button>
         <button class="mi" data-act="tool-validate">التحقق من G-Code</button>
         <div class="mi-sep"></div>
         <button class="mi" data-act="tool-library">مكتبة أدوات القطع…</button>
+        <button class="mi" data-act="tool-presets">🖥 ملفات الآلات المحفوظة…</button>
         <button class="mi" data-act="tool-machine">لوحة التحكم بالآلة…</button>
         <div class="mi-sep"></div>
         <button class="mi" data-act="tool-upgrade">⭐ ترقية الاشتراك…</button>
@@ -199,6 +201,9 @@
   <button class="tbtn icon-only" id="btn-fit" title="ملاءمة الشاشة">
     <svg class="ti" viewBox="0 0 16 16"><path d="M2 6V3.5A1.5 1.5 0 013.5 2H6M10 2h2.5A1.5 1.5 0 0114 3.5V6M14 10v2.5a1.5 1.5 0 01-1.5 1.5H10M6 14H3.5A1.5 1.5 0 012 12.5V10"/></svg></button>
   <span class="tbtn-div"></span>
+  <button class="tbtn" id="btn-preflight" title="فحص الجاهزية قبل التشغيل على الآلة">
+    <svg class="ti" viewBox="0 0 16 16"><path d="M2.5 8.5L6 12l7.5-8"/><circle cx="8" cy="8" r="6.5"/></svg>
+    فحص</button>
   <button class="tbtn primary" id="btn-generate">
     <svg class="ti" viewBox="0 0 16 16"><path d="M9 1.5L3 9h4l-1 5.5L12 7H8z"/></svg>
     توليد G-Code</button>
@@ -227,6 +232,7 @@
     <button id="btn-pocket-toggle"></button>
     <button id="btn-tool-library"></button>
     <button id="btn-machine-panel"></button>
+    <button id="btn-presets"></button>
   </div>
 </header>
 
@@ -346,10 +352,22 @@
       <select id="machine-profile">
         <option value="">مخصص...</option>
         <option value="generic">Generic CNC</option>
-        <option value="grbl">GRBL</option>
-        <option value="mach3">Mach3</option>
-        <option value="fanuc">Fanuc</option>
-        <option value="haas">HAAS</option>
+        <optgroup label="راوترات صينية (الأشيع بالعراق)">
+          <option value="ncstudio">NcStudio / Weihong وييهونغ</option>
+          <option value="richauto">RichAuto DSP A11/A18</option>
+          <option value="syntec">Syntec سينتك</option>
+        </optgroup>
+        <optgroup label="هواة وورش">
+          <option value="grbl">GRBL (Arduino/لوحات صينية)</option>
+          <option value="mach3">Mach3</option>
+          <option value="mach4">Mach4</option>
+          <option value="linuxcnc">LinuxCNC</option>
+        </optgroup>
+        <optgroup label="صناعي">
+          <option value="fanuc">Fanuc فانوك</option>
+          <option value="sinumerik">Siemens Sinumerik</option>
+          <option value="haas">HAAS هاس</option>
+        </optgroup>
       </select>
       <div class="sec-spacer"></div>
       <label>حد X (mm) <input type="number" id="travel-x" placeholder="مثال: 300"></label>
@@ -654,10 +672,20 @@
 
       <div class="canvas-area" id="canvas-area">
         <canvas id="main-canvas"></canvas>
+        <div id="canvas-empty-state" class="canvas-empty">
+          <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+            <rect x="6" y="6" width="52" height="52" rx="6" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4" opacity=".5"/>
+            <path d="M20 40 L32 18 L44 40 Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+          </svg>
+          <p>اختر أداة من الشريط الجانبي وابدأ الرسم</p>
+          <span>أو <b id="empty-import">استورد ملف SVG/DXF</b> · المشروع يُحفظ تلقائياً</span>
+        </div>
       </div>
     </div>
 
     <div class="canvas-footer">
+      <span id="footer-tool">🖊 تحديد</span>
+      <span class="cf-div">│</span>
       <span id="shape-count">أشكال: 0</span>
       <span class="cf-div">│</span>
       <span id="path-length">مسار: 0 mm</span>
@@ -681,6 +709,7 @@
       <div class="gc-bar">
         <span id="gc-line-count">0 سطر</span>
         <span class="gc-acts">
+          <button class="mbtn" id="btn-edit-gcode" title="تحرير الكود يدوياً">✏</button>
           <button class="mbtn" id="btn-copy-gcode" title="نسخ">📋</button>
           <button class="mbtn" id="btn-dl-gcode"   title="تحميل">⬇</button>
           <button class="mbtn" id="btn-clr-gcode"  title="مسح">✕</button>
@@ -1107,6 +1136,30 @@
   </div>
 </dialog>
 
+<!-- ════ PREFLIGHT CHECK DIALOG ════ -->
+<dialog id="dlg-preflight" class="modal">
+  <button class="mdl-close" id="cls-preflight">✕</button>
+  <h3>✅ فحص الجاهزية قبل التشغيل</h3>
+  <div id="preflight-verdict" class="pf-verdict">…</div>
+  <div id="preflight-list" class="pf-list"></div>
+  <div class="mdl-foot">
+    <button class="btn-pri" id="pf-proceed">⚡ متابعة التوليد</button>
+    <button class="btn-cnl" onclick="document.getElementById('dlg-preflight').close()">إغلاق</button>
+  </div>
+</dialog>
+
+<!-- ════ MACHINE PRESETS DIALOG ════ -->
+<dialog id="dlg-presets" class="modal">
+  <button class="mdl-close" id="cls-presets">✕</button>
+  <h3>🖥 ملفات الآلات</h3>
+  <p style="font-size:12px;color:var(--text3);margin-bottom:8px">احفظ كل إعدادات آلتك (المتحكم، الأداة، السرعات، الحدود) وبدّل بينها بنقرة.</p>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input type="text" id="preset-name" placeholder="اسم الآلة (مثال: راوتر 6090 الورشة)" style="flex:1">
+    <button class="tbtn primary" id="btn-preset-save">💾 حفظ الحالي</button>
+  </div>
+  <div id="preset-list" class="preset-list"></div>
+</dialog>
+
 <!-- ════ TABS / FILLET / NESTING / BOLT / INFO DIALOGS ════ -->
 <dialog id="dlg-tabs" class="modal mini-modal">
   <button class="mdl-close" onclick="document.getElementById('dlg-tabs').close()">✕</button>
@@ -1342,6 +1395,7 @@
 <script src="js/machine-control.js"></script>
 <script src="js/tools-rail-flyout.js"></script>
 <script src="js/tools-dock.js"></script>
+<script src="js/ui-polish.js"></script>
 <script src="js/payments.js"></script>
 <script src="js/app.js"></script>
 <script>

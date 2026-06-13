@@ -32,12 +32,61 @@ class GCodeGenerator {
   }
 
   /**
+   * تطبيق نقطة الصفر: يحوّل إحداثيات التصميم بحيث يطابق صفر البرنامج
+   * المكان الذي صفّر عنده المشغّل آلته (زاوية الخامة أو مركزها)
+   */
+  _applyOrigin(shapes) {
+    const origin = this.config.origin || 'bottom-left';
+    if (origin === 'bottom-left' || !shapes.length) return shapes;
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const s of shapes) {
+      const b = this._bounds(s);
+      if (b.minX < minX) minX = b.minX; if (b.maxX > maxX) maxX = b.maxX;
+      if (b.minY < minY) minY = b.minY; if (b.maxY > maxY) maxY = b.maxY;
+    }
+    if (!isFinite(minX)) return shapes;
+
+    let dx = 0, dy = 0;
+    if (origin === 'center')   { dx = -(minX + maxX) / 2; dy = -(minY + maxY) / 2; }
+    if (origin === 'top-left') { dx = -minX;              dy = -maxY; }
+
+    if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return shapes;
+    return shapes.map(s => this._translate(JSON.parse(JSON.stringify(s)), dx, dy));
+  }
+
+  _bounds(s) {
+    // حدود تشمل strokes النص
+    const g = (typeof require === 'function') ? require('./geometry')
+            : (typeof DQ !== 'undefined' ? DQ.geometry : null);
+    return g.shapeBounds(s);
+  }
+
+  _translate(s, dx, dy) {
+    switch (s.type) {
+      case 'line':   s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; break;
+      case 'rect':   s.x += dx; s.y += dy; break;
+      case 'circle': case 'arc': case 'ellipse': s.cx += dx; s.cy += dy; break;
+      case 'slot':   s.cx1 += dx; s.cy1 += dy; s.cx2 += dx; s.cy2 += dy; break;
+      case 'text':   s.x += dx; s.y += dy; break;
+      case 'polygon':
+        if (s.cx !== undefined) { s.cx += dx; s.cy += dy; }
+        /* fallthrough */
+      case 'polyline':
+        if (s.points) s.points = s.points.map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
+        break;
+    }
+    return s;
+  }
+
+  /**
    * توليد G-Code كامل
    * @param {Array} shapes - الأشكال المعالجة والمُرتَّبة
    * @returns {{ gcode: string, stats: Object }}
    */
   generate(shapes) {
     this._toolpath.resetStats();
+    shapes = this._applyOrigin(shapes);
 
     const allLines = [];
 

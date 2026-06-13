@@ -112,6 +112,69 @@ function processFanuc(gcode, config, programNumber = 1000) {
   return out.join('\n');
 }
 
+// ── NcStudio / Weihong (وييهونغ — أشهر متحكم راوترات صينية في العراق) ────────
+function processNcStudio(gcode, config) {
+  const lines = gcode.split('\n');
+  const out = [];
+  for (const raw of lines) {
+    let line = raw.trim();
+    if (!line) continue;
+    // NcStudio يقبل تعليقات الأقواس فقط — حوّل ; إلى ()
+    if (line.startsWith(';')) { out.push(`(${line.replace(/^;\s*/, '')})`); continue; }
+    line = line.replace(/;\s*(.*)$/, '($1)').trim();
+    // لا تغيير أداة ولا تعويض قطر/طول في الراوترات أحادية الأداة
+    if (/\bM0?6\b/i.test(line) || /\bG4[123](\.\d)?\b/.test(line)) continue;
+    line = line.replace(/\bT\d+\b/gi, '').trim();
+    if (line) out.push(line);
+  }
+  return out.join('\n');
+}
+
+// ── RichAuto DSP A11/A18 (المتحكم اليدوي الشائع على الراوترات الصينية) ────────
+function processRichAuto(gcode, _config) {
+  const lines = gcode.split('\n');
+  const out = [];
+  for (const raw of lines) {
+    // DSP يقرأ من فلاشة USB ويتعثر بالتعليقات وغير ASCII — جرّد كل شيء
+    let line = raw.replace(/\(.*?\)/g, '').split(';')[0].trim();
+    if (!line) continue;
+    if (/\bM0?6\b/i.test(line) || /\bG4[123](\.\d)?\b/.test(line)) continue;
+    line = line.replace(/\bT\d+\b/gi, '').trim();
+    // يتجاهل أنظمة الإحداثيات — إحداثياته من شاشته اليدوية
+    line = line.replace(/\bG5[4-9]\b/g, '').trim();
+    if (line) out.push(line);
+  }
+  return out.join('\n');
+}
+
+// ── Syntec (سينتك — تايواني/صيني شائع في المخارط والراوترات الصناعية) ─────────
+function processSyntec(gcode, config) {
+  // متوافق مع نمط Fanuc إلى حد كبير
+  return processFanuc(gcode, config, 3000);
+}
+
+// ── Mach4 ─────────────────────────────────────────────────────────────────────
+function processMach4(gcode, config) {
+  return processMach3(gcode, config);
+}
+
+// ── Siemens Sinumerik 808D/828D (شائع في الورش الصناعية العربية) ──────────────
+function processSinumerik(gcode, _config) {
+  const lines = gcode.split('\n');
+  const out = [];
+  for (const raw of lines) {
+    let line = raw.trim();
+    if (!line) continue;
+    // سيمنز يقبل تعليقات ; أصلاً — أبقها
+    // التوقف بصيغة G4 F<ثوانٍ>
+    line = line.replace(/\bG0?4\s+P(\d+(?:\.\d+)?)\b/i, (_, s) => `G4 F${parseFloat(s).toFixed(1)}`);
+    // أرقام الأدوات بصيغة T= ثم M6 مدعومة؛ نبقيها كما هي
+    out.push(line);
+  }
+  if (!out.some(l => /\bM30\b/.test(l))) out.push('M30');
+  return out.join('\n');
+}
+
 // ── LinuxCNC ──────────────────────────────────────────────────────────────────
 function processLinuxCNC(gcode, _config) {
   // LinuxCNC متوافق مع G-code العام إلى حد كبير
@@ -128,12 +191,17 @@ function processGeneric(gcode, _config) {
 
 // ── واجهة موحّدة ──────────────────────────────────────────────────────────────
 const PROCESSORS = {
-  grbl:     processGRBL,
-  mach3:    processMach3,
-  fanuc:    processFanuc,
-  haas:     (g, c) => processFanuc(g, c, 2000),
-  linuxcnc: processLinuxCNC,
-  generic:  processGeneric,
+  grbl:      processGRBL,
+  mach3:     processMach3,
+  mach4:     processMach4,
+  fanuc:     processFanuc,
+  haas:      (g, c) => processFanuc(g, c, 2000),
+  ncstudio:  processNcStudio,
+  richauto:  processRichAuto,
+  syntec:    processSyntec,
+  sinumerik: processSinumerik,
+  linuxcnc:  processLinuxCNC,
+  generic:   processGeneric,
 };
 
 function applyPostProcessor(gcode, config, profile = 'generic') {

@@ -59,6 +59,17 @@ const geometry = {
           minX: shape.cx - shape.r, maxX: shape.cx + shape.r,
           minY: shape.cy - shape.r, maxY: shape.cy + shape.r,
         };
+      case 'ellipse':
+        return {
+          minX: shape.cx - shape.rx, maxX: shape.cx + shape.rx,
+          minY: shape.cy - shape.ry, maxY: shape.cy + shape.ry,
+        };
+      case 'slot':
+        return {
+          minX: Math.min(shape.cx1, shape.cx2) - shape.r, maxX: Math.max(shape.cx1, shape.cx2) + shape.r,
+          minY: Math.min(shape.cy1, shape.cy2) - shape.r, maxY: Math.max(shape.cy1, shape.cy2) + shape.r,
+        };
+      case 'polygon':
       case 'polyline': {
         if (!shape.points || shape.points.length === 0)
           return { minX: 0, maxX: 0, minY: 0, maxY: 0 };

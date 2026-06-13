@@ -67,6 +67,23 @@ class DiqqatQalamApp {
     });
     document.getElementById('btn-fit')?.addEventListener('click',       ()=>this.editor.fitToView());
 
+    // فحص ما قبل التشغيل + ملفات الآلات + تحرير الكود
+    document.getElementById('btn-preflight')?.addEventListener('click', ()=>this.preflight());
+    document.getElementById('cls-preflight')?.addEventListener('click', ()=>document.getElementById('dlg-preflight')?.close());
+    document.getElementById('pf-proceed')?.addEventListener('click',    ()=>{ document.getElementById('dlg-preflight')?.close(); this.generate(); });
+    document.getElementById('btn-presets')?.addEventListener('click',   ()=>{ this._renderPresets(); document.getElementById('dlg-presets')?.showModal(); });
+    document.getElementById('cls-presets')?.addEventListener('click',   ()=>document.getElementById('dlg-presets')?.close());
+    document.getElementById('btn-preset-save')?.addEventListener('click', ()=>{
+      const name = document.getElementById('preset-name')?.value?.trim();
+      if (!name) { this.toast('أدخل اسماً للآلة','warn'); return; }
+      const all = this._machinePresets(); all[name] = this.controls.getConfig();
+      localStorage.setItem('dq_machines', JSON.stringify(all));
+      document.getElementById('preset-name').value = '';
+      this._renderPresets();
+      this.toast(`✓ حُفظت إعدادات «${name}»`,'success');
+    });
+    document.getElementById('btn-edit-gcode')?.addEventListener('click', ()=>this._toggleGcodeEdit());
+
     // مشروع جديد — نافذة الخيارات الثلاثة
     document.getElementById('np-save')?.addEventListener('click',    async ()=>{
       document.getElementById('dlg-newproj')?.close();
@@ -769,6 +786,132 @@ class DiqqatQalamApp {
     });
   }
 
+  /* ══ فحص ما قبل التشغيل — قائمة جاهزية بنقرة واحدة ══ */
+  async preflight() {
+    const checks = [];
+    const add = (name, pass, detail) => checks.push({ name, pass, detail });
+    const shapes = this.editor.getShapes();
+    const cfg = this.controls.getConfig();
+    const g = (typeof DQ !== 'undefined') ? DQ.geometry : null;
+
+    add('وجود تصميم', shapes.length > 0, shapes.length ? shapes.length + ' شكل جاهز' : 'اللوحة فارغة');
+
+    if (shapes.length && g) {
+      let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+      for (const s of shapes) {
+        const b = g.shapeBounds(s);
+        minX = Math.min(minX, b.minX); maxX = Math.max(maxX, b.maxX);
+        minY = Math.min(minY, b.minY); maxY = Math.max(maxY, b.maxY);
+      }
+      const w = maxX - minX, h = maxY - minY;
+      if (cfg.travelX > 0 && cfg.travelY > 0) {
+        add('ضمن حدود الطاولة', w <= cfg.travelX && h <= cfg.travelY,
+          `التصميم ${w.toFixed(0)}×${h.toFixed(0)}mm — الطاولة ${cfg.travelX}×${cfg.travelY}mm`);
+      } else {
+        add('حدود الطاولة', null, 'لم تُدخل حدود X/Y في «ملف الآلة» — لا يمكن فحص التجاوز');
+      }
+      const small = shapes.filter(s => {
+        const b = g.shapeBounds(s);
+        const d = Math.min(b.maxX - b.minX, b.maxY - b.minY);
+        return d > 0 && d < cfg.toolDiameter;
+      }).length;
+      add('مقاسات أكبر من الأداة', small === 0,
+        small ? `${small} شكل أصغر من ⌀${cfg.toolDiameter}mm — سيختفي أو يتشوه` : 'كل المقاسات سليمة');
+    }
+
+    add('عمق الطبقات', cfg.passDepth <= cfg.totalDepth,
+      `${cfg.totalDepth}mm على ${Math.max(1, Math.ceil(cfg.totalDepth / cfg.passDepth))} طبقة × ${cfg.passDepth}mm`);
+
+    // ولّد (إن لزم) ثم مرره على المدقق بحدود الآلة
+    let gcode = this.gcode;
+    if (!gcode && shapes.length) {
+      try { gcode = new GCodeGenerator(cfg).generate(shapes).gcode; } catch (e) {}
+    }
+    if (gcode) {
+      try {
+        const res = await fetch('/api/validate-gcode', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gcode, machineConfig: { travelX: cfg.travelX, travelY: cfg.travelY, travelZ: cfg.travelZ } }),
+        });
+        const v = await res.json();
+        add('مدقق G-Code', (v.errors || []).length === 0,
+          `${(v.errors || []).length} خطأ · ${(v.warnings || []).length} تحذير`);
+        (v.errors || []).slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
+        (v.warnings || []).slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
+      } catch (e) { add('مدقق G-Code', null, 'تعذر الوصول للخادم — الفحص محلي فقط'); }
+    }
+
+    const list = document.getElementById('preflight-list');
+    list.innerHTML = checks.map(c => {
+      const icon = c.pass === true ? '✅' : c.pass === false ? '❌' : '⚠️';
+      const cls  = c.pass === true ? 'good' : c.pass === false ? 'bad' : 'warn';
+      return `<div class="pf-row ${cls}"><span class="pf-i">${icon}</span><b>${esc(c.name)}</b><span class="pf-d">${esc(c.detail || '')}</span></div>`;
+    }).join('');
+    const allGood = checks.every(c => c.pass !== false);
+    const verdict = document.getElementById('preflight-verdict');
+    verdict.textContent = allGood ? '✅ جاهز للتشغيل على الآلة' : '❌ عالج النقاط الحمراء قبل التشغيل';
+    verdict.className = 'pf-verdict ' + (allGood ? 'good' : 'bad');
+    document.getElementById('dlg-preflight').showModal();
+  }
+
+  /* ══ ملفات الآلات المحفوظة — بدّل بين آلاتك بنقرة ══ */
+  _machinePresets() {
+    try { return JSON.parse(localStorage.getItem('dq_machines') || '{}'); } catch (e) { return {}; }
+  }
+
+  _renderPresets() {
+    const all = this._machinePresets();
+    const list = document.getElementById('preset-list');
+    const names = Object.keys(all);
+    list.innerHTML = names.length ? '' : '<p style="color:var(--text3);text-align:center;padding:10px">لا ملفات محفوظة — احفظ إعدادات آلتك الحالية أعلاه</p>';
+    names.forEach(name => {
+      const row = document.createElement('div');
+      row.className = 'preset-row';
+      row.innerHTML = `<b>${esc(name)}</b>
+        <span>${esc(all[name].machineProfile || 'generic')} · ⌀${esc(all[name].toolDiameter)}mm</span>
+        <button class="tbtn primary" data-load="1">تحميل</button>
+        <button class="tbtn danger" data-del="1">🗑</button>`;
+      row.querySelector('[data-load]').addEventListener('click', () => {
+        this.controls.applyConfig(all[name]);
+        document.getElementById('dlg-presets').close();
+        this.toast(`✓ حُملت إعدادات «${name}»`, 'success');
+        this.editor.render();
+      });
+      row.querySelector('[data-del]').addEventListener('click', () => {
+        delete all[name];
+        localStorage.setItem('dq_machines', JSON.stringify(all));
+        this._renderPresets();
+      });
+      list.appendChild(row);
+    });
+  }
+
+  /* ══ تحرير G-Code يدوياً ══ */
+  _toggleGcodeEdit() {
+    const pre = document.getElementById('gc-pre');
+    const btn = document.getElementById('btn-edit-gcode');
+    if (!pre || !btn) return;
+    const editing = pre.contentEditable === 'true';
+    if (!editing) {
+      if (!this.gcode) { this.toast('ولّد G-Code أولاً', 'warn'); return; }
+      pre.contentEditable = 'true';
+      pre.classList.add('editing');
+      pre.focus();
+      btn.textContent = '✔';
+      btn.title = 'تطبيق التعديلات';
+      this.toast('✏ وضع التحرير — عدّل الكود ثم اضغط ✔', 'info');
+    } else {
+      pre.contentEditable = 'false';
+      pre.classList.remove('editing');
+      btn.textContent = '✏';
+      btn.title = 'تحرير الكود يدوياً';
+      this.gcode = pre.innerText;
+      const lc = document.getElementById('gc-line-count');
+      if (lc) lc.textContent = this.gcode.split('\n').length + ' سطر';
+      this.toast('✔ طُبقت التعديلات — افحصها بزر التحقق قبل الإرسال للآلة', 'success');
+    }
+  }
+
   /* ══ تصفير المخرجات (G-Code + المحاكاة) عند مسح/تجديد التصميم ══ */
   resetOutputs() {
     this.gcode = '';
@@ -834,6 +977,7 @@ class DiqqatQalamApp {
   }
 }
 
-// Bootstrap
+// Bootstrap — window.app ضروري: القوائم وكل الوحدات الإضافية تعتمد عليه
 const app = new DiqqatQalamApp();
+window.app = app;
 document.addEventListener('DOMContentLoaded', () => app.init());
