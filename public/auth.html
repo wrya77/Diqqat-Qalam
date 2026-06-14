@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تسجيل الدخول — دقة قلم</title>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -412,7 +412,7 @@ async function signInGoogle() {
 
   const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + '/app' }
+    options: { redirectTo: window.location.origin + '/' }
   });
 
   clearTimeout(timeout);
@@ -451,7 +451,7 @@ async function signInEmail() {
 
   if (data?.user) {
     showPanel('signed-in');
-    setTimeout(() => { window.location.href = '/app'; }, 800);
+    setTimeout(() => { window.location.href = '/'; }, 800);
   }
 }
 
@@ -474,7 +474,7 @@ async function signUpEmail() {
   const { data, error } = await client.auth.signUp({
     email,
     password: pass,
-    options: { emailRedirectTo: window.location.origin + '/app' }
+    options: { emailRedirectTo: window.location.origin + '/' }
   });
 
   setLoading('btn-signup','signup-spin',false);
@@ -489,7 +489,7 @@ async function signUpEmail() {
   // If user is immediately active (email confirmations disabled in Supabase)
   if (data?.session) {
     showPanel('signed-in');
-    setTimeout(() => { window.location.href = '/app'; }, 800);
+    setTimeout(() => { window.location.href = '/'; }, 800);
     return;
   }
 
