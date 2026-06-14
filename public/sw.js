@@ -6,7 +6,7 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v10';
+const CACHE = 'diqqat-qalam-v11';
 
 const CORE_ASSETS = [
   '/app',
@@ -73,6 +73,21 @@ self.addEventListener('fetch', (e) => {
 
   // Supabase auth — شبكة فقط
   if (url.hostname.endsWith('.supabase.co')) return;
+
+  // صفحات HTML (التنقل + /auth + /app + /) — الشبكة أولاً دائماً
+  // يمنع تقديم نسخة قديمة من صفحة الدخول؛ الكاش احتياطي عند انقطاع الإنترنت فقط
+  const isHTML = e.request.mode === 'navigate' ||
+                 url.pathname === '/' || url.pathname === '/app' || url.pathname === '/auth' ||
+                 (e.request.headers.get('accept') || '').includes('text/html');
+  if (isHTML && url.origin === location.origin) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+        return res;
+      }).catch(() => caches.match(e.request).then(hit => hit || caches.match('/app')))
+    );
+    return;
+  }
 
   // CDN — cache-first
   if (url.origin !== location.origin) {
