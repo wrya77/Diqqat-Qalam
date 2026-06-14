@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تسجيل الدخول — دقة قلم</title>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    window.supabase = { createClient };
-  </script>
+  <!-- Supabase SDK مخدوم محلياً من الخادم — بلا CDN خارجي، يتجاوز حظر CSP ويعمل دون اتصال -->
+  <script src="/vendor/supabase.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
