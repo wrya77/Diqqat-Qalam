@@ -173,8 +173,23 @@
     window.addEventListener('resize', () => { if (window.innerWidth > 1024) closeAll(); });
   }
 
+  /* ══ قائمة الجوال المدمجة (☰) ══ */
+  function initMobileMenu() {
+    const bar = document.getElementById('menubar');
+    const ham = document.getElementById('menu-hamburger');
+    if (!bar || !ham) return;
+    ham.addEventListener('click', e => { e.stopPropagation(); bar.classList.toggle('open'); });
+    bar.querySelectorAll('.mi[data-act]').forEach(mi =>
+      mi.addEventListener('click', () => bar.classList.remove('open')));
+    document.addEventListener('click', e => {
+      if (!bar.contains(e.target) && e.target !== ham) bar.classList.remove('open');
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') bar.classList.remove('open'); });
+    window.addEventListener('resize', () => { if (window.innerWidth > 768) bar.classList.remove('open'); });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initTooltips(); initA11y(); initDrawers(); });
-  } else { initTooltips(); initA11y(); initDrawers(); }
+    document.addEventListener('DOMContentLoaded', () => { initTooltips(); initA11y(); initDrawers(); initMobileMenu(); });
+  } else { initTooltips(); initA11y(); initDrawers(); initMobileMenu(); }
   initEditorHooks();
 })();
