@@ -97,8 +97,9 @@ const PaymentsUI = (() => {
         if (d.status === 'paid') {
           stopPolling();
           close();
+          const names = { basic: 'أساسي', pro: 'احترافي', business: 'أعمال' };
           toast('🎉 تم الدفع بنجاح! تمت ترقية اشتراكك إلى خطة ' +
-                (d.plan === 'pro' ? 'احترافي' : 'مؤسسي'), 'success');
+                (names[d.plan] || d.plan), 'success');
         } else if (d.status === 'failed') {
           stopPolling();
           $('pay-status-msg').textContent = 'فشل الدفع أو رُفض — أعد المحاولة';

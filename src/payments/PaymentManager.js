@@ -12,10 +12,11 @@ const fs   = require('fs');
 const path = require('path');
 const { FIBProvider, CardProvider } = require('./providers');
 
-// أسعار الخطط الشهرية
+// أسعار الخطط الشهرية بالدينار العراقي (متطابقة مع SubscriptionManager)
 const PLAN_PRICES = {
-  pro:        { iqd: 39000,  usd: 29,  name: 'احترافي' },
-  enterprise: { iqd: 265000, usd: 199, name: 'مؤسسي'  },
+  basic:    { iqd: 19000,  usd: 13,  name: 'أساسي'  },
+  pro:      { iqd: 39000,  usd: 27,  name: 'احترافي' },
+  business: { iqd: 150000, usd: 103, name: 'أعمال'  },
 };
 
 class PaymentManager {

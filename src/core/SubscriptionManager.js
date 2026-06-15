@@ -4,6 +4,7 @@
  * يتحكم في الميزات المتاحة لكل مستخدم ويمكن ربطه بـ Stripe.
  */
 
+// الأسعار بالدينار العراقي/شهر. أربع طبقات: مجاني + 3 مدفوعة (قرار المستخدم).
 const PLANS = {
   free: {
     name: 'مجاني',
@@ -18,22 +19,35 @@ const PLANS = {
     },
     features: ['generate', 'import', 'export', 'preview'],
   },
+  basic: {
+    name: 'أساسي',
+    price: 19000,
+    limits: {
+      jobsPerMonth:    100,
+      shapesPerJob:    300,
+      batchSize:       3,
+      aiOptimizations: 20,
+      storageProjects: 30,
+      webhooks:        0,
+    },
+    features: ['generate', 'import', 'export', 'preview', 'cost', 'templates'],
+  },
   pro: {
     name: 'احترافي',
-    price: 29,
+    price: 39000,
     limits: {
-      jobsPerMonth:    500,
-      shapesPerJob:    1000,
-      batchSize:       10,
-      aiOptimizations: 100,
-      storageProjects: 100,
+      jobsPerMonth:    1000,
+      shapesPerJob:    2000,
+      batchSize:       20,
+      aiOptimizations: 200,
+      storageProjects: 200,
       webhooks:        5,
     },
     features: ['generate', 'import', 'export', 'preview', 'ai', 'batch', 'queue', 'cost', 'webhooks', 'templates'],
   },
-  enterprise: {
-    name: 'مؤسسي',
-    price: 199,
+  business: {
+    name: 'أعمال',
+    price: 150000,
     limits: {
       jobsPerMonth:    Infinity,
       shapesPerJob:    Infinity,
