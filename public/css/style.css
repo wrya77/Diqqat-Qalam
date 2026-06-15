@@ -1825,9 +1825,32 @@ details.section > select { margin: 8px 12px; width: calc(100% - 24px); }
 @media (max-width: 1100px) {
   .app-layout { grid-template-columns: 220px 1fr 360px; }
 }
-@media (max-width: 900px) {
-  .app-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
-  .settings-panel, .output-panel { max-height: 200px; overflow-y: auto; }
+
+/* أزرار الأدراج + الخلفية المعتمة (مخفية على سطح المكتب) */
+.drawer-toggle {
+  display: none; background: none; border: none; cursor: pointer;
+  color: var(--text2); font-size: 18px; padding: 6px 9px; line-height: 1; border-radius: 6px;
+}
+.drawer-toggle:hover { background: var(--bg3); color: var(--text); }
+.drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.55);
+  z-index: 1500; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.drawer-backdrop.on { opacity: 1; pointer-events: auto; }
+
+/* اللوحي والهاتف: اللوحة كامل العرض، واللوحتان الجانبيتان أدراج منزلقة */
+@media (max-width: 1024px) {
+  .drawer-toggle { display: inline-flex; align-items: center; }
+  .app-layout { grid-template-columns: 1fr; }
+  .settings-panel, .output-panel {
+    position: fixed; top: 44px; bottom: 0; width: min(86vw, 380px); max-height: none;
+    z-index: 1600; transition: transform .25s ease; box-shadow: 0 0 30px rgba(0,0,0,.55);
+  }
+  .settings-panel { right: 0; transform: translateX(105%); border-left: none; }
+  .output-panel   { left: 0;  transform: translateX(-105%); }
+  .settings-panel.drawer-open, .output-panel.drawer-open { transform: translateX(0); }
+  /* أهداف لمس أكبر */
+  .tbtn, .menu-btn, .btn { min-height: 38px; }
 }
 
 /* ════════════ تحسينات التصميم — دفعة 10 ════════════ */

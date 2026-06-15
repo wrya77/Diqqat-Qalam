@@ -146,8 +146,35 @@
       .forEach(b => b.setAttribute('aria-label', b.getAttribute('title')));
   }
 
+  /* ══ أدراج منزلقة للوحتين على اللوحي/الهاتف ══ */
+  function initDrawers() {
+    const settings = document.querySelector('.settings-panel');
+    const output   = document.querySelector('.output-panel');
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (!backdrop) return;
+
+    function closeAll() {
+      settings && settings.classList.remove('drawer-open');
+      output   && output.classList.remove('drawer-open');
+      backdrop.classList.remove('on');
+    }
+    function toggle(panel) {
+      if (!panel) return;
+      const willOpen = !panel.classList.contains('drawer-open');
+      closeAll();
+      if (willOpen) { panel.classList.add('drawer-open'); backdrop.classList.add('on'); }
+    }
+
+    document.getElementById('dt-settings')?.addEventListener('click', () => toggle(settings));
+    document.getElementById('dt-output')?.addEventListener('click', () => toggle(output));
+    backdrop.addEventListener('click', closeAll);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+    // عند توسيع الشاشة (دوران الجهاز) أغلق الأدراج لتجنّب حالة عالقة
+    window.addEventListener('resize', () => { if (window.innerWidth > 1024) closeAll(); });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initTooltips(); initA11y(); });
-  } else { initTooltips(); initA11y(); }
+    document.addEventListener('DOMContentLoaded', () => { initTooltips(); initA11y(); initDrawers(); });
+  } else { initTooltips(); initA11y(); initDrawers(); }
   initEditorHooks();
 })();
