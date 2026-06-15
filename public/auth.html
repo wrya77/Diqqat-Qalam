@@ -4,6 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تسجيل الدخول — دقة قلم</title>
+  <!-- كاشف الأخطاء: يُظهر أي خطأ JS على الشاشة — أول سكربت -->
+  <script>
+  (function(){
+    function show(msg){
+      var b=document.getElementById('dq-err');
+      if(!b){
+        b=document.createElement('div'); b.id='dq-err';
+        b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#7d1a14;color:#fff;font:13px/1.5 Tahoma,sans-serif;padding:8px 36px 8px 12px;direction:rtl;white-space:pre-wrap;max-height:45vh;overflow:auto';
+        var x=document.createElement('button'); x.textContent='✕';
+        x.style.cssText='position:absolute;top:6px;left:8px;background:transparent;border:0;color:#fff;font-size:16px;cursor:pointer';
+        x.onclick=function(){b.remove();};
+        var t=document.createElement('div'); t.style.fontWeight='700'; t.textContent='⚠ خطأ (صوّر هذه الرسالة):';
+        var m=document.createElement('div'); m.id='dq-err-m';
+        b.appendChild(x); b.appendChild(t); b.appendChild(m);
+        (document.body||document.documentElement).appendChild(b);
+      }
+      document.getElementById('dq-err-m').textContent += msg + '\n';
+    }
+    window.addEventListener('error', function(e){ show((e.message||'خطأ') + (e.filename?('  @ '+e.filename.split('/').pop()+':'+e.lineno):'')); });
+    window.addEventListener('unhandledrejection', function(e){ show('وعد مرفوض: ' + ((e.reason&&(e.reason.message||e.reason))||'غير معروف')); });
+  })();
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
   <!-- Supabase SDK مخدوم محلياً من الخادم — بلا CDN خارجي، يتجاوز حظر CSP ويعمل دون اتصال -->
   <script src="/vendor/supabase.js"></script>
