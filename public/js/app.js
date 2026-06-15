@@ -225,14 +225,28 @@ class DiqqatQalamApp {
     document.getElementById('btn-generate').disabled = true;
 
     try {
+      // ترتيب المسارات لتقليل التنقل الفارغ (NN + 2-opt) — نفس محرك الخادم
+      let ordered = shapes, sortInfo = null;
+      if (config.sortPaths !== false && typeof DQ !== 'undefined' && DQ.PathSort) {
+        const r = DQ.PathSort.optimize(shapes);
+        ordered = r.shapes;
+        sortInfo = r;
+      }
+
       // Instant client-side generation
       const gen = new GCodeGenerator(config);
-      const result = gen.generate(shapes);
+      const result = gen.generate(ordered);
       this.gcode = result.gcode;
       this.preview.display(this.gcode);
       this.controls.updateStats(result.stats);
+      if (sortInfo && sortInfo.before > 0) {
+        const el = document.getElementById('st-saving');
+        if (el) el.textContent = sortInfo.saving + ` (${sortInfo.before}→${sortInfo.after}mm)`;
+      }
       this.controls.setStatus('✅ تم التوليد','active');
-      this.toast('✅ تم توليد G-Code!','success');
+      this.toast(sortInfo && parseInt(sortInfo.saving) > 0
+        ? `✅ تم التوليد — توفير ${sortInfo.saving} من التنقل`
+        : '✅ تم توليد G-Code!','success');
 
       // If AI optimization & server available
       if (config.aiOptimize) {

@@ -155,8 +155,13 @@ class UIControls {
     if(!box||!suggestions?.length) return;
     const html=`<b>🤖 اقتراحات AI (توفير: ${saving})</b><ul>${suggestions.map(s=>`<li>${s}</li>`).join('')}</ul>`;
     box.innerHTML=html; box.classList.add('visible');
+    // لا تكتب فوق توفير التنقل الحقيقي (NN+2opt) إلا إن كان AI أكبر فعلاً
     const st=document.getElementById('st-saving');
-    if(st) st.textContent=saving;
+    if(st){
+      const cur=parseFloat(st.textContent)||0;
+      const ai=parseFloat(saving)||0;
+      if(ai>cur) st.textContent=saving;
+    }
   }
 
   /**

@@ -13,7 +13,7 @@ class PathOptimizer {
     this.config     = options || {};
     this.sortPaths  = options.sortPaths  !== false;
     this.detectArcs = options.detectArcs !== false;
-    this.twoOpt     = options.twoOpt     || false;   // بطيء على مجموعات كبيرة
+    this.twoOpt     = options.twoOpt !== false;      // مفعّل افتراضياً (آمن: يتخطى >400 شكل)
     this.joinGap    = options.joinGap    || 0.01;    // mm — ربط أشكال متجاورة
     this.feedrate   = options.feedrate !== false;
 
@@ -74,19 +74,26 @@ class PathOptimizer {
     // 3. ترتيب بالجار الأقرب
     if (this.sortPaths) {
       const nnResult = this._nn.sort(current, startPos);
-      // دعم إرجاعين محتملين: مصفوفة (قديمة) أو كائن يحتوي ordered + إحصاءات
-      const ordered = Array.isArray(nnResult) ? nnResult : nnResult.ordered || [];
-      const totalRapidBefore = Array.isArray(nnResult) ? 0 : (nnResult.totalRapidBefore || 0);
-      const totalRapidAfter  = Array.isArray(nnResult) ? 0 : (nnResult.totalRapidAfter  || 0);
-      const saving           = Array.isArray(nnResult) ? '0%' : (nnResult.saving || '0%');
+      // sort() يُرجع مصفوفة بخصائص مُرفقة (ordered/totalRapid*) — اقرأها مباشرة
+      const ordered = nnResult.ordered || (Array.isArray(nnResult) ? nnResult : []);
+      const totalRapidBefore = nnResult.totalRapidBefore || 0;
 
-      // 4. 2-Opt إضافي (اختياري)
+      // 4. 2-Opt إضافي (مفعّل افتراضياً)
       current = this.twoOpt ? this._nn.twoOpt(ordered, startPos) : ordered;
+
+      // احسب المسافة النهائية فعلياً بعد 2-opt
+      const finalAfter = Math.round(this._nn._totalRapid(current, startPos));
+      const finalPct   = totalRapidBefore > 0
+        ? Math.max(0, Math.round((1 - finalAfter / totalRapidBefore) * 100))
+        : 0;
+      const finalSaving = `${finalPct}%`;
 
       report.steps.push({
         step: 'ترتيب المسارات',
-        detail: `مسافة سريعة: ${totalRapidBefore}mm → ${totalRapidAfter}mm | توفير ${saving}`,
-        saving,
+        detail: `مسافة سريعة: ${totalRapidBefore}mm → ${finalAfter}mm | توفير ${finalSaving}`,
+        saving: finalSaving,
+        rapidBefore: totalRapidBefore,
+        rapidAfter: finalAfter,
       });
     }
 

@@ -62,34 +62,59 @@ class NearestNeighbor {
     return ordered;
   }
 
-  // 2-Opt تحسين إضافي
-  twoOpt(shapes, startPos = { x: 0, y: 0 }, maxIter = 100) {
-    let current = [...shapes];
-    let improved = true;
-    let iter = 0;
+  /**
+   * 2-Opt صحيح وسريع — تقييم تفاضلي O(n²) لكل تمريرة.
+   * عند عكس المقطع [i..j] يُعكس أيضاً اتجاه قطع كل شكل داخله (rev)،
+   * فالحواف الداخلية تبقى بنفس الطول (مسافة متماثلة) ولا يتغير إلا حدّان.
+   * المقاطع الكبيرة تُتخطى (NN يكفيها) تجنباً للبطء.
+   */
+  twoOpt(shapes, startPos = { x: 0, y: 0 }, maxIter = 30) {
+    const n = shapes.length;
+    if (n < 4 || n > 400) return shapes;   // صغير جداً لا يفيد، كبير جداً يبطئ
 
+    // عقد بإحداثيات بداية/نهاية خام + علم الاتجاه الحالي
+    const nodes = shapes.map(s => ({
+      shape: s,
+      a: geometry.shapeRawStartPoint(s),     // الطرف "الأصلي" الأول
+      b: geometry.shapeRawEndPoint(s),       // الطرف "الأصلي" الثاني
+      rev: !!s.reversed,
+    }));
+    const entry = nd => (nd.rev ? nd.b : nd.a);
+    const exit  = nd => (nd.rev ? nd.a : nd.b);
+    const D = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+
+    let improved = true, iter = 0;
     while (improved && iter < maxIter) {
-      improved = false;
-      iter++;
-      for (let i = 1; i < current.length - 1; i++) {
-        for (let j = i + 1; j < current.length; j++) {
-          const before = this._totalRapid(current, startPos);
-          // قلب القطعة من i إلى j
-          const next = [
-            ...current.slice(0, i),
-            ...current.slice(i, j + 1).reverse(),
-            ...current.slice(j + 1),
-          ];
-          const after = this._totalRapid(next, startPos);
-          if (after < before - 0.001) {
-            current = next;
+      improved = false; iter++;
+      for (let i = 0; i < n - 1; i++) {
+        const prevExit = i === 0 ? startPos : exit(nodes[i - 1]);
+        for (let j = i + 1; j < n; j++) {
+          const ni = nodes[i], nj = nodes[j];
+          const hasRight = j + 1 < n;
+          const nextEntry = hasRight ? entry(nodes[j + 1]) : null;
+
+          // الحدّان قبل العكس
+          const oldL = D(prevExit, entry(ni));
+          const oldR = hasRight ? D(exit(nj), nextEntry) : 0;
+
+          // بعد العكس: المقطع يُقلب وكل شكل يُعكس اتجاهه
+          // أول المقطع الجديد = nj معكوساً، آخره = ni معكوساً
+          const newL = D(prevExit, exit(nj));            // entry(flip(nj)) = exit(nj)
+          const newR = hasRight ? D(entry(ni), nextEntry) : 0; // exit(flip(ni)) = entry(ni)
+
+          if (newL + newR < oldL + oldR - 1e-6) {
+            // طبّق: اعكس الترتيب [i..j] واقلب اتجاه كل عقدة داخله
+            let lo = i, hi = j;
+            while (lo < hi) { const t = nodes[lo]; nodes[lo] = nodes[hi]; nodes[hi] = t; lo++; hi--; }
+            for (let k = i; k <= j; k++) nodes[k].rev = !nodes[k].rev;
             improved = true;
           }
         }
       }
     }
 
-    return current;
+    // أعد بناء مصفوفة الأشكال بالاتجاهات النهائية
+    return nodes.map(nd => { nd.shape.reversed = nd.rev; return nd.shape; });
   }
 
   _totalRapid(shapes, startPos) {

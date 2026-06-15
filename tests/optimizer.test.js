@@ -88,3 +88,69 @@ describe('PathOptimizer', () => {
     expect(opt.optimize([])).toEqual([]);
   });
 });
+
+describe('2-Opt path optimization', () => {
+  const nn = new NearestNeighbor();
+  const D = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+  // مسافة التنقل السريع الكلية لترتيب معيّن (يحترم اتجاه القطع reversed)
+  const geom = require('../src/utils/geometry');
+  const totalRapid = (shapes) => {
+    let total = 0, pos = { x: 0, y: 0 };
+    for (const s of shapes) {
+      const st = geom.shapeStartPoint(s);
+      total += D(pos, st);
+      pos = geom.shapeEndPoint(s);
+    }
+    return total;
+  };
+
+  test('2-opt لا يزيد المسافة أبداً ويحافظ على كل الأشكال', () => {
+    // ترتيب متعرّج سيّئ عمداً
+    const shapes = [];
+    for (let i = 0; i < 12; i++) {
+      const x = (i % 2 === 0) ? i * 8 : 100 - i * 8;
+      shapes.push({ type: 'line', x1: x, y1: 0, x2: x + 4, y2: 10 });
+    }
+    const before = totalRapid(shapes);
+    const nnOrder = nn.sort(shapes.map(s => ({ ...s })));
+    const after2  = nn.twoOpt(nnOrder.map(s => ({ ...s })));
+    const after   = totalRapid(after2);
+
+    expect(after2.length).toBe(shapes.length);          // لا فقدان أشكال
+    expect(after).toBeLessThanOrEqual(before + 1e-6);   // أقصر أو مساوٍ
+  });
+
+  test('2-opt يصلح ترتيباً متقاطعاً لمربع (الحل الأمثل = محيط)', () => {
+    // أربع نقاط بترتيب متقاطع (قطرين) — 2-opt يجب أن يحوّله لمحيط
+    const shapes = [
+      { type: 'line', x1: 0,   y1: 0,   x2: 0,   y2: 0 },   // (0,0)
+      { type: 'line', x1: 100, y1: 100, x2: 100, y2: 100 }, // (100,100)
+      { type: 'line', x1: 100, y1: 0,   x2: 100, y2: 0 },   // (100,0)
+      { type: 'line', x1: 0,   y1: 100, x2: 0,   y2: 100 }, // (0,100)
+    ];
+    const crossed = totalRapid(shapes);
+    const fixed = nn.twoOpt(shapes.map(s => ({ ...s })));
+    expect(totalRapid(fixed)).toBeLessThan(crossed);
+  });
+
+  test('2-opt يتخطى المجموعات الصغيرة جداً والكبيرة جداً بأمان', () => {
+    const tiny = [{ type:'line',x1:0,y1:0,x2:1,y2:1 }, { type:'line',x1:5,y1:5,x2:6,y2:6 }];
+    expect(nn.twoOpt(tiny).length).toBe(2);             // < 4: يُعاد كما هو بلا خطأ
+    const big = Array.from({ length: 420 }, (_, i) => ({ type:'line', x1:i, y1:0, x2:i+1, y2:1 }));
+    expect(nn.twoOpt(big).length).toBe(420);            // > 400: بلا خطأ
+  });
+
+  test('PathOptimizer ينتج توفيراً موجباً في تقرير الترتيب', () => {
+    const shapes = [];
+    for (let i = 0; i < 10; i++) {
+      const x = (i % 2 === 0) ? i * 10 : 90 - i * 10;
+      shapes.push({ type: 'circle', cx: x, cy: (i * 13) % 50, r: 3 });
+    }
+    const o = new PathOptimizer({ sortPaths: true, detectArcs: false, feedrate: false });
+    const result = o.optimize(shapes);
+    const step = result.report.steps.find(s => s.step === 'ترتيب المسارات');
+    expect(step).toBeTruthy();
+    expect(step.rapidAfter).toBeLessThanOrEqual(step.rapidBefore);
+    expect(result.length).toBe(shapes.length);
+  });
+});

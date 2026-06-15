@@ -29,7 +29,7 @@ const REQUIRED_FILES = [
   'public/js/tools-rail-flyout.js','public/js/image-tracer.js',
   // المحرك المشترك (خادم + متصفح)
   'shared/geometry.js','shared/MachineConfig.js','shared/HeaderGenerator.js',
-  'shared/PocketGenerator.js','shared/ToolpathGenerator.js','shared/GCodeGenerator.js',
+  'shared/PocketGenerator.js','shared/ToolpathGenerator.js','shared/PathSort.js','shared/GCodeGenerator.js',
   // الخادم
   'src/middleware/auth.js',
   'src/payments/PaymentManager.js','src/payments/providers.js',
