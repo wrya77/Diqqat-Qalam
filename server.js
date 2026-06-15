@@ -19,10 +19,8 @@ const FeedrateOptimizer = require('./src/optimizers/FeedrateOptimizer');
 const SVGParser         = require('./src/parsers/SVGParser');
 const DXFParser         = require('./src/parsers/DXFParser');
 const AIOptimizer       = require('./src/ai/AIOptimizer');
-const LocalExpert       = require('./src/ai/LocalExpert');
 const MachineConfig     = require('./src/core/MachineConfig');
 const validator         = require('./src/utils/validator');
-const geometry          = require('./src/utils/geometry');
 const ProjectManager    = require('./src/core/ProjectManager');
 const ToolLibrary       = require('./src/core/ToolLibrary');
 const { applyPostProcessor } = require('./src/generators/PostProcessors');
@@ -52,6 +50,8 @@ const toolLib      = new ToolLibrary();
 const jobQueue     = new JobQueue();
 const costEst      = new CostEstimator();
 const subMgr       = new SubscriptionManager();
+const WorkerPool   = require('./src/core/WorkerPool');
+const genPool      = new WorkerPool();   // توليد G-Code خارج الخيط الرئيسي
 const templateMgr  = new TemplateManager();
 const analytics    = new Analytics();
 const backupMgr    = new BackupManager();
@@ -283,11 +283,10 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
     }
 
     const config = new MachineConfig(rawConfig).toObject();
-    let processedShapes = shapes;
     let suggestions = [], estimatedSaving = '0%';
 
-    const optimizer = new PathOptimizer(config);
-    processedShapes = optimizer.optimize(processedShapes);
+    // المرحلة الثقيلة #1 — تحسين المسارات (في خيط عامل، لا يُجمّد بقية الطلبات)
+    let processedShapes = (await genPool.run({ op: 'optimize', shapes, config })).shapes;
 
     if (useAI && subMgr.hasFeature(userId, 'ai')) {
       const AIImpl = process.env.ANTHROPIC_API_KEY ? AIOptimizer : require('./src/ai/MockAIOptimizer');
@@ -300,52 +299,28 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
           estimatedSaving = r2.estimatedSaving || '0%';
           io.emit('ai-suggestions', { suggestions, estimatedSaving });
         } else {
-          processedShapes = new PathOptimizer(config).optimize(processedShapes);
+          processedShapes = (await genPool.run({ op: 'optimize', shapes: processedShapes, config })).shapes;
           suggestions = ['AI أعاد نتيجة غير صالحة — تم استخدام المُحسِّن المحلي'];
         }
         subMgr.incrementUsage(userId, 'aiOptimizations');
         analytics.track('ai_called', { userId, shapes: shapes.length });
       } catch (e) {
         console.error('AI optimize error:', e?.message || e);
-        processedShapes = new PathOptimizer(config).optimize(processedShapes);
+        processedShapes = (await genPool.run({ op: 'optimize', shapes: processedShapes, config })).shapes;
         suggestions = [`خطأ AI: ${e?.message || String(e)}`];
       }
     }
 
-    const feedOpt = new FeedrateOptimizer();
-    processedShapes = feedOpt.assignFeedRates(processedShapes, config, { preserveExisting: true });
-
-    // النظام الخبير المحلي — نصائح فيزيائية حتمية تعمل دائماً (مع أو بدون AI سحابي)
-    try {
-      const expertTips = LocalExpert.analyze(processedShapes, config);
-      if (expertTips.length) suggestions = [...suggestions, ...expertTips];
-    } catch (e) { console.warn('LocalExpert:', e.message); }
-
-    const generator = new GCodeGenerator(config);
-    let { gcode, stats } = generator.generate(processedShapes);
-
-    if (rawConfig.machineProfile && rawConfig.machineProfile !== 'generic') {
-      gcode = applyPostProcessor(gcode, config, rawConfig.machineProfile);
-    }
-
-    const analysis = processedShapes.map((s, i) => {
-      if (!s || !s.type) return null;
-      return {
-        index:                  i,
-        type:                   s.type,
-        length:                 geometry.shapeLength(s),
-        feedRate:               s.feedRate               || null,
-        maxRecommendedFeedRate: s.maxRecommendedFeedRate || null,
-        forceEstimate:          s.forceEstimate          || null,
-        engagement:             s.forceEstimate && s.forceEstimate.engagement,
-      };
-    }).filter(Boolean);
+    // المرحلة الثقيلة #2 — معدّلات التغذية + النصائح + G-Code + التحليل (في خيط عامل)
+    const fin = await genPool.run({ op: 'finalize', shapes: processedShapes, config, machineProfile: rawConfig.machineProfile });
+    processedShapes = fin.shapes;
+    if (fin.expertTips && fin.expertTips.length) suggestions = [...suggestions, ...fin.expertTips];
 
     subMgr.incrementUsage(userId, 'jobsPerMonth');
     analytics.track('job_generated', { userId, shapesCount: shapes.length, timeSavedMin: parseFloat(estimatedSaving) || 0 });
-    await webhookMgr.fire('job_generated', { userId, shapes: shapes.length, stats });
+    await webhookMgr.fire('job_generated', { userId, shapes: shapes.length, stats: fin.stats });
 
-    res.json({ success: true, gcode, stats, suggestions, estimatedSaving, analysis, processedShapes });
+    res.json({ success: true, gcode: fin.gcode, stats: fin.stats, suggestions, estimatedSaving, analysis: fin.analysis, processedShapes });
 
   } catch (err) {
     console.error(err);
