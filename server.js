@@ -78,6 +78,9 @@ app.use(helmet({
     directives: {
       defaultSrc:  ["'self'"],
       scriptSrc:   ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+      // معالجات inline (onclick/oninput/onsubmit) — يستخدمها auth.html و index.html
+      // بدون هذا السطر يبقى الافتراضي 'none' في Helmet فتتعطّل كل الأزرار (زر التسجيل مثلاً)
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc:    ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
       fontSrc:     ["'self'", 'fonts.gstatic.com'],
       connectSrc:  ["'self'", 'ws:', 'wss:', 'https://*.supabase.co'],
