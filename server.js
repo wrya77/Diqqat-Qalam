@@ -173,6 +173,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// خطأ خادم 500: نسجّل التفاصيل داخلياً ونرجع رسالة عامة (لا نسرّب رسائل داخلية للعميل)
+function fail(res, err, msg = 'حدث خطأ في الخادم. حاول مجدداً.') {
+  console.error('API error:', err?.message || err);
+  res.status(500).json({ error: msg });
+}
+
 // ── CNC Connector ─────────────────────────────────────────────────────────────
 const CNCConnector = require('./src/core/CNCConnector');
 const cnc     = new CNCConnector(io);
@@ -344,7 +350,7 @@ app.post('/api/generate', generateLimiter, async (req, res) => {
   } catch (err) {
     console.error(err);
     analytics.track('error', { type: 'generate', message: err.message });
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 
@@ -380,7 +386,7 @@ app.post('/api/import', uploadLimiter, upload.single('file'), async (req, res) =
     console.error(err);
     if (req.file?.path) try { fs.unlinkSync(req.file.path); } catch (_) {}
     analytics.track('error', { type: 'import', message: err.message });
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 
@@ -406,7 +412,7 @@ app.post('/api/export/dxf', (req, res) => {
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${safe}.dxf"`);
     res.send(dxf);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { fail(res, err); }
 });
 
 // ── API: Validate G-Code ──────────────────────────────────────────────────────
@@ -416,7 +422,7 @@ app.post('/api/validate-gcode', (req, res) => {
   try {
     const result = new GCodeValidator(machineConfig).validate(gcode);
     res.json(result);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { fail(res, err); }
 });
 
 // ── API: Post-Processor ───────────────────────────────────────────────────────
@@ -426,7 +432,7 @@ app.post('/api/postprocess', (req, res) => {
   try {
     const result = applyPostProcessor(gcode, config || {}, profile || 'generic');
     res.json({ success: true, gcode: result });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { fail(res, err); }
 });
 
 // ── API: Projects (Supabase per-user with RLS, file fallback in dev mode) ────
@@ -437,7 +443,7 @@ app.get('/api/projects', requireAuth, async (req, res) => {
   try {
     const projects = useCloud(req) ? await CloudProjects.list(req.accessToken) : projectMgr.list();
     res.json({ projects });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 app.get('/api/project/:id', requireAuth, async (req, res) => {
@@ -464,7 +470,7 @@ app.post('/api/project/save', requireAuth, async (req, res) => {
       : projectMgr.save(name, data || {});
     analytics.track('project_saved', { name });
     res.json({ success: true, ...result });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 // ── API: Tool Library (built-in defaults + per-user cloud tools) ─────────────
@@ -475,7 +481,7 @@ app.get('/api/tools', async (req, res) => {
     if (useCloud(req)) tools = [...tools, ...await CloudTools.list(req.accessToken)];
     else tools = toolLib.getAll();
     res.json({ tools });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 app.post('/api/tools', requireAuth, async (req, res) => {
@@ -484,7 +490,7 @@ app.post('/api/tools', requireAuth, async (req, res) => {
       ? await CloudTools.add(req.accessToken, req.user.id, req.body || {})
       : toolLib.add(req.body || {});
     res.json({ success: true, tool });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 app.put('/api/tools/:id', requireAuth, async (req, res) => {
@@ -605,7 +611,7 @@ app.get('/api/payments/:id/status', requireAuth, async (req, res) => {
     if (payment.userId !== req.user.id) return res.status(403).json({ error: 'غير مصرح' });
     const updated = await payMgr.reconcile(payment);
     res.json({ id: updated.id, status: updated.status, plan: updated.plan });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 // إشعار FIB (خادم↔خادم) — لا نثق بالمحتوى، نتحقق من المزوّد مباشرة
@@ -665,7 +671,7 @@ app.post('/api/batch/process', uploadLimiter, requireAuthOrApiKey, batchUpload.a
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('Batch error:', e.message);
-    res.status(500).json({ error: e.message });
+    fail(res, e);
   }
 });
 
@@ -790,7 +796,7 @@ app.get('/api/cnc/ports', requireAuthOrApiKey, async (req, res) => {
   try {
     const ports = await CNCConnector.listPorts();
     res.json({ ports });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 app.post('/api/cnc/connect', requireAuthOrApiKey, async (req, res) => {
@@ -805,7 +811,7 @@ app.post('/api/cnc/connect', requireAuthOrApiKey, async (req, res) => {
     }
     analytics.track('cnc_connected', { type });
     res.json({ success: true, status: cnc.getStatus() });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 app.post('/api/cnc/disconnect', requireAuthOrApiKey, (req, res) => { cnc.disconnect(); res.json({ success: true }); });
@@ -817,7 +823,7 @@ app.post('/api/cnc/send', requireAuthOrApiKey, async (req, res) => {
     if (/[;&|`$]/.test(line)) return res.status(400).json({ error: 'محتوى غير مسموح به في الأمر' });
     await cnc.sendLine(line);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 app.post('/api/cnc/stream', requireAuthOrApiKey, async (req, res) => {
@@ -827,7 +833,7 @@ app.post('/api/cnc/stream', requireAuthOrApiKey, async (req, res) => {
     const r = await cnc.streamGCode(gcode);
     analytics.track('cnc_stream_started', { lines: r.total });
     res.json({ success: true, started: r.started, total: r.total });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 app.get('/api/cnc/status',  (req, res) => res.json({ status: cnc.getStatus(), logs: cnc.tailLogs(200) }));
@@ -839,7 +845,7 @@ app.post('/api/cnc/jog', requireAuthOrApiKey, async (req, res) => {
   try {
     await cnc.jog(axis, +distance, +feedRate || 1000);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { fail(res, e); }
 });
 
 // ── WebSocket: streaming generation ──────────────────────────────────────────
