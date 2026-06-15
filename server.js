@@ -138,8 +138,8 @@ app.use(express.static(path.join(__dirname, 'public'), staticOpts));
 app.use('/shared', express.static(path.join(__dirname, 'shared'), staticOpts));
 
 app.use(globalLimiter);
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));          // كان 50mb — قلّصناه لمنع استنزاف الذاكرة (الرفع يمر عبر multer لا عبر هذا)
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // ── Auth middleware (Supabase JWT + API key) ──────────────────────────────────
 const { attachUser, requireAuth, requireAuthOrApiKey, isValidApiKey } = require('./src/middleware/auth');
@@ -150,7 +150,13 @@ app.use('/api', attachUser);
 // Admin-only endpoints: timing-safe API key check, header only (never query string)
 const requireApiKey = (req, res, next) => {
   const serverKey = process.env.API_SECRET_KEY;
-  if (!serverKey) return next(); // dev mode: skip if no key configured
+  if (!serverKey) {
+    // fail-closed: لا نفتح النقاط الإدارية أبداً بلا مفتاح إلا في التطوير الصريح
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(503).json({ error: 'نقطة إدارية معطّلة: لم يُضبط API_SECRET_KEY على الخادم.' });
+    }
+    return next(); // تطوير محلي فقط (NODE_ENV=development)
+  }
 
   if (!isValidApiKey(req)) {
     analytics.track('error', { type: 'unauthorized', path: req.path, ip: req.ip });
@@ -900,5 +906,22 @@ if (process.env.VERCEL) {
     console.log(`  Auth: ${process.env.API_SECRET_KEY ? 'enabled' : 'dev-mode (no key)'}`);
     console.log(`  Backup: scheduled every 6 hours`);
   });
+
+  // ── متانة: لا تُسقِط الخادم بصمت ──
+  process.on('unhandledRejection', (reason) => {
+    console.error('UnhandledRejection:', reason);  // سجّل فقط — لا تُسقِط العملية لرفض وعد عابر
+  });
+  process.on('uncaughtException', (err) => {
+    console.error('UncaughtException:', err);
+    server.close(() => process.exit(1));           // أغلق برفق ثم دع Railway يعيد التشغيل
+    setTimeout(() => process.exit(1), 10000).unref();
+  });
+  // إيقاف رشيق عند إعادة النشر (Railway يرسل SIGTERM)
+  ['SIGTERM', 'SIGINT'].forEach(sig => process.on(sig, () => {
+    console.log(`\n${sig} — إيقاف رشيق…`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 10000).unref();
+  }));
+
   module.exports = { app, server };
 }
