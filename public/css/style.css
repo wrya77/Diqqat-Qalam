@@ -603,9 +603,21 @@ details.section select option { background: var(--bg2); }
 
 .out-tabs {
   display: flex;
+  align-items: center;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--bg1);
+}
+.otab-fs {
+  margin-inline-start: auto; background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 15px; padding: 6px 12px; line-height: 1;
+}
+.otab-fs:hover { color: var(--text); background: var(--bg3); }
+/* ملء الشاشة للوحة الإخراج: تغطّي الشاشة كاملة (تتجاوز وضع الدرج على الجوال) */
+.output-panel.fs {
+  position: fixed; inset: 0; width: auto !important; height: auto; max-height: none;
+  z-index: 2200; transform: none !important; border: none;
+  box-shadow: 0 0 40px rgba(0,0,0,.6);
 }
 
 .otab {

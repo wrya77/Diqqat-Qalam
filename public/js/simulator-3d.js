@@ -43,6 +43,8 @@ class GCodeSimulator {
 
   // ── Public API ──────────────────────────────────────────────────────────────
   load(gcodeText, toolDia) {
+    // أعِد قياس الكانفس الآن بعد أن صار التبويب مرئياً (كان مخفياً وقت البناء)
+    this._resize();
     // قطر الأداة: من البارامتر أو من تعليق رأس الملف
     this.toolDia = toolDia
       || parseFloat((gcodeText || '').match(/⌀([\d.]+)mm/)?.[1])

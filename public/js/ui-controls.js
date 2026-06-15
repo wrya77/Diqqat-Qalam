@@ -263,6 +263,17 @@ class UIControls {
   activateTab(tabName) {
     document.querySelectorAll('.otab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tabName));
     document.querySelectorAll('.out-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+tabName));
+    // عند فتح تبويب المحاكاة: أعِد قياس الكانفس (كان مخفياً) وحمّل آخر G-Code إن لم يكن محمّلاً
+    if (tabName === 'sim' && this.app?.simulator) {
+      const sim = this.app.simulator;
+      requestAnimationFrame(() => {
+        sim._resize();
+        if (this.app.gcode && (!sim.moves || !sim.moves.length)) {
+          const toolDia = parseFloat(document.getElementById('tool-diameter')?.value) || 3;
+          sim.load(this.app.gcode, toolDia);
+        }
+      });
+    }
   }
 
   setStatus(msg, type='') {
