@@ -107,20 +107,16 @@ const AuthManager = (() => {
       }
 
       if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-        console.warn('[Auth] Supabase SDK not loaded — opening without auth');
-        _renderUserUI(null);
-        _hideGate();
-        _ready = true;
+        console.warn('[Auth] Supabase SDK not loaded — redirecting to /auth');
+        _redirectToAuth('sdk');
         return null;
       }
 
       _client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
 
       if (!_client) {
-        console.warn('[Auth] createClient returned null — opening without auth');
-        _renderUserUI(null);
-        _hideGate();
-        _ready = true;
+        console.warn('[Auth] createClient returned null — redirecting to /auth');
+        _redirectToAuth('client');
         return null;
       }
 
@@ -142,9 +138,9 @@ const AuthManager = (() => {
         _hideGate();
         _ready = true;
       } else {
-        _renderUserUI(null);
-        _hideGate();
-        _ready = true;
+        // لا جلسة → زائر غير مسجّل: لا تفتح التطبيق، أعِد التوجيه لصفحة الدخول
+        _redirectToAuth('app');
+        return null;
       }
 
       // Keep session fresh; redirect out on sign-out
@@ -168,10 +164,8 @@ const AuthManager = (() => {
       return _user;
 
     } catch (err) {
-      console.warn('[Auth] init error — opening without auth:', err.message);
-      _renderUserUI(null);
-      _hideGate();
-      _ready = true;
+      console.warn('[Auth] init error — redirecting to /auth:', err.message);
+      _redirectToAuth('error');
       return null;
     }
   }
