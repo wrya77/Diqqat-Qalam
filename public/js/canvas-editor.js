@@ -81,31 +81,38 @@ class CanvasEditor {
 
     document.addEventListener('keydown', e => {
       const inInput = e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA' || e.target.isContentEditable;
-      if (e.ctrlKey && e.key==='z') { e.preventDefault(); this.undo(); return; }
-      if (e.ctrlKey && e.key==='y') { e.preventDefault(); this.redo(); return; }
-      if (e.ctrlKey && e.key==='c') { this._copy(); return; }
-      if (e.ctrlKey && e.key==='v') { e.preventDefault(); this._paste(); return; }
-      if (e.ctrlKey && e.key==='d') { e.preventDefault(); this._duplicate(); return; }
-      // Ctrl+A = تحديد كل الأشكال · Ctrl+Delete = حذف الكل
-      // (مُسجَّل هنا في المعالج الرئيسي لضمان عمله دائماً — كان ضمن سلسلة initExtraTools الهشّة)
-      if (e.ctrlKey && (e.key==='a'||e.key==='A')) { e.preventDefault(); this.selectAll?.(); return; }
-      if (e.ctrlKey && (e.key==='Delete'||e.key==='Backspace')) { e.preventDefault(); this.deleteAll?.(); return; }
+      // نعتمد e.code (الموضع الفيزيائي للمفتاح) لا e.key، لأن التخطيط العربي
+      // يجعل e.key='ش' بدل 'a' فتفشل كل الاختصارات. e.code يبقى 'KeyA' أياً كانت اللغة.
+      const code = e.code;
+
+      // ── اختصارات Ctrl/Cmd ──
+      if (e.ctrlKey || e.metaKey) {
+        if (inInput) return;  // داخل الحقول: اترك Ctrl للمتصفح (نسخ/لصق/تحديد النص)
+        if (code==='KeyZ') { e.preventDefault(); this.undo();        return; }
+        if (code==='KeyY') { e.preventDefault(); this.redo();        return; }
+        if (code==='KeyC') {                     this._copy();       return; }
+        if (code==='KeyV') { e.preventDefault(); this._paste();      return; }
+        if (code==='KeyD') { e.preventDefault(); this._duplicate();  return; }
+        if (code==='KeyA') { e.preventDefault(); this.selectAll?.(); return; }  // تحديد كل الأشكال
+        if (e.key==='Delete'||e.key==='Backspace') { e.preventDefault(); this.deleteAll?.(); return; }
+        return;  // أي اختصار Ctrl آخر: لا تُستثار أدوات الحرف الواحد
+      }
+
       if (inInput) return;
-      // المفاتيح أحادية الحرف (أدوات الرسم) يجب ألا تُستثار مع Ctrl/Cmd/Alt
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.altKey) return;
       if (e.key==='Escape')                       this._cancelDraw();
       if (e.key==='Delete'||e.key==='Backspace')  this._deleteSelected();
-      if (e.key==='v') this.setTool('select');
-      if (e.key==='h') this.setTool('hand');
-      if (e.key==='l') this.setTool('line');
-      if (e.key==='r') this.setTool('rect');
-      if (e.key==='c') this.setTool('circle');
-      if (e.key==='e') this.setTool('ellipse');
-      if (e.key==='a') this.setTool('arc');
-      if (e.key==='g') this.setTool('polygon');
-      if (e.key==='s') this.setTool('slot');
-      if (e.key==='p') this.setTool('polyline');
-      if (e.key==='f') this.setTool('freehand');
+      if (code==='KeyV') this.setTool('select');
+      if (code==='KeyH') this.setTool('hand');
+      if (code==='KeyL') this.setTool('line');
+      if (code==='KeyR') this.setTool('rect');
+      if (code==='KeyC') this.setTool('circle');
+      if (code==='KeyE') this.setTool('ellipse');
+      if (code==='KeyA') this.setTool('arc');
+      if (code==='KeyG') this.setTool('polygon');
+      if (code==='KeyS') this.setTool('slot');
+      if (code==='KeyP') this.setTool('polyline');
+      if (code==='KeyF') this.setTool('freehand');
     });
 
     document.getElementById('polygon-sides')?.addEventListener('change', e => {
