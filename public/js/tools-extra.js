@@ -88,7 +88,8 @@
       if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
       // مفاتيح فيزيائية (e.code) لتعمل على التخطيط العربي والإنجليزي معاً
       const map = {
-        'KeyB':'bezier','KeyK':'spline','KeyT':'triangle','KeyY':'star',
+        'KeyB':'bezier','KeyK':'spline','KeyY':'star',
+        // ملاحظة: KeyT محجوز لأداة النص (tools-pro) — المثلّث متاح من لوحة الأشكال بالنقر
         'KeyN':'arrow','KeyD':'donut','KeyI':'spiral','KeyW':'wave',
         'KeyZ':'zigzag','KeyO':'gear','KeyX':'crosshair','KeyM':'dimension',
         'KeyQ':'lasso',
