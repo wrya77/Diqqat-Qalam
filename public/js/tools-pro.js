@@ -110,7 +110,7 @@
     // مفتاح T لأداة النص
     document.addEventListener('keydown', e => {
       const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-      if (!inInput && !e.ctrlKey && e.key === 't') this.setTool('text');
+      if (!inInput && !e.ctrlKey && e.code === 'KeyT') this.setTool('text');
     });
 
     // تحريك بالأسهم: 1mm — Shift: 10mm — Alt: 0.1mm (يشمل التحديد المتعدد)

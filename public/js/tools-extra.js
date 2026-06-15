@@ -86,17 +86,18 @@
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       const tag = document.activeElement.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
+      // مفاتيح فيزيائية (e.code) لتعمل على التخطيط العربي والإنجليزي معاً
       const map = {
-        'b':'bezier','k':'spline','t':'triangle','y':'star',
-        'n':'arrow','d':'donut','i':'spiral','w':'wave',
-        'z':'zigzag','o':'gear','x':'crosshair','m':'dimension',
-        'q':'lasso',
-        'u':'rounded-rect','j':'chamfer-rect',
-        '1':'honeycomb','2':'living-hinge','3':'finger-joint',
-        '4':'voronoi','5':'maze','6':'starburst',
-        '7':'hatch','8':'lattice','9':'wave-fill','0':'tab-slot',
+        'KeyB':'bezier','KeyK':'spline','KeyT':'triangle','KeyY':'star',
+        'KeyN':'arrow','KeyD':'donut','KeyI':'spiral','KeyW':'wave',
+        'KeyZ':'zigzag','KeyO':'gear','KeyX':'crosshair','KeyM':'dimension',
+        'KeyQ':'lasso',
+        'KeyU':'rounded-rect','KeyJ':'chamfer-rect',
+        'Digit1':'honeycomb','Digit2':'living-hinge','Digit3':'finger-joint',
+        'Digit4':'voronoi','Digit5':'maze','Digit6':'starburst',
+        'Digit7':'hatch','Digit8':'lattice','Digit9':'wave-fill','Digit0':'tab-slot',
       };
-      if (map[e.key]) { e.preventDefault(); this.setTool(map[e.key]); }
+      if (map[e.code]) { e.preventDefault(); this.setTool(map[e.code]); }
     });
   };
 

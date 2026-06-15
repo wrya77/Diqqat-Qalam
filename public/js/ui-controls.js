@@ -29,9 +29,8 @@ class UIControls {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', e=>{
-      if(e.ctrlKey && e.key==='z'){e.preventDefault();this.app.editor.undo();}
-      if(e.ctrlKey && e.key==='y'){e.preventDefault();this.app.editor.redo();}
-      if(e.key==='0'&&e.ctrlKey){e.preventDefault();this.app.editor.fitToView();}
+      // التراجع/الإعادة (Ctrl+Z/Y) يتكفّل بهما canvas-editor عبر e.code — أُزيلا هنا لمنع التكرار المزدوج
+      if(e.ctrlKey && (e.code==='Digit0'||e.code==='Numpad0')){e.preventDefault();this.app.editor.fitToView();}
       if(e.key==='Enter'&&!e.target.matches('input,select,textarea'))this.app.generate();
     });
 

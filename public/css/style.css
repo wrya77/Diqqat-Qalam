@@ -31,6 +31,12 @@
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 html,body { height:100%; overflow:hidden; }
 
+/* منع تظليل نص الواجهة عند السحب/الاختصارات. الحقول ومناطق الإخراج تبقى قابلة للنسخ. */
+body { user-select: none; -webkit-user-select: none; }
+input, textarea, select, [contenteditable], pre, code, .gc-body, .selectable {
+  user-select: text; -webkit-user-select: text;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
