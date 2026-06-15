@@ -86,7 +86,13 @@ class CanvasEditor {
       if (e.ctrlKey && e.key==='c') { this._copy(); return; }
       if (e.ctrlKey && e.key==='v') { e.preventDefault(); this._paste(); return; }
       if (e.ctrlKey && e.key==='d') { e.preventDefault(); this._duplicate(); return; }
+      // Ctrl+A = تحديد كل الأشكال · Ctrl+Delete = حذف الكل
+      // (مُسجَّل هنا في المعالج الرئيسي لضمان عمله دائماً — كان ضمن سلسلة initExtraTools الهشّة)
+      if (e.ctrlKey && (e.key==='a'||e.key==='A')) { e.preventDefault(); this.selectAll?.(); return; }
+      if (e.ctrlKey && (e.key==='Delete'||e.key==='Backspace')) { e.preventDefault(); this.deleteAll?.(); return; }
       if (inInput) return;
+      // المفاتيح أحادية الحرف (أدوات الرسم) يجب ألا تُستثار مع Ctrl/Cmd/Alt
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key==='Escape')                       this._cancelDraw();
       if (e.key==='Delete'||e.key==='Backspace')  this._deleteSelected();
       if (e.key==='v') this.setTool('select');

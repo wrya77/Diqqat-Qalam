@@ -22,14 +22,9 @@
     this.msel = new Set();   // فهارس التحديد المتعدد
     this._groupDrag = null;
 
-    // Ctrl+A — تحديد الكل
-    document.addEventListener('keydown', e => {
-      const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-      if (inInput) return;
-      if (e.ctrlKey && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); this.selectAll(); }
-      // Ctrl+Delete = حذف كل الأشكال
-      if (e.ctrlKey && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); this.deleteAll(); }
-    });
+    // Ctrl+A (تحديد الكل) و Ctrl+Delete (حذف الكل) انتقلا إلى معالج لوحة
+    // المفاتيح الرئيسي في canvas-editor.js لضمان تسجيلهما دائماً — كان هذا
+    // المستمع يُسقَط أحياناً لأنه يعتمد على اكتمال سلسلة initExtraTools.
   };
 
   /* ══════════════════════════════════════════════════════════
