@@ -248,6 +248,34 @@
       <div class="auth-sub"><a onclick="switchTab('signin')">← العودة لتسجيل الدخول</a></div>
     </div>
 
+    <!-- ═══ SET NEW PASSWORD PANEL (recovery link) ═══ -->
+    <div id="panel-reset-password" style="display:none">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        أدخل كلمة المرور الجديدة لحسابك.
+      </p>
+      <form id="form-newpass" onsubmit="return false">
+        <div class="field">
+          <label>كلمة المرور الجديدة (8 أحرف على الأقل)</label>
+          <div class="pw-wrap">
+            <input type="password" id="np-password" placeholder="••••••••" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('np-password',this)">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>تأكيد كلمة المرور</label>
+          <div class="pw-wrap">
+            <input type="password" id="np-confirm" placeholder="••••••••" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('np-confirm',this)">👁</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="updatePassword()" id="btn-newpass">
+          <span>حفظ كلمة المرور</span>
+          <div class="spin" id="newpass-spin" style="border-top-color:#fff"></div>
+        </button>
+      </form>
+      <div class="auth-sub"><a onclick="switchTab('signin')">← العودة لتسجيل الدخول</a></div>
+    </div>
+
     <!-- ═══ EMAIL SENT SUCCESS ═══ -->
     <div class="success-panel" id="panel-email-sent">
       <span class="icon">📬</span>
@@ -319,7 +347,7 @@ async function initSupabase() {
 /* ── Tab / Panel switching ── */
 function switchTab(tab) {
   clearAlerts();
-  const panels = ['signin','signup','forgot','email-sent','signed-in','no-config'];
+  const panels = ['signin','signup','forgot','reset-password','email-sent','signed-in','no-config'];
   panels.forEach(p => {
     const el = document.getElementById('panel-'+p);
     if (el) el.style.display = 'none';
@@ -488,27 +516,95 @@ async function checkSession() {
   }
 }
 
-/* ── Handle password-reset redirect ── */
+/* ── Recovery link landed → show the new-password form ── */
 async function handleResetCallback() {
-  const params = new URLSearchParams(window.location.hash.replace('#','?'));
-  const type   = params.get('type');
-  if (type === 'recovery') {
-    const client = await initSupabase();
-    if (!client) return;
-    // The user clicked the reset link — show a new password form
-    // (In production you'd show a new-password dialog here)
-    showInfo('رابط الاسترداد صحيح. يمكنك الآن ضبط كلمة مرور جديدة من إعدادات الحساب.');
-    window.location.href = '/app';
+  const client = await initSupabase();
+  if (!client) return;
+  hideTabs();
+
+  let shown = false;
+  const showForm = () => {
+    if (shown) return;
+    shown = true;
+    // Strip the recovery token from the URL so a refresh can't replay it
+    history.replaceState(null, '', '/auth');
+    showPanel('reset-password');
+  };
+
+  // The SDK parses the recovery token from the URL asynchronously and fires
+  // PASSWORD_RECOVERY (or establishes a session). Catch whichever comes first.
+  client.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY' || session) showForm();
+  });
+
+  // If the session is already available, show immediately.
+  const { data: { session } } = await client.auth.getSession();
+  if (session) { showForm(); return; }
+
+  // Give the SDK a moment; if no session appears, the link is invalid/expired.
+  setTimeout(async () => {
+    if (shown) return;
+    const { data: { session: s } } = await client.auth.getSession();
+    if (s) showForm();
+    else {
+      switchTab('forgot');
+      showError('انتهت صلاحية رابط الاسترداد أو سبق استخدامه.\nاطلب رابطاً جديداً.');
+    }
+  }, 2500);
+}
+
+/* ── Save the new password (recovery session must be active) ── */
+async function updatePassword() {
+  const client = await initSupabase();
+  if (!client) return;
+
+  const pass    = document.getElementById('np-password')?.value;
+  const confirm = document.getElementById('np-confirm')?.value;
+  if (!pass || !confirm) { showError('يرجى تعبئة الحقلين.'); return; }
+  if (pass.length < 8)   { showError('كلمة المرور يجب أن تكون 8 أحرف على الأقل.'); return; }
+  if (pass !== confirm)  { showError('كلمتا المرور غير متطابقتين.'); return; }
+
+  clearAlerts();
+  setLoading('btn-newpass','newpass-spin',true);
+
+  const { error } = await client.auth.updateUser({ password: pass });
+
+  setLoading('btn-newpass','newpass-spin',false);
+
+  if (error) {
+    let msg = error.message;
+    if (/session|expired|missing/i.test(msg))
+      msg = 'انتهت صلاحية رابط الاسترداد. اطلب رابطاً جديداً من "نسيت كلمة المرور".';
+    showError(msg);
+    return;
   }
+
+  showSuccess('تم تحديث كلمة المرور بنجاح! جاري الدخول…');
+  setTimeout(() => { window.location.href = '/app'; }, 1200);
+}
+
+/* ── Show a friendly error when the recovery link itself failed ── */
+function handleResetError() {
+  const h = new URLSearchParams(window.location.hash.replace('#','?'));
+  const q = new URLSearchParams(window.location.search);
+  const desc = h.get('error_description') || q.get('error_description') || '';
+  history.replaceState(null, '', '/auth');
+  switchTab('forgot');
+  showError('تعذّر فتح رابط الاسترداد. ' +
+    (desc ? decodeURIComponent(desc).replace(/\+/g,' ') + '\n' : '') +
+    'اطلب رابطاً جديداً.');
 }
 
 /* ── Boot ── */
 window.addEventListener('DOMContentLoaded', () => {
-  if (window.location.hash.includes('type=recovery')) {
-    handleResetCallback();
-  } else {
-    checkSession();
-  }
+  const hash = window.location.hash || '';
+  const q    = new URLSearchParams(window.location.search);
+  const hasError   = hash.includes('error=') || q.has('error');
+  const isRecovery = hash.includes('type=recovery') || q.get('reset') === '1' || q.has('code');
+
+  if (hasError)        handleResetError();
+  else if (isRecovery) handleResetCallback();
+  else                 checkSession();
 });
 
 </script>
