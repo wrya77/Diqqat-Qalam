@@ -23,7 +23,7 @@
       document.getElementById('dq-err-m').textContent += msg + '\n';
     }
     function ours(f){ if(!f) return true; try { return new URL(f).origin === location.origin; } catch(_){ return false; } }
-    function walletNoise(m){ return /ethereum|solana|web3|metamask|evmask|coinbase|phantom|tronlink|non-object as target|redefine property/i.test(m||''); }
+    function walletNoise(m){ return /ethereum|solana|web3|metamask|evmask|coinbase|phantom|tronlink|viem|wallet|user rejected|non-object as target|redefine property|currentProvider/i.test(m||''); }
     window.addEventListener('error', function(e){
       if(!ours(e.filename) || walletNoise(e.message)) return;
       show((e.message||'خطأ') + (e.filename?('  @ '+e.filename.split('/').pop()+':'+e.lineno):''));

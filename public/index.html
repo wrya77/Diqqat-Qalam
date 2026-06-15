@@ -28,7 +28,7 @@
       try { return new URL(filename).origin === location.origin; } catch(_){ return false; }
     }
     function walletNoise(msg){
-      return /ethereum|solana|web3|metamask|evmask|coinbase|phantom|tronlink|non-object as target|redefine property/i.test(msg||'');
+      return /ethereum|solana|web3|metamask|evmask|coinbase|phantom|tronlink|viem|wallet|user rejected|non-object as target|redefine property|currentProvider/i.test(msg||'');
     }
     window.addEventListener('error', function(e){
       if(!ours(e.filename)) return;              // خطأ من إضافة/نطاق آخر
