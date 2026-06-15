@@ -25,6 +25,8 @@
       const text = el.getAttribute('title');
       if (!text) return;
       el.dataset.tip = text;
+      // حافظ على اسم الوصول قبل حذف title (وإلا تفقده قارئات الشاشة)
+      if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', text);
       el.removeAttribute('title');          // عطّل تلميح المتصفح البطيء
       showTip(el);
     });
@@ -138,8 +140,14 @@
     };
   }
 
+  /* ══ a11y: اسم وصول ثابت للأزرار الأيقونية (قارئات الشاشة) ══ */
+  function initA11y() {
+    document.querySelectorAll('button[title]:not([aria-label]), [role="button"][title]:not([aria-label])')
+      .forEach(b => b.setAttribute('aria-label', b.getAttribute('title')));
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initTooltips(); });
-  } else initTooltips();
+    document.addEventListener('DOMContentLoaded', () => { initTooltips(); initA11y(); });
+  } else { initTooltips(); initA11y(); }
   initEditorHooks();
 })();

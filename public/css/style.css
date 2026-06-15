@@ -37,6 +37,9 @@ input, textarea, select, [contenteditable], pre, code, .gc-body, .selectable {
   user-select: text; -webkit-user-select: text;
 }
 
+/* تركيز واضح لمستخدمي لوحة المفاتيح فقط (لا يظهر عند النقر بالفأرة) */
+:focus-visible { outline: 2px solid var(--accent, #2f81f7); outline-offset: 2px; }
+
 body {
   background: var(--bg);
   color: var(--text);
