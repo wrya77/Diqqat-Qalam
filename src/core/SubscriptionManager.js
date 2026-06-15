@@ -46,13 +46,72 @@ const PLANS = {
   },
 };
 
+// ── تخزين دائم في Supabase (اختياري) ──
+// يحتاج SUPABASE_SERVICE_KEY (service_role) ليتجاوز RLS ويكتب نيابةً عن الخادم.
+// بدونه يعود المدير للتخزين الملفي (وضع التطوير).
+const SUPA_URL    = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
 class SubscriptionManager {
   constructor(dataPath) {
-    const fs   = require('fs');
     const path = require('path');
     this.dataFile = dataPath || path.join(process.cwd(), 'data', 'subscriptions.json');
-    this._ensureDataDir();
-    this.data = this._load();
+    this.cloud = !!(SUPA_URL && SERVICE_KEY);
+    if (this.cloud) {
+      // المصدر الدائم هو Supabase؛ نبدأ فارغين ثم hydrate() عند إقلاع الخادم
+      this.data = {};
+    } else {
+      this._ensureDataDir();
+      this.data = this._load();
+    }
+  }
+
+  /* ── طبقة Supabase الدائمة (service_role — تتجاوز RLS) ── */
+  async _cloudFetch(method, pathQ, body, prefer) {
+    const headers = {
+      apikey:         SERVICE_KEY,
+      Authorization:  `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+    };
+    if (prefer) headers.Prefer = prefer;
+    const res = await fetch(`${SUPA_URL}/rest/v1/${pathQ}`, {
+      method, headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      throw new Error(`subscriptions ${method} ${res.status}: ${t.slice(0, 150)}`);
+    }
+    if (res.status === 204) return null;
+    return res.json().catch(() => null);
+  }
+
+  // يُستدعى مرة عند إقلاع الخادم: يحمّل كل الاشتراكات إلى الذاكرة
+  async hydrate() {
+    if (!this.cloud) return;
+    const rows = await this._cloudFetch('GET', 'subscriptions?select=user_id,plan,renews_at,usage');
+    const map = {};
+    for (const r of rows || []) {
+      map[r.user_id] = { plan: r.plan || 'free', renewsAt: r.renews_at || null, usage: r.usage || {} };
+    }
+    this.data = map;
+  }
+
+  // كتابة صف مستخدم للمخزن الدائم — خلفي، لا يُعطّل الاستجابة
+  _persist(userId) {
+    if (!this.cloud) { try { this._save(); } catch (_) {} return; }
+    if (String(userId).startsWith('anon:')) return;   // لا نخزّن الضيوف (يُحدّدون بالـ IP)
+    const u = this.data[userId];
+    if (!u) return;
+    this._cloudFetch('POST', 'subscriptions', {
+      user_id:    userId,
+      plan:       u.plan || 'free',
+      renews_at:  u.renewsAt || null,
+      usage:      u.usage || {},
+      updated_at: new Date().toISOString(),
+    }, 'resolution=merge-duplicates,return=minimal')
+      .catch(e => console.error('[subscriptions] persist failed:', e.message));
   }
 
   _ensureDataDir() {
@@ -85,7 +144,7 @@ class SubscriptionManager {
       usage:    {},
       updatedAt: new Date().toISOString(),
     };
-    this._save();
+    this._persist(userId);
     return this.data[userId];
   }
 
@@ -114,7 +173,7 @@ class SubscriptionManager {
     const monthKey = new Date().toISOString().slice(0, 7);
     const usageKey = `${resource}_${monthKey}`;
     this.data[userId].usage[usageKey] = (this.data[userId].usage[usageKey] || 0) + amount;
-    this._save();
+    this._persist(userId);
   }
 
   getUsageSummary(userId) {

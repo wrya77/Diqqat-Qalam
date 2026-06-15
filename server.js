@@ -900,12 +900,18 @@ if (process.env.VERCEL) {
   module.exports = app;
 } else {
   const PORT = process.env.PORT || 3000;
-  server.listen(PORT, () => {
-    console.log(`✓ Diqqat Qalam v2.0 running on port ${PORT}`);
-    console.log(`  AI: ${process.env.ANTHROPIC_API_KEY ? 'enabled' : 'disabled (mock)'}`);
-    console.log(`  Auth: ${process.env.API_SECRET_KEY ? 'enabled' : 'dev-mode (no key)'}`);
-    console.log(`  Backup: scheduled every 6 hours`);
-  });
+  // حمّل الاشتراكات من Supabase قبل الاستماع كي يُعرَف المشتركون فوراً بعد كل نشر
+  subMgr.hydrate()
+    .catch(e => console.error('[subscriptions] hydrate failed — متابعة بذاكرة فارغة:', e.message))
+    .finally(() => {
+      server.listen(PORT, () => {
+        console.log(`✓ Diqqat Qalam v2.0 running on port ${PORT}`);
+        console.log(`  AI: ${process.env.ANTHROPIC_API_KEY ? 'enabled' : 'disabled (mock)'}`);
+        console.log(`  Auth: ${process.env.API_SECRET_KEY ? 'enabled' : 'dev-mode (no key)'}`);
+        console.log(`  Subscriptions: ${subMgr.cloud ? 'Supabase (دائم)' : 'file (dev)'}`);
+        console.log(`  Backup: scheduled every 6 hours`);
+      });
+    });
 
   // ── متانة: لا تُسقِط الخادم بصمت ──
   process.on('unhandledRejection', (reason) => {
