@@ -6,7 +6,7 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v23';
+const CACHE = 'diqqat-qalam-v24';
 
 const CORE_ASSETS = [
   '/app',
@@ -68,11 +68,18 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
 
+  // تجاهل أي مخطط غير http(s) — إضافات المتصفح (chrome-extension:) لا تُخزَّن
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
   // API و WebSocket — شبكة فقط
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/socket.io')) return;
 
   // Supabase auth — شبكة فقط
   if (url.hostname.endsWith('.supabase.co')) return;
+
+  // طلبات خارجية لا نملكها (خطوط Google، إضافات، تحليلات) — دعها للمتصفح
+  // مباشرة بلا اعتراض؛ اعتراضها بـ fetch داخل SW يصطدم بـ connect-src في CSP
+  if (url.origin !== location.origin && url.hostname !== 'cdn.jsdelivr.net') return;
 
   // صفحات HTML (التنقل + /auth + /app + /) — الشبكة أولاً دائماً
   // يمنع تقديم نسخة قديمة من صفحة الدخول؛ الكاش احتياطي عند انقطاع الإنترنت فقط

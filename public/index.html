@@ -22,11 +22,23 @@
       }
       document.getElementById('dq-err-m').textContent += msg + '\n';
     }
+    // تجاهل ضجيج إضافات المتصفح (محافظ العملات…) — اعرض أخطاء تطبيقنا فقط
+    function ours(filename){
+      if(!filename) return true;                 // سكربت مضمّن — غالباً منّا
+      try { return new URL(filename).origin === location.origin; } catch(_){ return false; }
+    }
+    function walletNoise(msg){
+      return /ethereum|solana|web3|metamask|evmask|coinbase|phantom|tronlink|non-object as target|redefine property/i.test(msg||'');
+    }
     window.addEventListener('error', function(e){
+      if(!ours(e.filename)) return;              // خطأ من إضافة/نطاق آخر
+      if(walletNoise(e.message)) return;
       show((e.message||'خطأ') + (e.filename?('  @ '+e.filename.split('/').pop()+':'+e.lineno):''));
     });
     window.addEventListener('unhandledrejection', function(e){
-      show('وعد مرفوض: ' + ((e.reason&&(e.reason.message||e.reason))||'غير معروف'));
+      var r=(e.reason&&(e.reason.message||e.reason))||'';
+      if(walletNoise(String(r))) return;
+      show('وعد مرفوض: ' + (r||'غير معروف'));
     });
   })();
   </script>
