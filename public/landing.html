@@ -3,500 +3,723 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>دقة قلم — Diqqat Qalam</title>
+  <title>دقة قلم — من التصميم إلى آلة CNC في ثوانٍ</title>
+  <meta name="description" content="منصّة عراقية متكاملة لتوليد G-Code الاحترافي: ارسم، حسّن بالذكاء الاصطناعي، وتحكّم بآلة CNC مباشرةً من المتصفح أو من تطبيق سطح المكتب.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --bg:#07090f;--bg1:#0d1117;--bg2:#161b22;
-      --border:#21262d;--accent:#2f81f7;--accent-h:#58a6ff;
-      --green:#3fb950;--text:#e6edf3;--text2:#b1bac4;--text3:#8b949e;
-      --red:#f85149;--amber:#d29922;--purple:#bc8cff;
+      --bg:#06080d;--bg1:#0b0e15;--bg2:#11151e;--bg3:#171c27;
+      --border:#1e2530;--border2:#2a3340;
+      --accent:#3b82f6;--accent-h:#60a5fa;--accent-d:#1d4ed8;
+      --teal:#2dd4bf;--green:#34d399;--violet:#a78bfa;--amber:#fbbf24;
+      --text:#eef2f7;--text2:#aeb9c9;--text3:#7d8aa0;
+      --glow:rgba(59,130,246,.5);
+      --r:14px;--rl:20px;
+      --maxw:1180px;
     }
     html{scroll-behavior:smooth}
     body{
       background:var(--bg);color:var(--text);
       font-family:'Tajawal',system-ui,sans-serif;
-      font-size:16px;line-height:1.6;overflow-x:hidden;
+      font-size:16px;line-height:1.65;overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
     }
+    a{text-decoration:none;color:inherit}
+    ::selection{background:rgba(59,130,246,.3)}
+
+    /* ── Animated aurora background ── */
+    .aurora{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
+    .aurora span{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;will-change:transform}
+    .a1{width:560px;height:560px;background:radial-gradient(circle,#1d4ed8,transparent 70%);top:-180px;right:-120px;animation:float1 18s ease-in-out infinite}
+    .a2{width:480px;height:480px;background:radial-gradient(circle,#0e7490,transparent 70%);top:30%;left:-160px;animation:float2 22s ease-in-out infinite}
+    .a3{width:420px;height:420px;background:radial-gradient(circle,#5b21b6,transparent 70%);bottom:-120px;right:20%;opacity:.35;animation:float1 26s ease-in-out infinite reverse}
+    @keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,50px)}}
+    @keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(70px,-40px)}}
+    .grid-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;
+      background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+      background-size:46px 46px;
+      mask-image:radial-gradient(ellipse 100% 60% at 50% 0%,#000 30%,transparent 80%);
+      -webkit-mask-image:radial-gradient(ellipse 100% 60% at 50% 0%,#000 30%,transparent 80%);
+    }
+
+    /* ── Buttons ── */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:11px 22px;border-radius:11px;font-size:14.5px;
+      font-weight:700;cursor:pointer;font-family:inherit;border:1px solid transparent;
+      transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,background .2s,border-color .2s;
+      white-space:nowrap;
+    }
+    .btn:active{transform:scale(.97)}
+    .btn-primary{
+      background:linear-gradient(135deg,var(--accent),var(--accent-d));
+      color:#fff;box-shadow:0 6px 22px -6px var(--glow);
+    }
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 34px -8px var(--glow)}
+    .btn-ghost{background:rgba(255,255,255,.04);border-color:var(--border2);color:var(--text)}
+    .btn-ghost:hover{background:rgba(255,255,255,.08);border-color:var(--accent);transform:translateY(-2px)}
+    .btn-soft{background:transparent;border-color:var(--border2);color:var(--text2)}
+    .btn-soft:hover{color:var(--accent-h);border-color:var(--accent)}
+    .btn-lg{padding:15px 32px;font-size:16px;border-radius:13px}
+    .btn-block{width:100%}
 
     /* ── NAV ── */
     nav{
       position:fixed;top:0;inset-inline:0;z-index:100;
       display:flex;align-items:center;justify-content:space-between;
-      padding:12px 5%;
-      background:rgba(7,9,15,.85);backdrop-filter:blur(12px);
-      border-bottom:1px solid rgba(255,255,255,.06);
+      padding:14px max(5%,calc((100% - var(--maxw))/2));
+      transition:.3s;
     }
-    .nav-logo img{height:36px;width:auto;filter:brightness(0) invert(1);display:block}
-    .nav-actions{display:flex;gap:10px}
-    .btn{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:9px 20px;border-radius:8px;font-size:14px;
-      font-weight:600;cursor:pointer;text-decoration:none;
-      font-family:inherit;transition:.15s;border:none;
+    nav.scrolled{
+      background:rgba(6,8,13,.72);backdrop-filter:blur(16px) saturate(140%);
+      border-bottom:1px solid var(--border);padding-top:10px;padding-bottom:10px;
     }
-    .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
-    .btn-outline:hover{border-color:var(--accent);color:var(--accent-h)}
-    .btn-primary{background:var(--accent);color:#fff}
-    .btn-primary:hover{background:var(--accent-h);transform:translateY(-1px)}
-    .btn-lg{padding:14px 32px;font-size:16px;border-radius:10px}
-    .btn-google{
-      background:#fff;color:#1a1a1a;
-      padding:12px 24px;border-radius:8px;
-      font-size:15px;font-weight:600;gap:10px;
-    }
-    .btn-google:hover{background:#f0f0f0;transform:translateY(-1px)}
+    .logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
+    .logo svg{filter:drop-shadow(0 2px 8px rgba(59,130,246,.35));flex-shrink:0}
+    .logo>span{font-size:20px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+    .nav-links{display:flex;align-items:center;gap:28px}
+    .nav-links a.lnk{font-size:14.5px;color:var(--text2);font-weight:500;transition:.15s;position:relative}
+    .nav-links a.lnk:hover{color:var(--text)}
+    .nav-links a.lnk::after{content:'';position:absolute;bottom:-6px;right:0;width:0;height:2px;background:var(--accent);transition:.25s;border-radius:2px}
+    .nav-links a.lnk:hover::after{width:100%}
+    .nav-actions{display:flex;align-items:center;gap:10px}
+    @media(max-width:860px){.nav-links{display:none}}
+
+    /* ── Layout ── */
+    .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:max(5%,20px)}
+    section{position:relative}
 
     /* ── HERO ── */
-    .hero{
-      min-height:100vh;display:flex;align-items:center;justify-content:center;
-      text-align:center;padding:100px 5% 60px;
-      background:
-        radial-gradient(ellipse 80% 50% at 50% -20%,rgba(47,129,247,.15),transparent),
-        radial-gradient(ellipse 60% 40% at 80% 80%,rgba(63,185,80,.08),transparent),
-        var(--bg);
+    .hero{padding:150px 0 90px;text-align:center}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 8px 6px 16px;border-radius:30px;font-size:13px;font-weight:600;
+      background:rgba(255,255,255,.04);border:1px solid var(--border2);
+      color:var(--text2);margin-bottom:30px;animation:fadeDown .8s both;
     }
-    .hero-inner{max-width:800px}
-    .hero-badge{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:5px 14px;border-radius:20px;font-size:13px;
-      background:rgba(47,129,247,.1);border:1px solid rgba(47,129,247,.3);
-      color:var(--accent-h);margin-bottom:28px;
+    .pill b{background:linear-gradient(135deg,var(--teal),var(--green));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:800}
+    .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(52,211,153,.18);animation:pulse 2s infinite}
+    .tag{background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px}
+
+    h1.hero-title{
+      font-size:clamp(2.5rem,6.4vw,4.6rem);font-weight:900;line-height:1.08;
+      letter-spacing:-1.5px;margin-bottom:22px;animation:fadeUp .8s .05s both;
     }
-    h1{
-      font-size:clamp(2.2rem,6vw,4rem);font-weight:900;
-      line-height:1.15;margin-bottom:20px;
-      background:linear-gradient(135deg,#e6edf3 0%,#79c0ff 50%,#3fb950 100%);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-      background-clip:text;
+    h1.hero-title .grad{
+      background:linear-gradient(110deg,#fff 0%,#93c5fd 42%,#2dd4bf 100%);
+      -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
     }
     .hero-sub{
-      font-size:1.15rem;color:var(--text2);max-width:560px;
-      margin:0 auto 36px;
+      font-size:clamp(1.05rem,2vw,1.3rem);color:var(--text2);font-weight:400;
+      max-width:620px;margin:0 auto 38px;animation:fadeUp .8s .12s both;
     }
-    .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeUp .8s .18s both}
+    .hero-trust{
+      margin-top:26px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap;
+      font-size:13px;color:var(--text3);animation:fadeUp .8s .24s both;
+    }
+    .hero-trust span{display:inline-flex;align-items:center;gap:6px}
+    .hero-trust svg{color:var(--green)}
 
-    /* ── STATS ── */
-    .stats{
-      display:flex;gap:32px;justify-content:center;flex-wrap:wrap;
-      padding:40px 5%;border-top:1px solid var(--border);
-      border-bottom:1px solid var(--border);background:var(--bg1);
+    /* ── App window mockup ── */
+    .app-frame{
+      max-width:1000px;margin:64px auto 0;border-radius:18px;overflow:hidden;
+      border:1px solid var(--border2);
+      background:linear-gradient(180deg,var(--bg2),var(--bg1));
+      box-shadow:0 40px 120px -40px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.02),0 0 80px -40px var(--glow);
+      animation:fadeUp 1s .3s both;position:relative;
     }
-    .stat{text-align:center}
-    .stat-num{font-size:2rem;font-weight:900;color:var(--accent-h);line-height:1}
-    .stat-lbl{font-size:13px;color:var(--text3);margin-top:4px}
+    .app-frame::before{content:'';position:absolute;inset:0;border-radius:18px;padding:1px;
+      background:linear-gradient(135deg,rgba(96,165,250,.4),transparent 40%,transparent 60%,rgba(45,212,191,.3));
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+    .app-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
+    .app-dots{display:flex;gap:7px}
+    .app-dots i{width:12px;height:12px;border-radius:50%;display:block}
+    .app-dots i:nth-child(1){background:#ff5f57}.app-dots i:nth-child(2){background:#febc2e}.app-dots i:nth-child(3){background:#28c840}
+    .app-url{margin-inline:auto;font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+      background:var(--bg);border:1px solid var(--border);padding:4px 18px;border-radius:8px}
+    .app-body{display:grid;grid-template-columns:1.5fr 1fr;min-height:360px}
+    @media(max-width:720px){.app-body{grid-template-columns:1fr}.code-panel{display:none}}
 
-    /* ── FEATURES ── */
-    .section{padding:80px 5%;max-width:1100px;margin:0 auto}
-    .sec-label{
-      font-size:12px;letter-spacing:2px;text-transform:uppercase;
-      color:var(--accent-h);font-weight:700;margin-bottom:12px;
-    }
-    .sec-title{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;margin-bottom:12px}
-    .sec-sub{font-size:1rem;color:var(--text2);max-width:520px;margin-bottom:48px}
+    /* canvas (toolpath) */
+    .canvas-panel{position:relative;background:
+      radial-gradient(circle at 50% 50%,rgba(59,130,246,.06),transparent 70%),
+      linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px) 0 0/26px 26px,
+      linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px) 0 0/26px 26px,var(--bg);
+      display:flex;align-items:center;justify-content:center;padding:20px}
+    .canvas-panel svg{width:100%;max-width:300px;height:auto;overflow:visible}
+    .tp{fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .tp-cut{stroke:url(#cutGrad);stroke-width:2.4;
+      stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 6s ease-in-out infinite}
+    .tp-2{animation-delay:.6s}.tp-3{animation-delay:1.1s}.tp-4{animation-delay:1.6s}
+    .tp-rapid{stroke:rgba(125,138,160,.35);stroke-width:1;stroke-dasharray:4 5}
+    .tool-head{fill:#fff;filter:drop-shadow(0 0 6px var(--teal))}
+    @keyframes draw{0%{stroke-dashoffset:1400}55%{stroke-dashoffset:0}92%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:1}}
+    .badge-float{position:absolute;font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;
+      background:var(--bg3);border:1px solid var(--border2);color:var(--text2);backdrop-filter:blur(4px)}
+    .bf-1{top:16px;right:16px;color:var(--teal)}
+    .bf-2{bottom:16px;left:16px}
 
-    .features-grid{
-      display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-      gap:20px;
-    }
-    .feat-card{
-      background:var(--bg2);border:1px solid var(--border);
-      border-radius:14px;padding:24px;
-      transition:.2s;cursor:default;
-    }
-    .feat-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(47,129,247,.12)}
-    .feat-icon{font-size:28px;margin-bottom:14px;display:block}
-    .feat-card h3{font-size:1.05rem;font-weight:700;margin-bottom:8px}
-    .feat-card p{font-size:14px;color:var(--text3);line-height:1.6}
-    .feat-tag{
-      display:inline-block;margin-top:10px;padding:2px 10px;
-      border-radius:20px;font-size:11px;font-weight:600;
-      background:rgba(63,185,80,.12);color:var(--green);
-    }
+    /* code panel */
+    .code-panel{background:var(--bg1);border-inline-start:1px solid var(--border);
+      padding:14px 0;overflow:hidden;position:relative;direction:ltr}
+    .code-panel::after{content:'';position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(180deg,var(--bg1),transparent 12%,transparent 88%,var(--bg1))}
+    .code-head{padding:0 18px 12px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+      letter-spacing:1px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;justify-content:space-between}
+    .code-stream{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.9;
+      padding:0 18px;animation:scrollCode 14s linear infinite}
+    .code-stream div{white-space:nowrap;color:var(--text2)}
+    .code-stream .g{color:var(--accent-h)}.code-stream .n{color:var(--teal)}.code-stream .c{color:var(--text3)}
+    @keyframes scrollCode{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
 
-    /* ── HOW IT WORKS ── */
-    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0}
-    .step{
-      text-align:center;padding:32px 24px;
-      border-right:1px solid var(--border);position:relative;
-    }
-    .step:last-child{border-right:none}
-    .step-num{
-      width:48px;height:48px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      background:rgba(47,129,247,.12);border:1px solid rgba(47,129,247,.3);
-      color:var(--accent-h);font-size:18px;font-weight:900;
-      margin:0 auto 16px;
-    }
-    .step h3{font-size:1rem;font-weight:700;margin-bottom:6px}
-    .step p{font-size:13px;color:var(--text3)}
+    /* ── Marquee ── */
+    .marquee{border-block:1px solid var(--border);padding:22px 0;margin-top:90px;overflow:hidden;
+      background:rgba(255,255,255,.012);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+      -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+    .marquee-track{display:flex;gap:56px;width:max-content;animation:marq 26s linear infinite}
+    .marquee:hover .marquee-track{animation-play-state:paused}
+    .marquee-track span{font-size:15px;font-weight:700;color:var(--text3);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+    @keyframes marq{to{transform:translateX(50%)}}
 
-    /* ── CTA SECTION ── */
-    .cta-section{
-      text-align:center;padding:80px 5%;
-      background:linear-gradient(135deg,rgba(47,129,247,.06) 0%,rgba(63,185,80,.06) 100%);
-      border-top:1px solid var(--border);
-    }
-    .cta-section h2{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;margin-bottom:16px}
-    .cta-section p{color:var(--text2);margin-bottom:32px;font-size:1.05rem}
+    /* ── Section heading ── */
+    .sec{padding:100px 0}
+    .sec-head{text-align:center;max-width:640px;margin:0 auto 60px}
+    .sec-label{display:inline-block;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;
+      color:var(--teal);margin-bottom:14px}
+    .sec-title{font-size:clamp(1.8rem,3.4vw,2.7rem);font-weight:900;letter-spacing:-.8px;margin-bottom:14px;line-height:1.2}
+    .sec-sub{font-size:1.05rem;color:var(--text2)}
 
-    /* ── FOOTER ── */
-    footer{
-      border-top:1px solid var(--border);padding:24px 5%;
-      display:flex;align-items:center;justify-content:space-between;
-      flex-wrap:wrap;gap:12px;
-      font-size:13px;color:var(--text3);
+    /* ── Features bento ── */
+    .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    @media(max-width:900px){.bento{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:600px){.bento{grid-template-columns:1fr}}
+    .card{
+      background:linear-gradient(180deg,var(--bg2),var(--bg1));
+      border:1px solid var(--border);border-radius:var(--rl);padding:28px 24px;
+      position:relative;overflow:hidden;transition:.25s;
     }
+    .card::before{content:'';position:absolute;inset:0;border-radius:var(--rl);opacity:0;transition:.3s;
+      background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(59,130,246,.1),transparent 60%)}
+    .card:hover{transform:translateY(-4px);border-color:var(--border2)}
+    .card:hover::before{opacity:1}
+    .card.wide{grid-column:span 2}
+    @media(max-width:600px){.card.wide{grid-column:span 1}}
+    .ico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,rgba(59,130,246,.16),rgba(45,212,191,.1));border:1px solid var(--border2);
+      margin-bottom:18px;color:var(--accent-h)}
+    .ico svg{width:23px;height:23px}
+    .card h3{font-size:1.12rem;font-weight:800;margin-bottom:8px}
+    .card p{font-size:14px;color:var(--text3);line-height:1.7}
+    .chip{display:inline-block;margin-top:14px;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;
+      background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+    .chip.b{background:rgba(59,130,246,.12);color:var(--accent-h);border-color:rgba(59,130,246,.2)}
+    .chip.v{background:rgba(167,139,250,.12);color:var(--violet);border-color:rgba(167,139,250,.2)}
 
-    /* ── TECH STACK ── */
-    .tech-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:24px}
-    .tech-badge{
-      padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
-      background:var(--bg2);border:1px solid var(--border);color:var(--text2);
-    }
+    /* ── Steps ── */
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+    @media(max-width:760px){.steps{grid-template-columns:1fr 1fr}}
+    @media(max-width:460px){.steps{grid-template-columns:1fr}}
+    .step{padding:30px 22px;text-align:center;position:relative}
+    .step-n{width:54px;height:54px;border-radius:16px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
+      font-size:20px;font-weight:900;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-d));
+      box-shadow:0 8px 24px -8px var(--glow)}
+    .step h3{font-size:1.05rem;font-weight:800;margin-bottom:7px}
+    .step p{font-size:13.5px;color:var(--text3)}
+    .step:not(:last-child)::after{content:'';position:absolute;top:56px;left:0;width:100%;height:2px;
+      background:linear-gradient(90deg,var(--border2),transparent);opacity:.6}
+    @media(max-width:760px){.step::after{display:none!important}}
 
-    /* ── PRICING ── */
-    .plan-card{
-      background:var(--bg2);border:1px solid var(--border);
-      border-radius:16px;padding:28px 24px;transition:.2s;
-      display:flex;flex-direction:column;
-    }
-    .plan-card:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.35)}
-    .plan-card.featured{border-color:var(--accent)}
-    .plan-price{font-size:2.2rem;font-weight:900;color:var(--text);line-height:1;margin:12px 0 4px}
-    .plan-features{list-style:none;margin:20px 0 auto;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--text2)}
-    .plan-features li.off{color:var(--text3)}
-    .interval-pill{
-      display:inline-flex;align-items:center;gap:12px;
-      background:var(--bg2);border:1px solid var(--border);
-      border-radius:30px;padding:6px 20px;margin-bottom:40px;
-    }
-    .itoggle{position:relative;width:46px;height:24px;cursor:pointer;flex-shrink:0}
+    /* ── Pricing ── */
+    .interval-pill{display:inline-flex;align-items:center;gap:14px;background:var(--bg2);
+      border:1px solid var(--border2);border-radius:30px;padding:7px 22px;margin:0 auto 46px}
+    .itoggle{position:relative;width:48px;height:26px;cursor:pointer;flex-shrink:0}
     .itoggle input{opacity:0;width:0;height:0;position:absolute}
-    .itrack{position:absolute;inset:0;background:var(--border);border-radius:12px;transition:.2s}
-    .ithumb{position:absolute;top:2px;right:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s}
-
-    /* ── DOWNLOAD ── */
-    .dl-box{
-      background:linear-gradient(135deg,rgba(47,129,247,.08),rgba(63,185,80,.08));
-      border:1px solid var(--border);border-radius:16px;
-      padding:32px;max-width:600px;margin:0 auto;
+    .itrack{position:absolute;inset:0;background:var(--border2);border-radius:13px;transition:.25s}
+    .ithumb{position:absolute;top:3px;right:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+    .save-badge{background:linear-gradient(135deg,var(--green),var(--teal));color:#04201a;border-radius:20px;
+      padding:3px 11px;font-size:12px;font-weight:800}
+    .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:right;align-items:stretch}
+    @media(max-width:860px){.plans{grid-template-columns:1fr;max-width:430px;margin-inline:auto}}
+    .plan{
+      background:linear-gradient(180deg,var(--bg2),var(--bg1));border:1px solid var(--border);
+      border-radius:var(--rl);padding:30px 26px;display:flex;flex-direction:column;position:relative;transition:.25s;
     }
+    .plan:hover{transform:translateY(-4px);border-color:var(--border2)}
+    .plan.featured{border-color:transparent;background:
+      linear-gradient(var(--bg2),var(--bg1)) padding-box,
+      linear-gradient(135deg,var(--accent),var(--teal)) border-box;
+      box-shadow:0 24px 60px -24px var(--glow)}
+    .plan-tag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+      background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;
+      padding:5px 18px;border-radius:20px;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 6px 18px -6px var(--glow)}
+    .plan-name{font-size:13px;color:var(--text3);font-weight:800;letter-spacing:1px;text-transform:uppercase}
+    .plan-price{font-size:2.6rem;font-weight:900;line-height:1;margin:14px 0 2px;letter-spacing:-1px}
+    .plan-price small{font-size:1rem;color:var(--text3);font-weight:600}
+    .plan-per{font-size:13px;color:var(--text3)}
+    .plan-yr{font-size:12.5px;color:var(--teal);margin-top:6px;min-height:18px}
+    .plan-feats{list-style:none;margin:24px 0 28px;display:flex;flex-direction:column;gap:11px;font-size:14px;color:var(--text2)}
+    .plan-feats li{display:flex;align-items:flex-start;gap:9px;line-height:1.5}
+    .plan-feats li svg{flex-shrink:0;margin-top:3px;color:var(--green)}
+    .plan-feats li.off{color:var(--text3)}.plan-feats li.off svg{color:var(--text3)}
+    .plan .btn{margin-top:auto}
+    .pay-row{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:30px;flex-wrap:wrap;color:var(--text3);font-size:13px}
+    .pay-logo{padding:5px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);font-size:12.5px;font-weight:700;color:var(--text2)}
 
-    @media(max-width:600px){
-      .step{border-right:none;border-bottom:1px solid var(--border)}
-      .step:last-child{border-bottom:none}
-      .stats{gap:20px}
-      nav{padding:10px 4%}
-      .plan-price{font-size:1.8rem}
-    }
+    /* ── Download ── */
+    .dl{position:relative;border-radius:24px;overflow:hidden;
+      border:1px solid var(--border2);background:linear-gradient(135deg,var(--bg2),var(--bg1));
+      padding:54px 40px;text-align:center}
+    .dl::before{content:'';position:absolute;inset:0;z-index:0;opacity:.5;
+      background:radial-gradient(ellipse 60% 80% at 50% 0%,rgba(59,130,246,.18),transparent 70%)}
+    .dl>*{position:relative;z-index:1}
+    .dl-ico{width:72px;height:72px;border-radius:20px;margin:0 auto 22px;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent-d));box-shadow:0 16px 40px -12px var(--glow);color:#fff}
+    .dl h2{font-size:clamp(1.6rem,3.2vw,2.3rem);font-weight:900;margin-bottom:12px;letter-spacing:-.6px}
+    .dl p{color:var(--text2);max-width:520px;margin:0 auto 30px}
+    .os-row{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:24px;font-size:13px;color:var(--text3)}
+    .os-row span{display:inline-flex;align-items:center;gap:7px}
+
+    /* ── CTA ── */
+    .cta{text-align:center;padding:110px 0}
+    .cta h2{font-size:clamp(2rem,4.6vw,3.2rem);font-weight:900;letter-spacing:-1px;margin-bottom:18px;line-height:1.12}
+    .cta h2 .grad{background:linear-gradient(110deg,#fff,#93c5fd,#2dd4bf);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .cta p{color:var(--text2);font-size:1.1rem;margin-bottom:36px}
+
+    /* ── Footer ── */
+    footer{border-top:1px solid var(--border);padding:54px 0 30px;background:var(--bg1)}
+    .foot-grid{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;margin-bottom:40px}
+    .foot-brand{max-width:300px}
+    .foot-brand p{color:var(--text3);font-size:14px;margin-top:14px;line-height:1.7}
+    .foot-cols{display:flex;gap:60px;flex-wrap:wrap}
+    .foot-col h4{font-size:13px;font-weight:800;margin-bottom:16px;color:var(--text2)}
+    .foot-col a{display:block;font-size:14px;color:var(--text3);margin-bottom:11px;transition:.15s}
+    .foot-col a:hover{color:var(--accent-h)}
+    .foot-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;
+      flex-wrap:wrap;gap:12px;font-size:13px;color:var(--text3)}
+
+    /* ── Reveal animations ── */
+    .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+    .reveal.in{opacity:1;transform:none}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
   </style>
 </head>
 <body>
 
+<div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+<div class="grid-overlay"></div>
+
 <!-- NAV -->
-<nav>
-  <a href="/" class="nav-logo" style="display:flex;align-items:center;gap:8px;text-decoration:none">
-    <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
-      <defs><linearGradient id="dqgNav" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/></linearGradient></defs>
-      <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#dqgNav)"/>
+<nav id="nav">
+  <a href="/" class="logo">
+    <svg viewBox="0 0 64 64" width="32" height="32" aria-hidden="true">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#lg)"/>
       <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#fff"/><path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
       <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
     </svg>
-    <span style="font-family:'Tajawal',sans-serif;font-size:19px;font-weight:700;color:#e6edf3">دقة <span style="color:#79c0ff">قلم</span></span>
+    <span>دقة <span style="color:#60a5fa">قلم</span></span>
   </a>
+  <div class="nav-links">
+    <a href="#features" class="lnk">الميزات</a>
+    <a href="#how" class="lnk">كيف يعمل</a>
+    <a href="#pricing" class="lnk">الأسعار</a>
+    <a href="#download" class="lnk">تحميل</a>
+  </div>
   <div class="nav-actions">
-    <a href="#pricing" class="btn btn-outline" style="font-size:13px">الأسعار</a>
-    <a href="/auth" class="btn btn-outline">تسجيل الدخول</a>
-    <a href="#pricing" class="btn btn-primary">اشترك الآن</a>
+    <a href="/auth" class="btn btn-soft">تسجيل الدخول</a>
+    <a href="#pricing" class="btn btn-primary">ابدأ الآن</a>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-inner">
-    <svg viewBox="0 0 64 64" width="78" height="78" style="margin-bottom:24px" aria-hidden="true">
-      <defs><linearGradient id="dqgHero" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/></linearGradient></defs>
-      <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#dqgHero)"/>
-      <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#fff"/><path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
-      <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
-      <path d="M13 53 Q23 45 32 50 T 51 53" stroke="#fff" stroke-opacity=".5" stroke-width="3" fill="none" stroke-linecap="round"/>
-    </svg>
-    <h1>من التصميم إلى<br>آلة CNC في ثوانٍ</h1>
+  <div class="wrap">
+    <span class="pill"><span class="dot"></span> منصّة عراقية متكاملة لتصنيع CNC <span class="tag">v2.0</span></span>
+    <h1 class="hero-title">من التصميم إلى آلة CNC<br><span class="grad">في ثوانٍ معدودة</span></h1>
     <p class="hero-sub">
-      ارسم تصاميمك، وليّد G-Code دقيق للحفر والقطع والنقش،
-      وتحكم بآلتك مباشرةً من المتصفح.
+      ارسم تصميمك، ولّد G-Code دقيقاً للحفر والقطع والنقش، وحسّنه بالذكاء الاصطناعي،
+      ثم تحكّم بآلتك مباشرةً — من المتصفح أو من تطبيق سطح المكتب.
     </p>
     <div class="hero-cta">
-      <a href="#pricing" class="btn btn-primary btn-lg">🚀 اشترك الآن</a>
-      <a href="#download" class="btn btn-outline btn-lg">⬇ تحميل التطبيق</a>
-      <a href="#features" class="btn btn-outline btn-lg" style="font-size:13px">الميزات</a>
+      <a href="#pricing" class="btn btn-primary btn-lg">🚀 ابدأ الاشتراك</a>
+      <a href="#download" class="btn btn-ghost btn-lg">⬇ حمّل التطبيق</a>
     </div>
-    <div class="tech-row">
-      <span class="tech-badge">Node.js</span>
-      <span class="tech-badge">G-Code</span>
-      <span class="tech-badge">GRBL</span>
-      <span class="tech-badge">Supabase</span>
-      <span class="tech-badge">AI Optimizer</span>
+    <div class="hero-trust">
+      <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> تجربة مجانية بلا بطاقة</span>
+      <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> يعمل بدون إنترنت</span>
+      <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> دعم FIB · Zain Cash · بطاقات</span>
+    </div>
+
+    <!-- App window -->
+    <div class="app-frame">
+      <div class="app-bar">
+        <div class="app-dots"><i></i><i></i><i></i></div>
+        <div class="app-url">diqqatqalam.com/app</div>
+      </div>
+      <div class="app-body">
+        <!-- Toolpath canvas -->
+        <div class="canvas-panel">
+          <span class="badge-float bf-1">● المسار قيد التوليد</span>
+          <span class="badge-float bf-2">G-Code · GRBL</span>
+          <svg viewBox="0 0 240 240" aria-hidden="true">
+            <defs>
+              <linearGradient id="cutGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#2dd4bf"/>
+              </linearGradient>
+            </defs>
+            <!-- rapid moves -->
+            <path class="tp tp-rapid" d="M20 20 L120 60 M120 60 L210 30"/>
+            <!-- outer frame -->
+            <rect class="tp tp-cut" x="30" y="30" width="180" height="180" rx="20"/>
+            <!-- circle -->
+            <circle class="tp tp-cut tp-2" cx="120" cy="120" r="58"/>
+            <!-- star/gear -->
+            <path class="tp tp-cut tp-3" d="M120 78 L133 110 L168 110 L140 132 L150 166 L120 146 L90 166 L100 132 L72 110 L107 110 Z"/>
+            <!-- inner dot -->
+            <circle class="tp tp-cut tp-4" cx="120" cy="120" r="14"/>
+            <!-- tool head -->
+            <circle class="tool-head" cx="120" cy="120" r="4">
+              <animateMotion dur="6s" repeatCount="indefinite" rotate="auto"
+                path="M30 50 L210 50 L210 210 L30 210 Z M120 62 a58 58 0 1 0 .1 0 M120 78 L150 166 L90 166 Z"/>
+            </circle>
+          </svg>
+        </div>
+        <!-- Code stream -->
+        <div class="code-panel">
+          <div class="code-head"><span>OUTPUT.NC</span><span>● live</span></div>
+          <div class="code-stream" id="cstream"></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- STATS -->
-<div class="stats">
-  <div class="stat"><div class="stat-num">20+</div><div class="stat-lbl">أداة رسم</div></div>
-  <div class="stat"><div class="stat-num">80%</div><div class="stat-lbl">توفير في وقت العمل</div></div>
-  <div class="stat"><div class="stat-num">5</div><div class="stat-lbl">Post-Processors</div></div>
-  <div class="stat"><div class="stat-num">∞</div><div class="stat-lbl">مشاريع محفوظة</div></div>
+<!-- Marquee -->
+<div class="marquee">
+  <div class="marquee-track" id="marq">
+    <span>⚙ GRBL</span><span>⚙ Mach3</span><span>⚙ Fanuc</span><span>⚙ LinuxCNC</span>
+    <span>📂 SVG</span><span>📂 DXF</span><span>📂 G-Code</span><span>🖼 PNG/JPG</span>
+    <span>🤖 Claude AI</span><span>🔌 USB / Serial</span><span>📡 TCP / WiFi</span>
+  </div>
 </div>
 
 <!-- FEATURES -->
-<div id="features" class="section">
-  <div class="sec-label">الميزات</div>
-  <div class="sec-title">كل ما تحتاجه لآلة CNC</div>
-  <p class="sec-sub">من الرسم حتى التصنيع — كل شيء في مكان واحد</p>
-
-  <div class="features-grid">
-    <div class="feat-card">
-      <span class="feat-icon">✏️</span>
-      <h3>أدوات رسم متكاملة</h3>
-      <p>خط، مستطيل، دائرة، بيضاوي، مضلع، فتحة، متعدد الأضلاع، ورسم حر. نسخ، مرآة، تدوير، تحجيم، ومصفوفة.</p>
-      <span class="feat-tag">11 أداة</span>
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-label">الميزات</span>
+      <h2 class="sec-title">كل ما تحتاجه لآلة CNC — في مكان واحد</h2>
+      <p class="sec-sub">من الرسمة الأولى حتى القطعة النهائية، أدوات احترافية مصمّمة للسرعة والدقة.</p>
     </div>
-    <div class="feat-card">
-      <span class="feat-icon">⚡</span>
-      <h3>توليد G-Code فوري</h3>
-      <p>يولّد G-code صحيح لـ GRBL، Mach3، Fanuc، LinuxCNC مع خيارات هبوط Ramp وHelical.</p>
-      <span class="feat-tag">5 Post-Processors</span>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">🤖</span>
-      <h3>تحسين بالذكاء الاصطناعي</h3>
-      <p>Claude AI يُحسّن ترتيب المسارات وسرعات التغذية لتقليل وقت التشغيل.</p>
-      <span class="feat-tag">Claude API</span>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">🖥</span>
-      <h3>تحكم مباشر بالآلة</h3>
-      <p>اتصال USB/Serial أو TCP/WiFi. Jog، E-Stop، تدفق G-Code، ومراقبة موضع الآلة في الوقت الفعلي.</p>
-      <span class="feat-tag">GRBL + Socket.io</span>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">🖼</span>
-      <h3>تحويل الصور إلى مسارات</h3>
-      <p>استيراد PNG/JPG وتحويلها تلقائياً إلى مسارات قابلة للنقش. تحكم بالعتبة والتبسيط.</p>
-      <span class="feat-tag">جديد</span>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">📦</span>
-      <h3>Pocket Milling + Tabs</h3>
-      <p>ملء داخل الأشكال بمسارات متوازية للحفر الكامل. جسور تثبيت لمنع اهتزاز القطعة.</p>
-      <span class="feat-tag">جديد</span>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">📂</span>
-      <h3>استيراد SVG · DXF · G-Code</h3>
-      <p>افتح ملفات من أي برنامج CAD. يدعم LINE, CIRCLE, ARC, SPLINE, POLYLINE, ELLIPSE.</p>
-      <span class="feat-tag">متعدد الصيغ</span>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">💾</span>
-      <h3>تصدير DXF + PDF</h3>
-      <p>صدّر تصميمك كملف DXF R12 لفتحه في AutoCAD أو LibreCAD. أو احطبه مباشرةً.</p>
-      <span class="feat-tag">DXF R12</span>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">🔩</span>
-      <h3>مكتبة أدوات + مشاريع</h3>
-      <p>احفظ إعدادات كل أداة. حفظ واستعادة المشاريع كاملةً بما فيها التصميم والإعدادات.</p>
-      <span class="feat-tag">Cloud Save</span>
+    <div class="bento">
+      <div class="card wide reveal">
+        <div class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20" stroke-width="1.5"/><circle cx="12" cy="12" r="3"/><path d="M5 5l3 3M19 5l-3 3M5 19l3-3M19 19l-3-3"/></svg>
+        </div>
+        <h3>أدوات رسم احترافية متكاملة</h3>
+        <p>خط، مستطيل، دائرة، بيضاوي، مضلّع، فتحة، ورسم حر — مع نسخ، مرآة، تدوير، تحجيم، ومصفوفات. كل ما يحتاجه التصميم الميكانيكي الدقيق.</p>
+        <span class="chip">+11 أداة</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg></div>
+        <h3>توليد G-Code فوري</h3>
+        <p>كود صحيح لـ GRBL وMach3 وFanuc وLinuxCNC، مع هبوط Ramp وHelical.</p>
+        <span class="chip b">5 Post-Processors</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.4" fill="currentColor"/><circle cx="15" cy="9" r="1.4" fill="currentColor"/><path d="M8 15h8"/></svg></div>
+        <h3>تحسين بالذكاء الاصطناعي</h3>
+        <p>Claude AI يعيد ترتيب المسارات وسرعات التغذية لتقليل وقت التشغيل حتى 80%.</p>
+        <span class="chip v">Claude API</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div>
+        <h3>تحكّم مباشر بالآلة</h3>
+        <p>اتصال USB/Serial أو TCP/WiFi مع Jog وE-Stop وتدفّق G-Code ومراقبة فورية.</p>
+        <span class="chip">GRBL + Socket.io</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
+        <h3>تحويل الصور إلى مسارات</h3>
+        <p>استورد PNG/JPG وحوّلها تلقائياً إلى مسارات نقش، مع تحكّم بالعتبة والتبسيط.</p>
+        <span class="chip">جديد</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v12H3zM3 7l3-4h12l3 4"/><path d="M8 11h8"/></svg></div>
+        <h3>Pocket Milling + جسور تثبيت</h3>
+        <p>ملء داخلي بمسارات متوازية للحفر الكامل، وجسور Tabs لمنع اهتزاز القطعة.</p>
+        <span class="chip">جديد</span>
+      </div>
+      <div class="card wide reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6"/><path d="M8 14h6M8 17h4"/></svg></div>
+        <h3>استيراد وتصدير لكل الصيغ + حفظ سحابي</h3>
+        <p>افتح SVG وDXF وG-Code من أي برنامج CAD (LINE, ARC, SPLINE, POLYLINE…)، وصدّر DXF R12 لـ AutoCAD. احفظ مشاريعك وأدواتك في السحابة وافتحها من أي جهاز.</p>
+        <span class="chip b">Cloud Save</span> <span class="chip">DXF R12</span>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
 <!-- HOW IT WORKS -->
-<div style="background:var(--bg1);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 5%">
-  <div style="max-width:1100px;margin:0 auto;text-align:center">
-    <div class="sec-label">كيف يعمل</div>
-    <div class="sec-title" style="margin-bottom:40px">أربع خطوات بسيطة</div>
+<section class="sec" id="how" style="background:rgba(255,255,255,.012);border-block:1px solid var(--border)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-label">كيف يعمل</span>
+      <h2 class="sec-title">أربع خطوات من الفكرة إلى القطعة</h2>
+    </div>
     <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3>ارسم التصميم</h3>
-        <p>استخدم أدوات الرسم أو استورد SVG/DXF/صورة</p>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3>اضبط الإعدادات</h3>
-        <p>قطر الأداة، الأعماق، السرعات، نوع الآلة</p>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3>ولّد G-Code</h3>
-        <p>اضغط ⚡ وراجع المحاكاة قبل الإرسال</p>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <h3>أرسل للآلة</h3>
-        <p>USB أو WiFi — التحكم الكامل من المتصفح</p>
-      </div>
+      <div class="step reveal"><div class="step-n">١</div><h3>ارسم التصميم</h3><p>استخدم أدوات الرسم أو استورد SVG/DXF/صورة</p></div>
+      <div class="step reveal"><div class="step-n">٢</div><h3>اضبط الإعدادات</h3><p>قطر الأداة، الأعماق، السرعات، ونوع الآلة</p></div>
+      <div class="step reveal"><div class="step-n">٣</div><h3>ولّد G-Code</h3><p>اضغط زراً وراجع المحاكاة قبل الإرسال</p></div>
+      <div class="step reveal"><div class="step-n">٤</div><h3>أرسل للآلة</h3><p>USB أو WiFi — تحكّم كامل من الشاشة</p></div>
     </div>
   </div>
-</div>
+</section>
 
 <!-- PRICING -->
-<div id="pricing" style="padding:80px 5%;background:var(--bg1);border-top:1px solid var(--border)">
-  <div style="max-width:1100px;margin:0 auto;text-align:center">
-    <div class="sec-label">الأسعار</div>
-    <div class="sec-title">اختر خطتك</div>
-    <p style="color:var(--text2);margin-bottom:32px">ادفع بـ FIB · Visa/Mastercard · Zain Cash</p>
-
-    <!-- Monthly / Yearly toggle -->
-    <div class="interval-pill">
-      <span id="lbl-mo" style="font-weight:700;color:var(--accent-h)">شهري</span>
-      <label class="itoggle">
-        <input type="checkbox" id="iv-toggle" onchange="setInterval_(this.checked)">
-        <span class="itrack" id="itrack"></span>
-        <span class="ithumb" id="ithumb"></span>
-      </label>
-      <span id="lbl-yr" style="color:var(--text3)">سنوي</span>
-      <span style="background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700">وفّر 20%</span>
+<section class="sec" id="pricing">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-label">الأسعار</span>
+      <h2 class="sec-title">خطط واضحة، بلا مفاجآت</h2>
+      <p class="sec-sub">ابدأ مجاناً وارتقِ متى احتجت. الأسعار بالدينار العراقي.</p>
     </div>
 
-    <!-- Plan cards -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;text-align:right">
+    <div style="text-align:center" class="reveal">
+      <div class="interval-pill">
+        <span id="lbl-mo" style="font-weight:800;color:var(--accent-h)">شهري</span>
+        <label class="itoggle">
+          <input type="checkbox" id="iv-toggle" onchange="setInterval_(this.checked)">
+          <span class="itrack" id="itrack"></span>
+          <span class="ithumb" id="ithumb"></span>
+        </label>
+        <span id="lbl-yr" style="color:var(--text3);font-weight:600">سنوي</span>
+        <span class="save-badge">وفّر 20%</span>
+      </div>
+    </div>
 
+    <div class="plans">
       <!-- Basic -->
-      <div class="plan-card">
-        <div style="font-size:12px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase">أساسي</div>
-        <div class="plan-price"><span class="p-iqd" data-mo="19,000" data-yr="182,400">19,000</span></div>
-        <div style="font-size:13px;color:var(--text3)">د.ع / <span class="p-per">شهر</span></div>
-        <div class="p-yr-note" style="display:none;font-size:12px;color:var(--text3);margin-top:4px">يُدفع 182,400 د.ع سنوياً</div>
-        <ul class="plan-features">
-          <li>✅ 100 مهمة / شهر</li>
-          <li>✅ 300 شكل / مهمة</li>
-          <li>✅ 30 مشروع محفوظ</li>
-          <li>✅ قوالب الإعدادات</li>
-          <li>✅ حساب تكلفة الإنتاج</li>
-          <li class="off">— بدون ذكاء اصطناعي</li>
-          <li class="off">— بدون معالجة بالجملة</li>
+      <div class="plan reveal">
+        <div class="plan-name">أساسي</div>
+        <div class="plan-price"><span class="p-iqd" data-mo="19,000" data-yr="182,400">19,000</span> <small>د.ع</small></div>
+        <div class="plan-per">لكل <span class="p-per">شهر</span></div>
+        <div class="plan-yr p-yr-note" style="visibility:hidden">يُدفع 182,400 د.ع سنوياً</div>
+        <ul class="plan-feats">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> 100 مهمة شهرياً</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> 300 شكل لكل مهمة</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> 30 مشروعاً محفوظاً</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> قوالب الإعدادات</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> حساب تكلفة الإنتاج</li>
+          <li class="off"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg> بدون ذكاء اصطناعي</li>
         </ul>
-        <a class="btn btn-outline p-link" href="/checkout?plan=basic&interval=monthly" style="justify-content:center;margin-top:20px">اشترك الآن</a>
+        <a class="btn btn-ghost btn-block p-link" href="/checkout?plan=basic&interval=monthly">اختر أساسي</a>
       </div>
 
       <!-- Pro -->
-      <div class="plan-card featured" style="position:relative">
-        <div style="position:absolute;top:-13px;right:50%;transform:translateX(50%);background:var(--accent);color:#fff;padding:3px 16px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">⭐ الأكثر شيوعاً</div>
-        <div style="font-size:12px;color:var(--accent-h);font-weight:700;letter-spacing:1px;text-transform:uppercase">احترافي</div>
-        <div class="plan-price"><span class="p-iqd" data-mo="39,000" data-yr="374,400">39,000</span></div>
-        <div style="font-size:13px;color:var(--text3)">د.ع / <span class="p-per">شهر</span></div>
-        <div class="p-yr-note" style="display:none;font-size:12px;color:var(--text3);margin-top:4px">يُدفع 374,400 د.ع سنوياً</div>
-        <ul class="plan-features">
-          <li>✅ 1,000 مهمة / شهر</li>
-          <li>✅ 2,000 شكل / مهمة</li>
-          <li>✅ 200 مشروع محفوظ</li>
-          <li>✅ <strong>ذكاء اصطناعي</strong> (200 تحسين)</li>
-          <li>✅ معالجة بالجملة (20 ملف)</li>
-          <li>✅ قائمة انتظار المهام</li>
-          <li>✅ Webhooks (5)</li>
+      <div class="plan featured reveal">
+        <span class="plan-tag">⭐ الأكثر شيوعاً</span>
+        <div class="plan-name" style="color:var(--accent-h)">احترافي</div>
+        <div class="plan-price"><span class="p-iqd" data-mo="39,000" data-yr="374,400">39,000</span> <small>د.ع</small></div>
+        <div class="plan-per">لكل <span class="p-per">شهر</span></div>
+        <div class="plan-yr p-yr-note" style="visibility:hidden">يُدفع 374,400 د.ع سنوياً</div>
+        <ul class="plan-feats">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> 1,000 مهمة شهرياً</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> 2,000 شكل لكل مهمة</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> 200 مشروع محفوظ</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> <strong style="color:var(--text)">ذكاء اصطناعي</strong> (200 تحسين)</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> معالجة بالجملة (20 ملف)</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> قائمة انتظار + Webhooks</li>
         </ul>
-        <a class="btn btn-primary p-link" href="/checkout?plan=pro&interval=monthly" style="justify-content:center;margin-top:20px">اشترك الآن</a>
+        <a class="btn btn-primary btn-block p-link" href="/checkout?plan=pro&interval=monthly">اختر احترافي</a>
       </div>
 
       <!-- Business -->
-      <div class="plan-card">
-        <div style="font-size:12px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase">أعمال</div>
-        <div class="plan-price"><span class="p-iqd" data-mo="150,000" data-yr="1,440,000">150,000</span></div>
-        <div style="font-size:13px;color:var(--text3)">د.ع / <span class="p-per">شهر</span></div>
-        <div class="p-yr-note" style="display:none;font-size:12px;color:var(--text3);margin-top:4px">يُدفع 1,440,000 د.ع سنوياً</div>
-        <ul class="plan-features">
-          <li>✅ مهام غير محدودة</li>
-          <li>✅ أشكال غير محدودة</li>
-          <li>✅ مشاريع غير محدودة</li>
-          <li>✅ ذكاء اصطناعي غير محدود</li>
-          <li>✅ معالجة جملة (100 ملف)</li>
-          <li>✅ Webhooks غير محدودة</li>
-          <li>✅ تقارير + نسخ احتياطي تلقائي</li>
+      <div class="plan reveal">
+        <div class="plan-name">أعمال</div>
+        <div class="plan-price"><span class="p-iqd" data-mo="150,000" data-yr="1,440,000">150,000</span> <small>د.ع</small></div>
+        <div class="plan-per">لكل <span class="p-per">شهر</span></div>
+        <div class="plan-yr p-yr-note" style="visibility:hidden">يُدفع 1,440,000 د.ع سنوياً</div>
+        <ul class="plan-feats">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> مهام وأشكال غير محدودة</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> مشاريع غير محدودة</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> ذكاء اصطناعي غير محدود</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> معالجة جملة (100 ملف)</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Webhooks غير محدودة</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> تقارير + نسخ احتياطي تلقائي</li>
         </ul>
-        <a class="btn btn-outline p-link" href="/checkout?plan=business&interval=monthly" style="justify-content:center;margin-top:20px">اشترك الآن</a>
+        <a class="btn btn-ghost btn-block p-link" href="/checkout?plan=business&interval=monthly">اختر أعمال</a>
       </div>
     </div>
 
-    <p style="margin-top:28px;color:var(--text3);font-size:14px">جرّب مجاناً: 10 مهام · 50 شكل · 5 مشاريع — بلا بطاقة ائتمان ✅</p>
+    <div class="pay-row">
+      <span>طرق الدفع:</span>
+      <span class="pay-logo">🏦 FIB</span>
+      <span class="pay-logo">📱 Zain Cash</span>
+      <span class="pay-logo">💳 Visa / Mastercard</span>
+    </div>
+    <p style="text-align:center;margin-top:20px;color:var(--text3);font-size:14px">
+      أو جرّب مجاناً: 10 مهام · 50 شكل · 5 مشاريع — بلا بطاقة ائتمان ✅
+    </p>
   </div>
-</div>
+</section>
 
 <!-- DOWNLOAD -->
-<div id="download" style="padding:70px 5%;border-top:1px solid var(--border);text-align:center">
-  <div class="dl-box">
-    <div style="font-size:36px;margin-bottom:12px">🖥</div>
-    <div style="font-size:1.4rem;font-weight:800;margin-bottom:10px">تطبيق سطح المكتب</div>
-    <p style="color:var(--text2);margin-bottom:28px;font-size:15px">
-      ثبّت دقة قلم على جهازك وتحكم بآلة CNC عبر USB مباشرةً — يعمل بدون إنترنت
-    </p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
-      <a id="dl-win" href="#" class="btn btn-primary btn-lg" onclick="goDownload(event)">
-        ⬇ تحميل للويندوز <span style="font-size:12px;opacity:.8">(105 MB)</span>
-      </a>
-      <a href="/app" class="btn btn-outline btn-lg">🌐 النسخة المتصفح</a>
+<section class="sec" id="download" style="padding-top:40px">
+  <div class="wrap">
+    <div class="dl reveal">
+      <div class="dl-ico">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      </div>
+      <h2>تطبيق سطح المكتب</h2>
+      <p>ثبّت دقة قلم على جهازك وتحكّم بآلة CNC عبر USB مباشرةً — يعمل بالكامل بدون إنترنت بعد التثبيت.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a id="dl-win" href="#" class="btn btn-primary btn-lg" onclick="goDownload(event)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10 4.5v7H3zM11 4.3L21 3v8.5h-10zM3 12.5h7v7L3 18.5zM11 12.5h10V21l-10-1.3z"/></svg>
+          تحميل للويندوز <span style="opacity:.75;font-size:12px">(105 MB)</span>
+        </a>
+        <a href="/app" class="btn btn-ghost btn-lg">🌐 افتح نسخة المتصفح</a>
+      </div>
+      <div class="os-row">
+        <span>🪟 Windows 10 / 11 · 64-bit</span>
+        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> يعمل بدون إنترنت</span>
+        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> تحكّم USB مباشر</span>
+      </div>
     </div>
-    <p style="font-size:12px;color:var(--text3)">Windows 10 / 11 × 64-bit · يعمل بدون إنترنت بعد التثبيت</p>
   </div>
-</div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="wrap reveal">
+    <h2>جاهز <span class="grad">لتسريع إنتاجك؟</span></h2>
+    <p>انضمّ اليوم وابدأ من التصميم إلى القطعة في دقائق.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a href="#pricing" class="btn btn-primary btn-lg">💎 اشترك الآن</a>
+      <a href="/auth" class="btn btn-ghost btn-lg">جرّب مجاناً</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="/" class="logo">
+          <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#lg)"/>
+            <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#fff"/><path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
+            <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
+          </svg>
+          <span style="font-size:18px;font-weight:800">دقة <span style="color:#60a5fa">قلم</span></span>
+        </a>
+        <p>منصّة عراقية متكاملة لتوليد G-Code والتحكم بآلات CNC — من المتصفح وسطح المكتب.</p>
+      </div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <h4>المنتج</h4>
+          <a href="#features">الميزات</a>
+          <a href="#pricing">الأسعار</a>
+          <a href="#download">تحميل التطبيق</a>
+          <a href="/app">نسخة المتصفح</a>
+        </div>
+        <div class="foot-col">
+          <h4>الحساب</h4>
+          <a href="/auth">تسجيل الدخول</a>
+          <a href="/auth">إنشاء حساب</a>
+          <a href="/checkout?plan=pro&interval=monthly">الاشتراك</a>
+        </div>
+        <div class="foot-col">
+          <h4>الدعم</h4>
+          <a href="mailto:wrya.design@gmail.com">تواصل معنا</a>
+          <a href="#how">كيف يعمل</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 دقة قلم — جميع الحقوق محفوظة</span>
+      <span>مبني بـ Node.js · Supabase · Claude AI</span>
+    </div>
+  </div>
+</footer>
 
 <script>
-// ── Pricing toggle ──────────────────────────────────────────────────────────
+// ── Nav scroll state ──────────────────────────────────────────────────────
+const navEl = document.getElementById('nav');
+addEventListener('scroll', () => navEl.classList.toggle('scrolled', scrollY > 20), {passive:true});
+
+// ── Reveal on scroll ──────────────────────────────────────────────────────
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, {threshold:.12, rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach((el,i) => {
+  el.style.transitionDelay = (i % 3 * 0.07) + 's';
+  io.observe(el);
+});
+
+// ── Card spotlight follow ─────────────────────────────────────────────────
+document.querySelectorAll('.card').forEach(c => {
+  c.addEventListener('pointermove', e => {
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+});
+
+// ── Live G-code stream (duplicated for seamless loop) ─────────────────────
+(function(){
+  const lines = [
+    ['c','; دقة قلم — توليد تلقائي'],['g','G21 G90 G17'],['g','G0 Z5.000'],
+    ['g','G0 X30.0 Y30.0'],['g','M3 S12000'],['g','G1 Z-1.500 F300'],
+    ['','G1 X210.0 Y30.0 F800'],['','G1 X210.0 Y210.0'],['','G1 X30.0 Y210.0'],
+    ['','G1 X30.0 Y30.0'],['g','G0 Z5.0'],['g','G0 X120.0 Y62.0'],
+    ['g','G1 Z-1.5 F300'],['n','G2 X120 Y178 I0 J58'],['n','G2 X120 Y62 I0 J-58'],
+    ['g','G0 Z5.0'],['c','; نجمة داخلية'],['','G0 X120 Y78'],['','G1 X150 Y166'],
+    ['','G1 X90 Y166'],['','G1 X120 Y78'],['g','G0 Z5.0'],['g','M5'],['g','M30'],
+  ];
+  const html = lines.map(([cls,t]) =>
+    `<div${cls?` class="${cls}"`:''}>${t.replace(/</g,'&lt;')}</div>`).join('');
+  const el = document.getElementById('cstream');
+  if (el) el.innerHTML = html + html; // duplicate for seamless scroll
+})();
+
+// ── Duplicate marquee for seamless loop ───────────────────────────────────
+(function(){ const m = document.getElementById('marq'); if(m) m.innerHTML += m.innerHTML; })();
+
+// ── Pricing monthly/yearly toggle ─────────────────────────────────────────
 function setInterval_(yearly) {
-  document.getElementById('itrack').style.background = yearly ? 'var(--accent)' : 'var(--border)';
-  document.getElementById('ithumb').style.right      = yearly ? '2px' : '2px';
-  document.getElementById('ithumb').style.left       = yearly ? '2px' : 'auto';
-  document.getElementById('lbl-mo').style.color = yearly ? 'var(--text3)'   : 'var(--accent-h)';
-  document.getElementById('lbl-yr').style.color = yearly ? 'var(--accent-h)': 'var(--text3)';
-  document.querySelectorAll('.p-iqd').forEach(el => {
-    el.textContent = yearly ? el.dataset.yr : el.dataset.mo;
-  });
-  document.querySelectorAll('.p-per').forEach(el => {
-    el.textContent = yearly ? 'سنة' : 'شهر';
-  });
-  document.querySelectorAll('.p-yr-note').forEach(el => {
-    el.style.display = yearly ? 'block' : 'none';
-  });
+  document.getElementById('itrack').style.background = yearly ? 'linear-gradient(135deg,var(--accent),var(--accent-d))' : 'var(--border2)';
+  document.getElementById('ithumb').style.right = yearly ? '25px' : '3px';
+  document.getElementById('lbl-mo').style.color = yearly ? 'var(--text3)' : 'var(--accent-h)';
+  document.getElementById('lbl-yr').style.color = yearly ? 'var(--accent-h)' : 'var(--text3)';
+  document.getElementById('lbl-mo').style.fontWeight = yearly ? '600' : '800';
+  document.getElementById('lbl-yr').style.fontWeight = yearly ? '800' : '600';
+  document.querySelectorAll('.p-iqd').forEach(el => el.textContent = yearly ? el.dataset.yr : el.dataset.mo);
+  document.querySelectorAll('.p-per').forEach(el => el.textContent = yearly ? 'سنة' : 'شهر');
+  document.querySelectorAll('.p-yr-note').forEach(el => el.style.visibility = yearly ? 'visible' : 'hidden');
   const iv = yearly ? 'yearly' : 'monthly';
-  document.querySelectorAll('.p-link').forEach(a => {
-    a.href = a.href.replace(/interval=[^&?#]+/, 'interval=' + iv);
-  });
+  document.querySelectorAll('.p-link').forEach(a => a.href = a.href.replace(/interval=[^&?#]+/, 'interval=' + iv));
 }
 
-// ── Download: check subscription then redirect ────────────────────────────
+// ── Download: use configured URL or send to checkout ──────────────────────
 async function goDownload(e) {
   e.preventDefault();
   try {
     const cfg = await fetch('/api/config').then(r => r.json());
     if (cfg.downloadUrl) { window.location.href = cfg.downloadUrl; return; }
   } catch (_) {}
-  // إذا لم يُضبط DOWNLOAD_URL — وجّه للـ checkout ليتسجل أولاً
   window.location.href = '/checkout?download=1';
 }
 </script>
-
-<!-- CTA -->
-<div class="cta-section">
-  <h2>جاهز لتسريع إنتاجك؟</h2>
-  <p>جرّب مجاناً أو اشترك للحصول على كامل الميزات</p>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <a href="#pricing" class="btn btn-primary btn-lg">💎 اشترك الآن</a>
-    <a href="/auth" class="btn btn-outline btn-lg">جرّب مجاناً</a>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<footer>
-  <span style="font-family:'Tajawal',sans-serif;font-size:16px;font-weight:700;color:var(--text2)">دقة قلم</span>
-  <span>مبني بـ Node.js + Supabase + Claude AI</span>
-  <a href="https://github.com" style="color:var(--text3);text-decoration:none">GitHub ↗</a>
-</footer>
 
 </body>
 </html>
