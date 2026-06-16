@@ -2,14 +2,20 @@
   "name": "diqqat-qalam",
   "version": "2.0.0",
   "description": "دقة قلم — مولّد G-Code الاحترافي لآلات CNC",
-  "main": "server.js",
+  "author": "Diqqat Qalam <wrya.design@gmail.com>",
+  "homepage": "https://diqqatqalam.com",
+  "main": "electron/main.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js --ignore uploads/ --ignore exports/",
     "test": "jest --coverage --forceExit",
     "test:watch": "jest --watch",
     "build": "node scripts/generate-all-files.js",
-    "setup": "npm install && node scripts/generate-all-files.js"
+    "setup": "npm install && node scripts/generate-all-files.js",
+    "icon": "node scripts/make-icon.js",
+    "electron": "electron .",
+    "dist": "node scripts/make-icon.js && electron-builder --win",
+    "dist:win": "node scripts/make-icon.js && electron-builder --win nsis portable"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
@@ -24,12 +30,61 @@
     "multer": "^2.1.1",
     "socket.io": "^4.8.3"
   },
+  "optionalDependencies": {
+    "@serialport/parser-readline": "^13.0.0",
+    "serialport": "^13.0.0"
+  },
   "devDependencies": {
+    "electron": "^42.4.0",
+    "electron-builder": "^26.0.12",
     "jest": "^29.7.0",
     "nodemon": "^3.1.0"
   },
   "overrides": {
     "ws": "^8.21.0"
+  },
+  "build": {
+    "appId": "com.diqqatqalam.app",
+    "productName": "Diqqat Qalam",
+    "copyright": "© 2026 Diqqat Qalam",
+    "asar": false,
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**",
+      "server.js",
+      "src/**",
+      "shared/**",
+      "public/**",
+      "build/icon.*",
+      "package.json",
+      "!**/*.test.js",
+      "!tests/**",
+      "!coverage/**",
+      "!dist/**"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "دقة قلم",
+      "artifactName": "DiqqatQalam-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "DiqqatQalam-Portable-${version}.${ext}"
+    }
   },
   "jest": {
     "testEnvironment": "node",

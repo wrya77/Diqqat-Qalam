@@ -40,6 +40,8 @@ const REQUIRED_FILES = [
   'src/ai/AIOptimizer.js',
   'src/utils/geometry.js','src/utils/units.js','src/utils/validator.js',
   'tests/generator.test.js','tests/parser.test.js','tests/optimizer.test.js',
+  // تطبيق سطح المكتب (Electron)
+  'electron/main.js','scripts/make-icon.js',
 ];
 
 let ok=0, missing=0;
