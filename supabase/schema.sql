@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS projects (
 
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
+-- نحذف أي سياسة قديمة من إعدادات سابقة قد تتعارض (uuid = text)
+DROP POLICY IF EXISTS "Users can manage own projects" ON projects;
 DROP POLICY IF EXISTS "projects_own" ON projects;
 -- المقارنة بـ ::text على الطرفين تعمل سواء كان user_id من نوع uuid أو text
 CREATE POLICY "projects_own" ON projects
@@ -66,6 +68,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 
+-- نحذف السياسة القديمة المعطوبة (auth.uid() uuid = user_id text)
+DROP POLICY IF EXISTS "read own subscription" ON subscriptions;
 DROP POLICY IF EXISTS "sub_read_own" ON subscriptions;
 -- المستخدم يقرأ اشتراكه فقط عبر JWT (::text على الطرفين يتجنّب خطأ text = uuid)
 CREATE POLICY "sub_read_own" ON subscriptions
