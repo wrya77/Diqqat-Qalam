@@ -465,7 +465,7 @@ async function signInEmail() {
 
   if (data?.user) {
     showPanel('signed-in');
-    setTimeout(() => { window.location.href = '/app'; }, 800);
+    setTimeout(redirectAfterAuth, 800);
   }
 }
 
@@ -503,7 +503,7 @@ async function signUpEmail() {
   // If user is immediately active (email confirmations disabled in Supabase)
   if (data?.session) {
     showPanel('signed-in');
-    setTimeout(() => { window.location.href = '/app'; }, 800);
+    setTimeout(redirectAfterAuth, 800);
     return;
   }
 
@@ -535,6 +535,13 @@ async function sendReset() {
   showPanel('email-sent');
 }
 
+/* ── Redirect after successful auth — honouring checkout return URL ── */
+function redirectAfterAuth() {
+  const ret = sessionStorage.getItem('checkout_return');
+  if (ret) { sessionStorage.removeItem('checkout_return'); window.location.href = ret; return; }
+  window.location.href = '/app';
+}
+
 /* ── Check existing session → redirect immediately ── */
 async function checkSession() {
   const client = await initSupabase();
@@ -542,7 +549,7 @@ async function checkSession() {
   const { data: { session } } = await client.auth.getSession();
   if (session) {
     showPanel('signed-in');
-    setTimeout(() => { window.location.href = '/app'; }, 500);
+    setTimeout(redirectAfterAuth, 500);
   }
 }
 
@@ -610,7 +617,7 @@ async function updatePassword() {
   }
 
   showSuccess('تم تحديث كلمة المرور بنجاح! جاري الدخول…');
-  setTimeout(() => { window.location.href = '/app'; }, 1200);
+  setTimeout(redirectAfterAuth, 1200);
 }
 
 /* ── Show a friendly error when the recovery link itself failed ── */

@@ -217,15 +217,17 @@ app.get('/', (req, res) => {
   }
   res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
-app.get('/auth', (req, res) => res.sendFile(path.join(__dirname, 'public', 'auth.html')));
-app.get('/app',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/auth',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'auth.html')));
+app.get('/app',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
 
 // ── Public config (Supabase public keys only) ─────────────────────────────────
 app.get('/api/config', (req, res) => {
   res.json({
-    supabaseUrl: process.env.SUPABASE_URL      || '',
-    supabaseKey: process.env.SUPABASE_ANON_KEY || '',
-    devMode:    !process.env.SUPABASE_URL,
+    supabaseUrl:  process.env.SUPABASE_URL      || '',
+    supabaseKey:  process.env.SUPABASE_ANON_KEY || '',
+    devMode:     !process.env.SUPABASE_URL,
+    downloadUrl:  process.env.DOWNLOAD_URL      || '',   // رابط تحميل التطبيق (GitHub Releases أو غيره)
   });
 });
 
@@ -595,6 +597,18 @@ app.post('/api/payments/callback/fib', async (req, res) => {
     const payment = payMgr.find(req.query.pid) || payMgr.findByRef(req.body?.id);
     if (payment) await payMgr.reconcile(payment);
   } catch (e) { console.error('FIB callback error:', e.message); }
+  res.json({ ok: true });
+});
+
+// إشعار/عودة Zain Cash — التحقق عبر استعلام المزوّد
+app.all('/api/payments/callback/zaincash', async (req, res) => {
+  try {
+    const payment = payMgr.find(req.query.pid);
+    if (payment) await payMgr.reconcile(payment);
+    if (req.method === 'GET' || req.headers.accept?.includes('text/html')) {
+      return res.redirect('/checkout?payment=' + (payment ? payment.id : ''));
+    }
+  } catch (e) { console.error('ZainCash callback error:', e.message); }
   res.json({ ok: true });
 });
 

@@ -10,13 +10,21 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { FIBProvider, CardProvider } = require('./providers');
+const { FIBProvider, CardProvider, ZainCashProvider } = require('./providers');
 
-// أسعار الخطط الشهرية بالدينار العراقي (متطابقة مع SubscriptionManager)
+// أسعار الخطط بالدينار العراقي — شهري وسنوي (20% خصم للسنوي)
 const PLAN_PRICES = {
-  basic:    { iqd: 19000,  usd: 13,  name: 'أساسي'  },
-  pro:      { iqd: 39000,  usd: 27,  name: 'احترافي' },
-  business: { iqd: 150000, usd: 103, name: 'أعمال'  },
+  // شهري
+  basic:           { iqd: 19000,    usd: 13,  plan: 'basic',    period: 30,  name: 'أساسي — شهري'   },
+  pro:             { iqd: 39000,    usd: 27,  plan: 'pro',      period: 30,  name: 'احترافي — شهري'  },
+  business:        { iqd: 150000,   usd: 103, plan: 'business', period: 30,  name: 'أعمال — شهري'    },
+  basic_monthly:   { iqd: 19000,    usd: 13,  plan: 'basic',    period: 30,  name: 'أساسي — شهري'   },
+  pro_monthly:     { iqd: 39000,    usd: 27,  plan: 'pro',      period: 30,  name: 'احترافي — شهري'  },
+  business_monthly:{ iqd: 150000,   usd: 103, plan: 'business', period: 30,  name: 'أعمال — شهري'    },
+  // سنوي (12 × السعر الشهري × 0.8)
+  basic_yearly:    { iqd: 182400,   usd: 125, plan: 'basic',    period: 365, name: 'أساسي — سنوي'    },
+  pro_yearly:      { iqd: 374400,   usd: 256, plan: 'pro',      period: 365, name: 'احترافي — سنوي'   },
+  business_yearly: { iqd: 1440000,  usd: 986, plan: 'business', period: 365, name: 'أعمال — سنوي'    },
 };
 
 class PaymentManager {
@@ -25,8 +33,9 @@ class PaymentManager {
     this.analytics = analytics;
     this.dataFile  = path.join(process.cwd(), 'data', 'payments.json');
     this.providers = {
-      fib:  new FIBProvider(),
-      card: new CardProvider(),
+      fib:      new FIBProvider(),
+      card:     new CardProvider(),
+      zaincash: new ZainCashProvider(),
     };
     this._payments = this._load();
   }
@@ -77,13 +86,20 @@ class PaymentManager {
         description,
         callbackUrl: `${baseUrl}/api/payments/callback/fib?pid=${id}`,
       });
+    } else if (method === 'zaincash') {
+      created = await provider.createPayment({
+        amountIQD:   price.iqd,
+        description,
+        orderId:     id,
+        callbackUrl: `${baseUrl}/api/payments/callback/zaincash?pid=${id}`,
+      });
     } else {
       created = await provider.createPayment({
         amount:      price.iqd,
         description,
         cartId:      id,
         callbackUrl: `${baseUrl}/api/payments/callback/card`,
-        returnUrl:   `${baseUrl}/app?payment=${id}`,
+        returnUrl:   `${baseUrl}/checkout?payment=${id}`,
         customer:    email ? { name: email.split('@')[0], email } : undefined,
       });
     }
@@ -132,8 +148,11 @@ class PaymentManager {
       payment.status = status;
       if (status === 'paid') {
         payment.paidAt = new Date().toISOString();
-        const renewsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        this.subMgr.setSubscription(payment.userId, payment.plan, renewsAt);
+        const price    = PLAN_PRICES[payment.plan];
+        const days     = price?.period || 30;
+        const planName = price?.plan   || payment.plan.split('_')[0];
+        const renewsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+        this.subMgr.setSubscription(payment.userId, planName, renewsAt);
         this.analytics?.track('payment_completed', {
           userId: payment.userId, plan: payment.plan,
           method: payment.method, amountIQD: payment.amountIQD,

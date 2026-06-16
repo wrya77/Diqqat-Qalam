@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>الاشتراك — دقة قلم</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="/vendor/supabase.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#07090f;--bg1:#0d1117;--bg2:#161b22;--bg3:#1c2128;
+      --border:#21262d;--accent:#2f81f7;--accent-h:#58a6ff;
+      --green:#3fb950;--text:#e6edf3;--text2:#b1bac4;--text3:#8b949e;
+      --red:#f85149;
+    }
+    html,body{min-height:100%}
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:'Tajawal',system-ui,sans-serif;
+      font-size:16px;line-height:1.6;
+    }
+    nav{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 5%;border-bottom:1px solid var(--border);
+      background:var(--bg1);
+    }
+    .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text)}
+    .nav-logo span{font-size:18px;font-weight:700}
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:10px 22px;border-radius:9px;font-size:15px;
+      font-weight:600;cursor:pointer;text-decoration:none;
+      font-family:inherit;transition:.15s;border:none;
+    }
+    .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
+    .btn-outline:hover{border-color:var(--accent);color:var(--accent-h)}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover{background:var(--accent-h)}
+    .btn-green{background:var(--green);color:#fff}
+    .btn-green:hover{filter:brightness(1.1)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn-lg{padding:14px 30px;font-size:17px;border-radius:10px}
+    .btn-full{width:100%;justify-content:center}
+
+    /* ── Main layout ── */
+    main{
+      min-height:calc(100vh - 60px);
+      display:flex;align-items:center;justify-content:center;
+      padding:40px 5%;
+    }
+    .box{
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:18px;padding:36px;width:100%;max-width:480px;
+    }
+    .box-title{font-size:1.4rem;font-weight:800;margin-bottom:6px}
+    .box-sub{color:var(--text3);font-size:14px;margin-bottom:28px}
+
+    /* ── Plan summary banner ── */
+    .plan-banner{
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:12px;padding:16px 20px;margin-bottom:24px;
+      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    }
+    .plan-banner-name{font-weight:700;font-size:15px}
+    .plan-banner-price{font-size:1.5rem;font-weight:900;color:var(--accent-h)}
+    .plan-banner-int{font-size:13px;color:var(--text3)}
+
+    /* ── Payment method buttons ── */
+    .method-btn{
+      width:100%;display:flex;align-items:center;gap:14px;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:12px;padding:16px 18px;cursor:pointer;
+      font-family:inherit;color:var(--text);font-size:15px;font-weight:600;
+      transition:.15s;margin-bottom:12px;text-align:right;
+    }
+    .method-btn:hover:not(:disabled){border-color:var(--accent);background:rgba(47,129,247,.06)}
+    .method-btn:disabled{opacity:.45;cursor:not-allowed}
+    .method-icon{font-size:22px;flex-shrink:0}
+    .method-info{flex:1}
+    .method-name{font-weight:700}
+    .method-note{font-size:12px;color:var(--text3)}
+    .method-badge{
+      font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;
+      background:rgba(63,185,80,.15);color:var(--green);
+      border:1px solid rgba(63,185,80,.3);white-space:nowrap;
+    }
+
+    /* ── FIB payment display ── */
+    .fib-box{text-align:center}
+    .fib-qr{width:200px;height:200px;border-radius:12px;border:1px solid var(--border);margin:0 auto 16px}
+    .fib-code{
+      font-size:2rem;font-weight:900;letter-spacing:6px;
+      background:var(--bg3);border:1px solid var(--border);
+      border-radius:10px;padding:12px 20px;
+      color:var(--accent-h);margin:12px 0;display:inline-block;
+    }
+    .pulse{animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+    /* ── Status indicator ── */
+    .status-dot{
+      width:10px;height:10px;border-radius:50%;
+      display:inline-block;margin-left:6px;
+    }
+    .dot-pending{background:var(--text3);animation:pulse 1.5s infinite}
+    .dot-paid{background:var(--green)}
+    .dot-failed{background:var(--red)}
+
+    /* ── Success ── */
+    .success-icon{font-size:52px;margin-bottom:16px;display:block}
+    .confetti{animation:pop .4s ease-out}
+    @keyframes pop{0%{transform:scale(.5)}80%{transform:scale(1.1)}100%{transform:scale(1)}}
+
+    /* ── Error ── */
+    .err-box{
+      background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);
+      border-radius:10px;padding:14px 16px;color:var(--red);font-size:14px;
+      margin-bottom:16px;
+    }
+
+    .state{display:none;flex-direction:column}
+    .state.active{display:flex}
+    .spinner{
+      width:40px;height:40px;border:3px solid var(--border);
+      border-top-color:var(--accent);border-radius:50%;
+      animation:spin 1s linear infinite;margin:0 auto 16px;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+    a.back{color:var(--text3);font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+    a.back:hover{color:var(--accent-h)}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg viewBox="0 0 64 64" width="28" height="28">
+      <defs><linearGradient id="nv" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/></linearGradient></defs>
+      <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#nv)"/>
+      <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#fff"/><path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
+      <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
+    </svg>
+    <span>دقة <span style="color:#79c0ff">قلم</span></span>
+  </a>
+  <a href="/#pricing" class="btn btn-outline" style="font-size:13px;padding:7px 16px">← الأسعار</a>
+</nav>
+
+<main>
+  <div class="box">
+
+    <!-- STATE: loading -->
+    <div id="s-loading" class="state active">
+      <div class="spinner"></div>
+      <p style="text-align:center;color:var(--text3)">جاري التحقق…</p>
+    </div>
+
+    <!-- STATE: auth required -->
+    <div id="s-auth" class="state">
+      <div class="box-title">سجّل دخولك أولاً</div>
+      <p class="box-sub">تحتاج لحساب لإتمام الاشتراك وحفظ بياناتك</p>
+      <button class="btn btn-primary btn-full btn-lg" onclick="goLogin()">🔑 تسجيل الدخول / إنشاء حساب</button>
+      <hr class="divider">
+      <a href="/#pricing" class="back">← العودة للأسعار</a>
+    </div>
+
+    <!-- STATE: payment selection -->
+    <div id="s-pay" class="state">
+      <a href="/#pricing" class="back" style="margin-bottom:20px">← تغيير الخطة</a>
+      <div class="box-title">إتمام الاشتراك</div>
+      <p class="box-sub">اختر طريقة الدفع</p>
+
+      <!-- Plan banner -->
+      <div class="plan-banner">
+        <div>
+          <div class="plan-banner-name" id="p-name">احترافي</div>
+          <div class="plan-banner-int" id="p-int">شهرياً</div>
+        </div>
+        <div style="text-align:left">
+          <div class="plan-banner-price" id="p-price">39,000</div>
+          <div style="font-size:12px;color:var(--text3)">د.ع</div>
+        </div>
+      </div>
+
+      <input type="hidden" id="plan-key">
+
+      <!-- FIB -->
+      <button class="method-btn" id="btn-fib" onclick="startPayment('fib')">
+        <span class="method-icon">🏦</span>
+        <div class="method-info">
+          <div class="method-name">الدفع عبر تطبيق FIB</div>
+          <div class="method-note">First Iraqi Bank — رمز QR أو كود</div>
+        </div>
+        <span class="method-badge">دينار عراقي</span>
+      </button>
+
+      <!-- Zain Cash -->
+      <button class="method-btn" id="btn-zaincash" onclick="startPayment('zaincash')">
+        <span class="method-icon">📱</span>
+        <div class="method-info">
+          <div class="method-name">Zain Cash</div>
+          <div class="method-note">محفظة زين كاش</div>
+        </div>
+        <span class="method-badge">دينار عراقي</span>
+      </button>
+
+      <!-- Card -->
+      <button class="method-btn" id="btn-card" onclick="startPayment('card')">
+        <span class="method-icon">💳</span>
+        <div class="method-info">
+          <div class="method-name">Visa / Mastercard</div>
+          <div class="method-note">دفع آمن عبر PayTabs</div>
+        </div>
+        <span class="method-badge">دينار عراقي</span>
+      </button>
+
+      <div id="pay-err" class="err-box" style="display:none"></div>
+    </div>
+
+    <!-- STATE: FIB QR -->
+    <div id="s-fib" class="state">
+      <a href="#" class="back" onclick="show_('s-pay');return false" style="margin-bottom:20px">← تغيير الطريقة</a>
+      <div class="box-title">ادفع عبر FIB</div>
+      <p class="box-sub">افتح تطبيق FIB وامسح الرمز أو أدخل الكود</p>
+      <div class="fib-box">
+        <div id="fib-qr-wrap">
+          <img id="fib-qr" class="fib-qr" src="" alt="QR Code" onerror="this.parentNode.style.display='none'">
+        </div>
+        <div id="fib-code-wrap" style="margin:12px 0">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:6px">أو أدخل الكود يدوياً:</div>
+          <div class="fib-code" id="fib-code">—</div>
+        </div>
+        <hr class="divider">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:14px">
+          <span class="status-dot dot-pending" id="fib-dot"></span>
+          <span id="fib-status-msg" class="pulse">في انتظار تأكيد الدفع…</span>
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-top:12px">الصفحة تتحقق تلقائياً — لا تغلقها</p>
+      </div>
+    </div>
+
+    <!-- STATE: checking (returning from redirect) -->
+    <div id="s-checking" class="state">
+      <div class="spinner"></div>
+      <div class="box-title" style="text-align:center">جاري التحقق من الدفع…</div>
+      <p style="text-align:center;color:var(--text3);font-size:14px;margin-top:8px">انتظر لحظة</p>
+    </div>
+
+    <!-- STATE: success -->
+    <div id="s-success" class="state" style="text-align:center">
+      <span class="success-icon confetti">✅</span>
+      <div class="box-title">تم تفعيل اشتراكك!</div>
+      <p style="color:var(--text2);margin-bottom:28px">يمكنك الآن استخدام جميع الميزات المدفوعة</p>
+      <a id="dl-link" href="#" class="btn btn-green btn-full btn-lg" style="display:none;margin-bottom:12px">⬇ تحميل تطبيق سطح المكتب</a>
+      <a href="/app" class="btn btn-primary btn-full btn-lg">🚀 فتح التطبيق</a>
+      <hr class="divider">
+      <p style="font-size:13px;color:var(--text3)">تم إرسال تفاصيل الاشتراك إلى بريدك الإلكتروني</p>
+    </div>
+
+    <!-- STATE: error -->
+    <div id="s-error" class="state" style="text-align:center">
+      <div style="font-size:40px;margin-bottom:16px">⚠️</div>
+      <div class="box-title">تعذّر إتمام الدفع</div>
+      <p id="err-msg" style="color:var(--text3);font-size:14px;margin-bottom:24px">حدث خطأ. حاول مرة أخرى.</p>
+      <button class="btn btn-outline btn-full" onclick="show_('s-pay')">← حاول مرة أخرى</button>
+      <hr class="divider">
+      <a href="/#pricing" class="back">العودة للأسعار</a>
+    </div>
+
+  </div>
+</main>
+
+<script>
+'use strict';
+
+const PLANS = {
+  basic:    { name: 'أساسي',   mo: 19000,  yr: 182400   },
+  pro:      { name: 'احترافي', mo: 39000,  yr: 374400   },
+  business: { name: 'أعمال',   mo: 150000, yr: 1440000  },
+};
+
+const q        = new URLSearchParams(location.search);
+const planId   = q.get('plan')     || 'pro';
+const interval = q.get('interval') || 'monthly';
+const retPid   = q.get('payment');
+
+let _token    = null;
+let _pollRef  = null;
+let _methodBtns = {};
+
+function show_(id) {
+  document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function fmt(n) {
+  return Number(n).toLocaleString('ar-IQ');
+}
+
+function goLogin() {
+  sessionStorage.setItem('checkout_return', location.href);
+  window.location.href = '/auth';
+}
+
+async function init() {
+  // cache method button refs
+  ['fib','zaincash','card'].forEach(m => {
+    _methodBtns[m] = document.getElementById('btn-' + m);
+  });
+
+  let cfg = {};
+  try { cfg = await fetch('/api/config').then(r => r.json()); } catch (_) {}
+
+  // Returning from card/ZainCash redirect
+  if (retPid) {
+    show_('s-checking');
+    pollPayment(retPid);
+    return;
+  }
+
+  if (cfg.devMode) {
+    populatePlan();
+    disableUnconfigured(cfg);
+    show_('s-pay');
+    return;
+  }
+
+  if (!window.supabase) {
+    showError('تعذّر تحميل مكتبة المصادقة.');
+    return;
+  }
+
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+  const { data: { session } } = await sb.auth.getSession().catch(() => ({ data: {} }));
+
+  if (!session) {
+    show_('s-auth');
+    return;
+  }
+
+  _token = session.access_token;
+  populatePlan();
+  disableUnconfigured(cfg);
+  show_('s-pay');
+}
+
+function populatePlan() {
+  const plan = PLANS[planId] || PLANS.pro;
+  const yearly = interval === 'yearly';
+  const price  = yearly ? plan.yr : plan.mo;
+  const key    = `${planId}_${interval}`;
+
+  document.getElementById('p-name').textContent  = plan.name;
+  document.getElementById('p-int').textContent   = yearly ? 'سنوياً (وفّر 20%)' : 'شهرياً';
+  document.getElementById('p-price').textContent = fmt(price);
+  document.getElementById('plan-key').value      = key;
+}
+
+function disableUnconfigured(cfg) {
+  // Disable methods that report not configured (methods API)
+  fetch('/api/payments/methods').then(r => r.json()).then(d => {
+    (d.methods || []).forEach(m => {
+      if (!m.configured && _methodBtns[m.id]) {
+        _methodBtns[m.id].disabled = true;
+        _methodBtns[m.id].title    = 'غير مفعّل بعد — أضف مفاتيح المزوّد في Railway';
+      }
+    });
+  }).catch(() => {});
+}
+
+async function startPayment(method) {
+  const planKey = document.getElementById('plan-key').value;
+  const btn = _methodBtns[method];
+
+  // Reset error
+  const errEl = document.getElementById('pay-err');
+  errEl.style.display = 'none';
+
+  if (btn) { btn.disabled = true; btn.querySelector('.method-name').textContent = 'جاري الإنشاء…'; }
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (_token) headers.Authorization = 'Bearer ' + _token;
+
+    const r = await fetch('/api/payments/checkout', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ plan: planKey, method }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'خطأ غير معروف');
+
+    if (method === 'fib') {
+      showFib(d);
+    } else {
+      // Card or ZainCash: redirect to payment page
+      show_('s-checking');
+      window.location.href = d.payUrl;
+    }
+  } catch (err) {
+    resetBtn(method);
+    errEl.textContent    = err.message;
+    errEl.style.display  = 'block';
+  }
+}
+
+const METHOD_LABELS = { fib: 'الدفع عبر FIB', zaincash: 'Zain Cash', card: 'Visa / Mastercard' };
+function resetBtn(method) {
+  const btn = _methodBtns[method];
+  if (!btn) return;
+  btn.disabled = false;
+  btn.querySelector('.method-name').textContent = METHOD_LABELS[method] || method;
+}
+
+function showFib(d) {
+  const qrImg  = document.getElementById('fib-qr');
+  const qrWrap = document.getElementById('fib-qr-wrap');
+  const codeEl = document.getElementById('fib-code');
+  const codeWr = document.getElementById('fib-code-wrap');
+
+  if (d.qr)   { qrImg.src = d.qr; }
+  else         { qrWrap.style.display = 'none'; }
+
+  if (d.code) { codeEl.textContent = d.code; }
+  else         { codeWr.style.display = 'none'; }
+
+  show_('s-fib');
+  pollPayment(d.paymentId);
+}
+
+function pollPayment(pid) {
+  if (_pollRef) clearTimeout(_pollRef);
+  let tries = 0;
+  const MAX = 120; // 10 min @ 5s
+
+  async function check() {
+    try {
+      const headers = {};
+      if (_token) headers.Authorization = 'Bearer ' + _token;
+      const r = await fetch(`/api/payments/${pid}/status`, { headers });
+      const d = await r.json();
+
+      if (d.status === 'paid') {
+        onSuccess();
+        return;
+      }
+      if (d.status === 'failed') {
+        showError('تم رفض الدفع. حاول مرة أخرى أو اختر طريقة دفع أخرى.');
+        return;
+      }
+    } catch (_) {}
+
+    tries++;
+    if (tries < MAX) {
+      _pollRef = setTimeout(check, 5000);
+    } else {
+      showError('انتهت مهلة التحقق. إذا تم الدفع، ستجد اشتراكك فعّالاً في التطبيق خلال دقائق.');
+    }
+  }
+
+  check();
+}
+
+async function onSuccess() {
+  show_('s-success');
+  // Load download URL if configured
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    if (cfg.downloadUrl) {
+      const dl = document.getElementById('dl-link');
+      dl.href = cfg.downloadUrl;
+      dl.style.display = 'inline-flex';
+    }
+  } catch (_) {}
+}
+
+function showError(msg) {
+  document.getElementById('err-msg').textContent = msg;
+  show_('s-error');
+}
+
+init();
+</script>
+</body>
+</html>

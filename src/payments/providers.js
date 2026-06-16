@@ -142,4 +142,67 @@ class CardProvider {
   }
 }
 
-module.exports = { FIBProvider, CardProvider };
+/* ── Zain Cash (WaaS API) ──────────────────────────────────────────────────── */
+
+class ZainCashProvider {
+  constructor() {
+    this.baseUrl    = (process.env.ZAINCASH_BASE_URL || 'https://test.zaincash.iq').replace(/\/+$/, '');
+    this.merchantId = process.env.ZAINCASH_MERCHANT_ID;
+    this.secret     = process.env.ZAINCASH_SECRET;
+    this.msisdn     = process.env.ZAINCASH_MSISDN; // رقم المحفظة التجارية (9647XXXXXXXXX)
+  }
+
+  get id()         { return 'zaincash'; }
+  get name()       { return 'Zain Cash'; }
+  get configured() { return !!(this.merchantId && this.secret && this.msisdn); }
+
+  // HS256 JWT بدون تبعيات خارجية — Node crypto فقط
+  _jwt(payload) {
+    const crypto = require('crypto');
+    const hdr = Buffer.from('{"alg":"HS256","typ":"JWT"}').toString('base64url');
+    const pay = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const sig = crypto.createHmac('sha256', this.secret).update(`${hdr}.${pay}`).digest('base64url');
+    return `${hdr}.${pay}.${sig}`;
+  }
+
+  async createPayment({ amountIQD, description, orderId, callbackUrl }) {
+    const token = this._jwt({
+      amount:      amountIQD,
+      serviceType: description,
+      msisdn:      this.msisdn,
+      orderId,
+      redirectUrl: callbackUrl,
+      lang:        'ar',
+    });
+    const res = await fetch(`${this.baseUrl}/transaction/init`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ token, merchantId: this.merchantId, lang: 'ar' }),
+      signal:  AbortSignal.timeout(15000),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.id) throw new Error('فشل Zain Cash: ' + (d.msg || res.status));
+    return {
+      ref:    d.id,
+      payUrl: `${this.baseUrl}/transaction/pay?id=${d.id}`,
+      qr:     null,
+      code:   null,
+    };
+  }
+
+  async getStatus(ref) {
+    const token = this._jwt({ id: ref, msisdn: this.msisdn, orderId: ref });
+    const res = await fetch(`${this.baseUrl}/transaction/get`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ token, merchantId: this.merchantId }),
+      signal:  AbortSignal.timeout(15000),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (d.status === 'success'  || d.msg === 'approved') return 'paid';
+    if (d.status === 'failed'   || d.status === 'rejected') return 'failed';
+    return 'pending';
+  }
+}
+
+module.exports = { FIBProvider, CardProvider, ZainCashProvider };
