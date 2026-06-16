@@ -126,6 +126,8 @@ app.use(compression());
 // كاش ساعة للملفات الثابتة — Service Worker يتكفل بالتحديث الفوري للعائدين
 const staticOpts = {
   maxAge: '1h',
+  // لا تعرض index.html تلقائياً على / — مسار / يخدم صفحة الهبوط landing.html
+  index: false,
   setHeaders(res, filePath) {
     // ملف الـ SW نفسه يجب ألا يُكَش حتى تصل التحديثات فوراً
     if (filePath.endsWith('sw.js')) {
@@ -211,12 +213,9 @@ cnc.on('cnc-response', d => console.log('CNC >', d.line));
 cnc.on('cnc-sent',     d => console.log('CNC <', d.line));
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
-app.get('/', (req, res) => {
-  if (!process.env.SUPABASE_URL) {
-    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  }
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
-});
+// الصفحة الرئيسية = صفحة الهبوط التسويقية دائماً. التطبيق على /app.
+// (تطبيق سطح المكتب يفتح /app مباشرةً فلا يتأثر بهذا.)
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.html')));
 app.get('/auth',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'auth.html')));
 app.get('/app',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
