@@ -1,0 +1,16 @@
+مكتبات الطرف الثالث المضمّنة محلياً (لعمل المحرّر أوفلاين):
+Third-party libraries bundled locally (for offline operation):
+
+1. opentype.min.js — opentype.js
+   استخراج مخططات الحروف / glyph outline extraction
+   MIT License — Copyright (c) Frederik De Bleser
+   https://github.com/opentypejs/opentype.js
+
+2. hbjs.js + hb.wasm — harfbuzzjs (HarfBuzz compiled to WebAssembly)
+   تشكيل النص العربي الصحيح / correct Arabic text shaping
+   harfbuzzjs: MIT License — https://github.com/harfbuzz/harfbuzzjs
+   HarfBuzz: "Old MIT" License — Copyright The HarfBuzz Project Authors
+   https://github.com/harfbuzz/harfbuzz
+
+3. supabase.js — @supabase/supabase-js
+   MIT License — https://github.com/supabase/supabase-js
