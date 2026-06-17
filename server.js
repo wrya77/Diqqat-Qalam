@@ -187,11 +187,19 @@ const cnc     = new CNCConnector(io);
 const monitor = new MachineMonitor();
 monitor.attach(cnc);
 
+// إشعارات تيليجرام (#17) — تُرسل لهاتف صاحب الورشة عند الأحداث المهمة
+const Telegram = require('./src/notify/Telegram');
+const telegram = new Telegram();
+
 // Forward monitor events to WebSocket clients
 monitor.on('machine-alarm',    d => io.emit('monitor-alarm',    d));
 monitor.on('critical-alarm',   d => io.emit('monitor-critical', d));
 monitor.on('high-error-rate',  d => io.emit('monitor-error-rate', d));
 monitor.on('machine-idle',     d => io.emit('monitor-idle',     d));
+
+// نسخة تيليجرام من نفس الأحداث (صامتة إن لم يُضبط البوت)
+monitor.on('machine-alarm',  d => telegram.send(`🚨 <b>إنذار آلة</b>\n${d?.message || d?.code || 'تنبيه من الآلة'}`).catch(() => {}));
+monitor.on('critical-alarm', d => telegram.send(`🛑 <b>إنذار حرج</b>\n${d?.message || 'أوقف الآلة فوراً'}`).catch(() => {}));
 
 // Forward job queue events
 jobQueue.on('job-queued',    d => io.emit('queue-job-queued',   d));
@@ -200,10 +208,12 @@ jobQueue.on('job-progress',  d => io.emit('queue-job-progress', d));
 jobQueue.on('job-done',      async d => {
   io.emit('queue-job-done', d);
   await webhookMgr.fire('job_completed', d);
+  telegram.send(`✅ <b>اكتمل الشغل</b>\n${d?.name || d?.id || ''}`).catch(() => {});
 });
 jobQueue.on('job-error',     async d => {
   io.emit('queue-job-error', d);
   await webhookMgr.fire('job_error', d);
+  telegram.send(`⚠️ <b>خطأ في الشغل</b>\n${d?.name || d?.id || ''}\n${d?.error || ''}`).catch(() => {});
 });
 jobQueue.on('queue-finished', () => io.emit('queue-finished'));
 
@@ -552,6 +562,25 @@ app.put('/api/cost/rates', requireApiKey, (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 app.get('/api/plans',                     (req, res) => res.json({ plans: subMgr.listPlans() }));
+
+// ── إشعارات تيليجرام (#17) — إعداد واختبار (إداري) ───────────────────────────
+app.get('/api/notify/status', (req, res) =>
+  res.json({ hasToken: telegram.hasToken, configured: telegram.configured }));
+
+// اكتشاف chat_id بعد مراسلة البوت (إداري — مفتاح API)
+app.get('/api/notify/telegram/chat-id', requireApiKey, async (req, res) => {
+  if (!telegram.hasToken) return res.status(503).json({ error: 'لم يُضبط TELEGRAM_BOT_TOKEN' });
+  res.json({ chats: await telegram.discoverChatIds() });
+});
+
+// إرسال رسالة تجربة (إداري — مفتاح API)
+app.post('/api/notify/test', requireApiKey, async (req, res) => {
+  if (!telegram.configured) {
+    return res.status(503).json({ error: 'الإشعارات غير مفعّلة — اضبط TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID' });
+  }
+  const r = await telegram.send('🔔 <b>دقة قلم</b>\nرسالة تجربة — الإشعارات تعمل بنجاح! ✅');
+  res.json({ success: r.ok, result: r });
+});
 
 // ── حاسبة السرعات والتغذية (#16) — نفس محرّك المتصفح المشترك ──────────────────
 const FeedsSpeeds = require('./shared/FeedsSpeeds');
