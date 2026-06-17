@@ -139,70 +139,35 @@
     origDrawShape.call(this, s);
   };
 
-  /* ══════════════════ 6) جسور التثبيت Tabs ══════════════════ */
-  P.applyTabs = function (count, width) {
+  /* ══════════════════ 6) جسور التثبيت Tabs (ارتفاع جزئي) ══════════════════ */
+  // ترفق بيانات الجسور بالشكل؛ المحرّك يرفع الأداة فوق مواضع الجسور بعمق أقل
+  // فيبقى جسر رقيق سهل الكسر — لا يقطع الشكل ولا يترك السُمك الكامل.
+  P.applyTabs = function (count, width, height) {
     const s = this.shapes[this.selectedIdx];
     if (!s) return toast('حدد شكلاً مغلقاً أولاً', 'warn');
-    const pts = this._toClosedPoints(s);
-    if (!pts || pts.length < 8) return toast('الجسور تعمل على الأشكال المغلقة فقط', 'warn');
+    const isClosed = ['rect', 'circle', 'ellipse', 'polygon'].includes(s.type) ||
+                     (s.type === 'polyline' && s.closed);
+    if (!isClosed) return toast('الجسور تعمل على الأشكال المغلقة فقط (مستطيل/دائرة/مضلّع)', 'warn');
 
-    // المحيط التراكمي
-    const cum = [0];
-    for (let i = 1; i <= pts.length; i++) {
-      const a = pts[i - 1], b = pts[i % pts.length];
-      cum.push(cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y));
-    }
-    const L = cum[pts.length];
-    if (width * count >= L * 0.8) return toast('الجسور أعرض من المحيط!', 'warn');
+    const c = Math.max(2, Math.round(count) || 4);
+    const w = Math.max(0.5, Number(width)  || 5);
+    const h = Math.max(0.2, Number(height) || 1);
 
-    // نقطة على المحيط عند مسافة d
-    const at = (d) => {
-      d = ((d % L) + L) % L;
-      let i = 0;
-      while (i < pts.length - 1 && cum[i + 1] < d) i++;
-      const a = pts[i], b = pts[(i + 1) % pts.length];
-      const seg = cum[i + 1] - cum[i] || 1;
-      const t = (d - cum[i]) / seg;
-      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, idx: i };
-    };
-
-    // مقاطع القطع بين الجسور
-    const segs = [];
-    for (let k = 0; k < count; k++) {
-      const gapCenter = (k + 0.5) * (L / count);
-      const start = gapCenter + width / 2;            // نهاية الجسر = بداية القطع
-      const end   = gapCenter - width / 2 + L / count * 0; // بداية الجسر التالي... نحسب لكل مقطع
-      segs.push(start);
-    }
-
-    const newShapes = [];
-    for (let k = 0; k < count; k++) {
-      const segStart = (k + 0.5) * (L / count) + width / 2;
-      const segEnd   = ((k + 1.5) % count === 0 ? count + 0.5 : k + 1.5) * (L / count) - width / 2;
-      const from = segStart, to = (k + 1.5) * (L / count) - width / 2;
-      // اجمع النقاط من from إلى to
-      const segPts = [at(from)];
-      let d = Math.ceil(from);
-      // أدرج رؤوس المضلع الواقعة داخل المقطع
-      for (let i = 0; i < pts.length; i++) {
-        let cd = cum[i];
-        // اجعل cd ضمن نافذة from..to (مع الالتفاف)
-        while (cd < from) cd += L;
-        if (cd < to) segPts.push({ ...pts[i], _d: cd });
-      }
-      segPts.sort((a, b2) => (a._d ?? from) - (b2._d ?? from));
-      segPts.push(at(to));
-      const clean = segPts.map(p => ({ x: p.x, y: p.y }));
-      if (clean.length >= 2) newShapes.push({ type: 'polyline', points: clean, closed: false });
-    }
-
-    if (!newShapes.length) return toast('تعذر إنشاء الجسور', 'error');
     this._saveHistory();
-    this.shapes.splice(this.selectedIdx, 1, ...newShapes);
-    this.selectedIdx = -1; this.msel.clear();
-    this._updateShapeToolbar();
-    this.render(); this._updateStatus();
-    toast(`✓ ${count} جسور تثبيت بعرض ${width}mm — القطعة لن تطير`, 'success');
+    s.tabs = { enabled: true, count: c, width: w, height: h };
+    if (this._updateShapeToolbar) this._updateShapeToolbar();
+    this.render(); if (this._updateStatus) this._updateStatus();
+    toast(`✓ جسور تثبيت: ${c} × ${w}mm بارتفاع ${h}mm — تظهر في G-Code والمحاكاة`, 'success');
+  };
+
+  // إزالة الجسور من الشكل المحدد
+  P.clearTabs = function () {
+    const s = this.shapes[this.selectedIdx];
+    if (!s || !s.tabs) return;
+    this._saveHistory();
+    delete s.tabs;
+    this.render(); if (this._updateStatus) this._updateStatus();
+    toast('أُزيلت جسور التثبيت', 'info');
   };
 
   /* ══════════════════ 7) تدوير الزوايا Fillet ══════════════════ */
@@ -591,8 +556,9 @@
     document.getElementById('btn-tabs-apply')?.addEventListener('click', () => {
       const c = Math.max(2, parseInt(document.getElementById('tabs-count')?.value) || 4);
       const w = Math.max(0.5, parseFloat(document.getElementById('tabs-width')?.value) || 5);
+      const h = Math.max(0.2, parseFloat(document.getElementById('tabs-height')?.value) || 1);
       document.getElementById('dlg-tabs').close();
-      this.applyTabs(c, w);
+      this.applyTabs(c, w, h);
     });
     document.getElementById('btn-fillet-apply')?.addEventListener('click', () => {
       const r = Math.max(0.2, parseFloat(document.getElementById('fillet-radius')?.value) || 5);

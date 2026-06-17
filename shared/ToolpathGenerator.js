@@ -79,12 +79,14 @@ class ToolpathGenerator {
     const { cx, cy, rx, ry } = s;
     const feed = s.feedRate || this.config.feedRateXY;
     const segs = Math.max(36, Math.round(Math.PI * (3*(rx+ry) - Math.sqrt((3*rx+ry)*(rx+3*ry))) / 0.5));
+    const pts = [];
+    for (let i = 0; i < segs; i++) {
+      const a = (i / segs) * 2 * Math.PI;
+      pts.push({ x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) });
+    }
     lines.push(...this._rapidTo(cx + rx, cy));
     lines.push(...this._plunge(depth, s, { dx: 0, dy: 1, len: Math.min((rx + ry), 25) }));
-    for (let i = 1; i <= segs; i++) {
-      const a = (i / segs) * 2 * Math.PI;
-      lines.push(...this._feedTo(cx + rx * Math.cos(a), cy + ry * Math.sin(a), depth, '', feed));
-    }
+    lines.push(...this._emitClosed(pts, depth, feed, s));
     lines.push(...this._retract());
     return lines;
   }
@@ -152,12 +154,10 @@ class ToolpathGenerator {
     const lines = [];
     const { x, y, w, h } = s;
     const feed = s.feedRate || this.config.feedRateXY;
+    const pts = [ { x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h } ];
     lines.push(...this._rapidTo(x, y));
     lines.push(...this._plunge(depth, s, { dx: 1, dy: 0, len: w }));
-    lines.push(...this._feedTo(x + w, y,     depth, '', feed));
-    lines.push(...this._feedTo(x + w, y + h, depth, '', feed));
-    lines.push(...this._feedTo(x,     y + h, depth, '', feed));
-    lines.push(...this._feedTo(x,     y,     depth, 'إغلاق', feed));
+    lines.push(...this._emitClosed(pts, depth, feed, s));
     lines.push(...this._retract());
     return lines;
   }
@@ -167,21 +167,25 @@ class ToolpathGenerator {
     const { cx, cy, r } = s;
     const startX = cx + r;
     const feed = s.feedRate || this.config.feedRateXY;
+    const tabs = this._shapeTabs(s);
+    const tabsActive = tabs && depth < -(this.config.totalDepth - tabs.height) - 1e-6;
     lines.push(...this._rapidTo(startX, cy));
     lines.push(...this._plunge(depth, s, { dx: 0, dy: -1, len: Math.min(Math.PI * r / 2, 25) }));
 
-    if (this.config.arcDetect) {
+    if (this.config.arcDetect && !tabsActive) {
       const ln = `G02 X${this._f(startX)} Y${this._f(cy)} I${this._f(-r)} J${this._f(0)} F${feed}`;
       lines.push(this._addComment(ln, 'دائرة كاملة CW'));
       this.stats.moves++; this.stats.arcs++;
       this.stats.totalXY += 2 * Math.PI * r;
     } else {
-      // تقريب بخطوط
+      // تقريب بخطوط (مطلوب عند تفعيل الجسور لأنها تحتاج تغيير Z)
       const segs = Math.max(36, Math.round(2 * Math.PI * r / 0.5));
-      for (let i = 1; i <= segs; i++) {
+      const pts = [];
+      for (let i = 0; i < segs; i++) {
         const a = (i / segs) * 2 * Math.PI;
-        lines.push(...this._feedTo(cx + r * Math.cos(a), cy + r * Math.sin(a), depth, '', feed));
+        pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
       }
+      lines.push(...this._emitClosed(pts, depth, feed, s));
     }
 
     lines.push(...this._retract());
@@ -227,11 +231,12 @@ class ToolpathGenerator {
     lines.push(...this._rapidTo(pts[0].x, pts[0].y));
     lines.push(...this._plunge(depth, s, this._hintFromPts(pts[0], pts[1])));
 
-    for (let i = 1; i < pts.length; i++) {
-      lines.push(...this._feedTo(pts[i].x, pts[i].y, depth, '', feed));
-    }
     if (s.closed && pts.length > 2) {
-      lines.push(...this._feedTo(pts[0].x, pts[0].y, depth, 'إغلاق', feed));
+      lines.push(...this._emitClosed(pts, depth, feed, s));
+    } else {
+      for (let i = 1; i < pts.length; i++) {
+        lines.push(...this._feedTo(pts[i].x, pts[i].y, depth, '', feed));
+      }
     }
 
     lines.push(...this._retract());
@@ -258,6 +263,106 @@ class ToolpathGenerator {
     this.stats.totalXY += dist;
     this.pos.x = x; this.pos.y = y; this.pos.z = z;
     return [comment && this.config.addComments ? `${ln}  ; ${comment}` : ln];
+  }
+
+  // حركة عمودية فقط في Z (للرفع/النزول عند حواف جسور التثبيت)
+  _feedZ(z, comment = '') {
+    if (Math.abs(this.pos.z - z) < 1e-6) return [];
+    this.stats.totalZ += Math.abs(this.pos.z - z);
+    this.pos.z = z;
+    return [this._addComment(`G01 Z${this._f(z)} F${this.config.feedRateZ}`, comment)];
+  }
+
+  // إعدادات جسور التثبيت للشكل (per-shape) أو من config — مُهيّأة وآمنة
+  _shapeTabs(shape) {
+    const t = (shape && shape.tabs) || this.config.tabs;
+    if (!t || t.enabled === false) return null;
+    const count  = Math.max(2, Math.round(t.count || 4));
+    const width  = Math.max(0.5, Number(t.width) || 5);
+    const maxH   = this.config.totalDepth * 0.9;
+    const height = Math.max(0.2, Math.min(maxH, Number(t.height) || 1));
+    return { count, width, height };
+  }
+
+  _perimeter(pts) {
+    let L = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      L += Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    return L;
+  }
+
+  // توزيع الجسور على محيط مغلق: نقاط مُوسّعة بحدود الجسور + دالة inTab(d)
+  _distributeTabs(pts, tabs) {
+    const n = pts.length;
+    const segLen = [], cum = [0];
+    let L = 0;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i + 1) % n];
+      const d = Math.hypot(b.x - a.x, b.y - a.y);
+      segLen.push(d); L += d; cum.push(L);
+    }
+    const centers = [];
+    for (let i = 0; i < tabs.count; i++) centers.push((i + 0.5) * L / tabs.count);
+    const half = tabs.width / 2;
+    const circDist = (d1, d2) => { const x = Math.abs(d1 - d2) % L; return Math.min(x, L - x); };
+    const inTab = (d) => centers.some(c => circDist(d, c) <= half + 1e-9);
+
+    const aug = [];
+    for (let i = 0; i < n; i++) aug.push({ x: pts[i].x, y: pts[i].y, d: cum[i] });
+    for (const c of centers) {
+      for (const bd of [((c - half) % L + L) % L, ((c + half) % L + L) % L]) {
+        let k = 0; while (k < n && !(cum[k] <= bd && bd < cum[k + 1])) k++;
+        if (k >= n) k = n - 1;
+        const a = pts[k], b = pts[(k + 1) % n];
+        const t = segLen[k] > 1e-9 ? (bd - cum[k]) / segLen[k] : 0;
+        aug.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, d: bd });
+      }
+    }
+    aug.sort((p, q) => p.d - q.d);
+    const points = [];
+    for (const p of aug) if (!points.length || Math.abs(p.d - points[points.length - 1].d) > 1e-6) points.push(p);
+    return { points, L, inTab };
+  }
+
+  // قطع محيط مغلق — الأداة مغروسة مسبقاً عند pts[0] بعمق depth.
+  // مع جسور التثبيت: ترتفع الأداة إلى قمة الجسر فوق مواضع الجسور على التمريرات العميقة.
+  _emitClosed(ptsIn, depth, feed, shape) {
+    let pts = ptsIn;
+    if (pts.length > 2 &&
+        Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y) < 1e-6) {
+      pts = pts.slice(0, -1);
+    }
+    const lines = [];
+    const closeNormally = () => {
+      for (let i = 1; i < pts.length; i++) lines.push(...this._feedTo(pts[i].x, pts[i].y, depth, '', feed));
+      lines.push(...this._feedTo(pts[0].x, pts[0].y, depth, 'إغلاق', feed));
+      return lines;
+    };
+
+    const tabs = this._shapeTabs(shape);
+    if (!tabs) return closeNormally();
+    const tabTopZ = -(this.config.totalDepth - tabs.height);
+    // الجسر يعمل فقط حين تتجاوز التمريرة قمته، وإذا لم تكن الجسور أعرض من المحيط
+    if (depth >= tabTopZ - 1e-6) return closeNormally();
+    if (tabs.width * tabs.count >= this._perimeter(pts) * 0.95) return closeNormally();
+
+    const aug = this._distributeTabs(pts, tabs);
+    const seq = aug.points, m = seq.length;
+    if (this.config.addComments) lines.push(`; جسور تثبيت: ${tabs.count} × ${tabs.width}mm، ارتفاع الجسر ${tabs.height}mm`);
+    let cur = depth;
+    for (let i = 0; i < m; i++) {
+      const a = seq[i], b = seq[(i + 1) % m];
+      const dmid = (i + 1 < m) ? (a.d + b.d) / 2 : ((a.d + b.d + aug.L) / 2) % aug.L;
+      const targetZ = aug.inTab(dmid) ? tabTopZ : depth;
+      if (Math.abs(targetZ - cur) > 1e-6) {
+        lines.push(...this._feedZ(targetZ, targetZ === tabTopZ ? 'رفع فوق الجسر' : 'نزول بعد الجسر'));
+        cur = targetZ;
+      }
+      lines.push(...this._feedTo(b.x, b.y, targetZ, i === m - 1 ? 'إغلاق' : '', feed));
+    }
+    return lines;
   }
 
   _plunge(depth, shape, hint) {

@@ -1221,7 +1221,8 @@
   <h3>⊥ جسور التثبيت</h3>
   <label>عدد الجسور<input type="number" id="tabs-count" value="4" min="2" max="20"></label>
   <label>عرض الجسر (mm)<input type="number" id="tabs-width" value="5" min="0.5" max="50" step="0.5"></label>
-  <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">فجوات صغيرة تُبقي القطعة متصلة بالخامة فلا تطير عند نهاية القطع — تُكسر يدوياً بعد التشغيل</div>
+  <label>ارتفاع الجسر (mm)<input type="number" id="tabs-height" value="1" min="0.2" max="20" step="0.1"></label>
+  <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">جسور بارتفاع جزئي: ترتفع الأداة فوق مكان الجسر بعمق أقل فيبقى جسر رقيق يُبقي القطعة متصلة فلا تطير — يُكسر يدوياً بعد التشغيل</div>
   <div class="mdl-foot">
     <button class="btn-pri" id="btn-tabs-apply">⊥ تطبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-tabs').close()">إلغاء</button>
