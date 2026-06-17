@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حاسبة السرعات والتغذية — دقة قلم</title>
+<meta name="description" content="احسب التغذية وسرعة الغطس والعمق الآمن وحمل القاطع لكل مادة — وتجنّب كسر اللقم قبل أن يحدث.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1020; --panel:#141a2e; --panel2:#1b2238; --line:#283150;
+    --text:#eef2f7; --muted:#9aa6c4; --accent:#3b82f6; --accent-h:#60a5fa;
+    --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --info:#38bdf8;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Tajawal',system-ui,sans-serif;background:var(--bg);color:var(--text);
+    min-height:100vh;line-height:1.6;padding:24px 16px}
+  .wrap{max-width:920px;margin:0 auto}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+  .brand .logo{width:34px;height:34px;display:grid;place-items:center;background:var(--accent);
+    border-radius:9px;color:#fff;font-size:18px}
+  .top a{color:var(--muted);text-decoration:none;font-size:14px}
+  .top a:hover{color:var(--accent-h)}
+  h1{font-size:24px;font-weight:700;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:22px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .card h2{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .field input,.field select{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:15px;outline:none}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .res{display:flex;align-items:baseline;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+  .res:last-child{border-bottom:0}
+  .res .k{color:var(--muted);font-size:14px}
+  .res .v{font-size:22px;font-weight:700}
+  .res .u{font-size:12px;color:var(--muted);margin-right:4px}
+  .hint{font-size:12px;color:var(--muted);margin-top:2px}
+  .warns{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+  .w{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;font-size:14px;border:1px solid transparent}
+  .w .ic{flex:0 0 auto;font-weight:700}
+  .w.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#fecaca}
+  .w.warn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35);color:#fde68a}
+  .w.ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#bbf7d0}
+  .w.info{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#bae6fd}
+  .foot{margin-top:24px;text-align:center;color:var(--muted);font-size:13px}
+  .foot a{color:var(--accent-h);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="logo">✎</span> دقة قلم</div>
+    <a href="/app">← العودة للتطبيق</a>
+  </div>
+
+  <h1>حاسبة السرعات والتغذية</h1>
+  <p class="sub">أدخل المادة والعدّة ودوران المحور، واحصل على التغذية وسرعة الغطس والعمق الآمن فوراً — مع تحذيرات تمنع كسر اللقمة.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>المُدخلات</h2>
+      <div class="field">
+        <label for="material">المادة</label>
+        <select id="material"></select>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="dia">قطر العدّة (mm)</label>
+          <input type="number" id="dia" value="6" min="0.1" max="25" step="0.1">
+        </div>
+        <div class="field">
+          <label for="flutes">عدد الأسنان</label>
+          <input type="number" id="flutes" value="2" min="1" max="8" step="1">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="rpm">دوران المحور (RPM)</label>
+          <input type="number" id="rpm" value="18000" min="1000" max="60000" step="500">
+        </div>
+        <div class="field">
+          <label for="doc">عمق التمريرة (mm)</label>
+          <input type="number" id="doc" value="3" min="0.1" max="50" step="0.5">
+        </div>
+      </div>
+      <div class="field">
+        <label for="maxfeed">أقصى تغذية تدعمها آلتك (mm/min) — اختياري</label>
+        <input type="number" id="maxfeed" placeholder="مثال: 4000" min="0" step="100">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>النتائج الموصى بها</h2>
+      <div class="res"><span class="k">التغذية الأفقية</span><span><span class="v" id="r-feed">—</span><span class="u">mm/min</span></span></div>
+      <div class="hint" id="r-feed-range"></div>
+      <div class="res"><span class="k">سرعة الغطس (Z)</span><span><span class="v" id="r-plunge">—</span><span class="u">mm/min</span></span></div>
+      <div class="res"><span class="k">حمل القاطع (chip load)</span><span><span class="v" id="r-chip">—</span><span class="u">mm/سن</span></span></div>
+      <div class="res"><span class="k">أقصى عمق تمريرة آمن</span><span><span class="v" id="r-doc">—</span><span class="u">mm</span></span></div>
+      <div class="res"><span class="k">معدل إزالة المادة</span><span><span class="v" id="r-mrr">—</span><span class="u">cm³/min</span></span></div>
+      <div class="warns" id="warns"></div>
+    </div>
+  </div>
+
+  <p class="foot">القيم إرشادية تعتمد جداول chip-load قياسية — ابدأ متحفّظاً واضبط حسب صوت القطع وجودة الحافة. جزء من <a href="/">دقة قلم</a>.</p>
+</div>
+
+<script src="/shared/FeedsSpeeds.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const sel = $('material');
+  FeedsSpeeds.listMaterials().forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.key; o.textContent = m.name;
+    sel.appendChild(o);
+  });
+  sel.value = 'mdf';
+
+  const ICON = { danger:'⚠', warn:'⚠', ok:'✓', info:'ℹ' };
+
+  function calc() {
+    const out = FeedsSpeeds.compute({
+      material:       sel.value,
+      toolDiameter:   parseFloat($('dia').value),
+      flutes:         parseInt($('flutes').value),
+      rpm:            parseFloat($('rpm').value),
+      docTarget:      parseFloat($('doc').value),
+      machineMaxFeed: parseFloat($('maxfeed').value) || 0,
+    });
+    $('r-feed').textContent   = out.feed.toLocaleString();
+    $('r-feed-range').textContent = `النطاق الآمن: ${out.feedRange[0].toLocaleString()} – ${out.feedRange[1].toLocaleString()} mm/min`;
+    $('r-plunge').textContent = out.plungeRate.toLocaleString();
+    $('r-chip').textContent   = out.chipLoad.toFixed(3);
+    $('r-doc').textContent    = out.maxDoc;
+    $('r-mrr').textContent    = out.mrr != null ? out.mrr : '—';
+
+    const wrap = $('warns');
+    wrap.innerHTML = '';
+    out.warnings.forEach(w => {
+      const d = document.createElement('div');
+      d.className = 'w ' + w.level;
+      d.innerHTML = `<span class="ic">${ICON[w.level] || 'ℹ'}</span><span>${w.msg}</span>`;
+      wrap.appendChild(d);
+    });
+  }
+
+  ['material','dia','flutes','rpm','doc','maxfeed'].forEach(id =>
+    $(id).addEventListener('input', calc));
+  calc();
+</script>
+</body>
+</html>

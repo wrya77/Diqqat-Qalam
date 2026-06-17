@@ -219,6 +219,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.
 app.get('/auth',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'auth.html')));
 app.get('/app',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
+app.get('/feeds',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'feeds.html')));
 
 // ── Public config (Supabase public keys only) ─────────────────────────────────
 app.get('/api/config', (req, res) => {
@@ -550,6 +551,14 @@ app.put('/api/cost/rates', requireApiKey, (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 app.get('/api/plans',                     (req, res) => res.json({ plans: subMgr.listPlans() }));
+
+// ── حاسبة السرعات والتغذية (#16) — نفس محرّك المتصفح المشترك ──────────────────
+const FeedsSpeeds = require('./shared/FeedsSpeeds');
+app.get('/api/feeds-speeds/materials', (req, res) => res.json({ materials: FeedsSpeeds.listMaterials() }));
+app.post('/api/feeds-speeds', (req, res) => {
+  try { res.json({ success: true, result: FeedsSpeeds.compute(req.body || {}) }); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
 
 // ── Payments (العراق: FIB + Visa/Mastercard) ──────────────────────────────────
 const PaymentManager = require('./src/payments/PaymentManager');
