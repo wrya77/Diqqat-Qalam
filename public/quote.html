@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مولّد عروض الأسعار — دقة قلم</title>
+<meta name="description" content="حوّل أي شغلة CNC إلى عرض سعر/فاتورة احترافية بالدينار العراقي — قابلة للطباعة والمشاركة عبر واتساب.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1020; --panel:#141a2e; --panel2:#1b2238; --line:#283150;
+    --text:#eef2f7; --muted:#9aa6c4; --accent:#3b82f6; --accent-h:#60a5fa;
+    --ok:#22c55e; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Tajawal',system-ui,sans-serif;background:var(--bg);color:var(--text);
+    min-height:100vh;line-height:1.6;padding:24px 16px}
+  .wrap{max-width:980px;margin:0 auto}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+  .brand .logo{width:34px;height:34px;display:grid;place-items:center;background:var(--accent);border-radius:9px;color:#fff;font-size:18px}
+  .top a{color:var(--muted);text-decoration:none;font-size:14px}
+  .top a:hover{color:var(--accent-h)}
+  h1{font-size:24px;font-weight:700;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h2{font-size:15px;font-weight:700;margin-bottom:14px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .field input,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:14px;outline:none}
+  .field input:focus,.field textarea:focus{border-color:var(--accent)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grp{border-top:1px solid var(--line);margin:14px 0 10px;padding-top:12px;font-size:12px;color:var(--muted)}
+  /* الفاتورة */
+  .inv{background:#fff;color:#0b1020;border-radius:var(--radius);padding:28px;font-size:14px}
+  .inv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid #0b1020;padding-bottom:14px;margin-bottom:16px}
+  .inv-ws{font-size:20px;font-weight:700}
+  .inv-ws small{display:block;font-size:12px;color:#555;font-weight:400;margin-top:2px}
+  .inv-meta{text-align:left;font-size:12px;color:#444;line-height:1.9}
+  .inv-meta b{color:#0b1020}
+  .inv-to{margin-bottom:14px;font-size:13px}
+  .inv-to .lbl{color:#666;font-size:12px}
+  table.items{width:100%;border-collapse:collapse;margin-bottom:14px}
+  table.items th,table.items td{text-align:right;padding:9px 8px;border-bottom:1px solid #e5e7eb;font-size:13px}
+  table.items th{background:#f3f4f6;color:#374151;font-weight:700}
+  table.items td.num,table.items th.num{text-align:left;direction:ltr}
+  .totals{margin-right:auto;width:280px;font-size:13px}
+  .totals .r{display:flex;justify-content:space-between;padding:5px 0}
+  .totals .grand{border-top:2px solid #0b1020;margin-top:6px;padding-top:8px;font-size:18px;font-weight:700}
+  .totals .num{direction:ltr}
+  .inv-note{margin-top:16px;border-top:1px solid #e5e7eb;padding-top:10px;font-size:12px;color:#555}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .btn{border:0;border-radius:10px;padding:11px 16px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .btn-pri{background:var(--accent);color:#fff}
+  .btn-pri:hover{background:var(--accent-h)}
+  .btn-wa{background:#25d366;color:#063d22}
+  .btn-sec{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .foot{margin-top:22px;text-align:center;color:var(--muted);font-size:13px}
+  .foot a{color:var(--accent-h);text-decoration:none}
+  @media print{
+    body{background:#fff;padding:0}
+    .noprint{display:none !important}
+    .grid{display:block}
+    .inv{border-radius:0;padding:0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top noprint">
+    <div class="brand"><span class="logo">✎</span> دقة قلم</div>
+    <a href="/app">← العودة للتطبيق</a>
+  </div>
+  <h1 class="noprint">مولّد عروض الأسعار</h1>
+  <p class="sub noprint">حوّل أي شغلة إلى عرض سعر احترافي بالدينار العراقي — اطبعه أو أرسله للعميل عبر واتساب فوراً.</p>
+
+  <div class="grid">
+    <!-- المُدخلات -->
+    <div class="card noprint">
+      <h2>بيانات الورشة</h2>
+      <div class="field"><label>اسم الورشة/الشركة</label><input id="ws-name" placeholder="مثال: ورشة الإتقان للحفر CNC"></div>
+      <div class="row2">
+        <div class="field"><label>الهاتف</label><input id="ws-phone" placeholder="0770xxxxxxx"></div>
+        <div class="field"><label>صالح لمدة (يوم)</label><input type="number" id="valid-days" value="7" min="1"></div>
+      </div>
+
+      <div class="grp">العميل والمشروع</div>
+      <div class="field"><label>اسم العميل</label><input id="cl-name" placeholder="اسم العميل"></div>
+      <div class="field"><label>وصف المشروع</label><textarea id="proj" rows="2" placeholder="مثال: حفر لوحة محل 60×40 سم على أكريليك"></textarea></div>
+
+      <div class="grp">التكاليف (دينار عراقي)</div>
+      <div class="row2">
+        <div class="field"><label>الكمية</label><input type="number" id="qty" value="1" min="1"></div>
+        <div class="field"><label>تكلفة المواد للقطعة</label><input type="number" id="c-material" value="0" min="0" step="250"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>زمن التشغيل (دقيقة)</label><input type="number" id="m-time" value="30" min="0" step="1"></div>
+        <div class="field"><label>أجرة الآلة (دينار/ساعة)</label><input type="number" id="m-rate" value="15000" min="0" step="1000"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>أجرة الإعداد (مرة واحدة)</label><input type="number" id="c-setup" value="5000" min="0" step="1000"></div>
+        <div class="field"><label>تصميم/إضافات (مرة واحدة)</label><input type="number" id="c-extra" value="0" min="0" step="1000"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>مصاريف إضافية %</label><input type="number" id="p-overhead" value="10" min="0" max="100" step="1"></div>
+        <div class="field"><label>هامش الربح %</label><input type="number" id="p-profit" value="25" min="0" max="200" step="1"></div>
+      </div>
+    </div>
+
+    <!-- الفاتورة -->
+    <div>
+      <div class="inv" id="inv">
+        <div class="inv-head">
+          <div><div class="inv-ws" id="o-ws">ورشتك</div><small id="o-phone"></small></div>
+          <div class="inv-meta">
+            <div><b>عرض سعر</b></div>
+            <div id="o-num">Q-—</div>
+            <div id="o-date"></div>
+            <div id="o-valid"></div>
+          </div>
+        </div>
+        <div class="inv-to">
+          <span class="lbl">إلى:</span> <b id="o-client">—</b>
+          <div id="o-proj" style="color:#444;margin-top:3px"></div>
+        </div>
+        <table class="items">
+          <thead><tr><th>البند</th><th class="num">الإفرادي</th><th class="num">الكمية</th><th class="num">المجموع</th></tr></thead>
+          <tbody id="o-rows"></tbody>
+        </table>
+        <div class="totals">
+          <div class="r"><span>المجموع الفرعي</span><span class="num" id="o-sub">0</span></div>
+          <div class="r"><span>مصاريف إضافية</span><span class="num" id="o-oh">0</span></div>
+          <div class="r"><span>هامش الربح</span><span class="num" id="o-pr">0</span></div>
+          <div class="r grand"><span>الإجمالي (د.ع)</span><span class="num" id="o-total">0</span></div>
+          <div class="r" style="color:#555"><span>سعر القطعة الواحدة</span><span class="num" id="o-unit">0</span></div>
+        </div>
+        <div class="inv-note">
+          الأسعار بالدينار العراقي وتشمل ما ذُكر أعلاه فقط. هذا العرض ساري حتى التاريخ المذكور.
+          <div style="margin-top:6px;color:#888">صُدِر بواسطة دقة قلم — diqqatqalam.com</div>
+        </div>
+      </div>
+
+      <div class="actions noprint">
+        <button class="btn btn-pri" onclick="window.print()">🖨 طباعة / PDF</button>
+        <button class="btn btn-wa" id="btn-wa">واتساب</button>
+        <button class="btn btn-sec" id="btn-copy">نسخ النص</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot noprint">جزء من <a href="/">دقة قلم</a> — منصّة CNC المتكاملة.</p>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  const inputs = ['ws-name','ws-phone','valid-days','cl-name','proj','qty','c-material','m-time','m-rate','c-setup','c-extra','p-overhead','p-profit'];
+
+  // حفظ بيانات الورشة فقط (تبقى بين الجلسات)
+  ['ws-name','ws-phone'].forEach(id => { const v = localStorage.getItem('dq_q_'+id); if (v) $(id).value = v; });
+
+  let last = {};
+
+  function render() {
+    const num = id => parseFloat($(id).value) || 0;
+    const qty      = Math.max(1, num('qty'));
+    const material = num('c-material');
+    const mTime    = num('m-time');
+    const mRate    = num('m-rate');
+    const setup    = num('c-setup');
+    const extra    = num('c-extra');
+    const ohPct    = num('p-overhead') / 100;
+    const prPct    = num('p-profit') / 100;
+
+    const machine  = Math.round(mTime / 60 * mRate);
+    const perPiece = material + machine;
+    const oneTime  = setup + extra;
+    const sub      = perPiece * qty + oneTime;
+    const oh       = sub * ohPct;
+    const pr       = (sub + oh) * prPct;
+    const total    = sub + oh + pr;
+    const unit     = total / qty;
+
+    // رأس الفاتورة
+    $('o-ws').textContent    = $('ws-name').value || 'ورشتك';
+    $('o-phone').textContent = $('ws-phone').value ? 'هاتف: ' + $('ws-phone').value : '';
+    $('o-client').textContent = $('cl-name').value || '—';
+    $('o-proj').textContent   = $('proj').value || '';
+    const now = new Date();
+    const validDays = Math.max(1, num('valid-days'));
+    const validTo = new Date(now.getTime() + validDays * 86400000);
+    $('o-num').textContent  = 'رقم: Q-' + now.toISOString().slice(0,10).replace(/-/g,'') + '-' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+    $('o-date').textContent = 'التاريخ: ' + now.toLocaleDateString('ar-EG');
+    $('o-valid').textContent = 'صالح حتى: ' + validTo.toLocaleDateString('ar-EG');
+
+    // البنود
+    const rows = [];
+    if (material) rows.push(['المواد الخام', material, qty, material*qty]);
+    if (machine)  rows.push([`زمن التشغيل (${mTime} دقيقة)`, machine, qty, machine*qty]);
+    if (setup)    rows.push(['الإعداد والتجهيز', setup, 1, setup]);
+    if (extra)    rows.push(['تصميم / إضافات', extra, 1, extra]);
+    if (!rows.length) rows.push(['—', 0, 0, 0]);
+    $('o-rows').innerHTML = rows.map(r =>
+      `<tr><td>${r[0]}</td><td class="num">${fmt(r[1])}</td><td class="num">${r[2]}</td><td class="num">${fmt(r[3])}</td></tr>`
+    ).join('');
+
+    $('o-sub').textContent   = fmt(sub);
+    $('o-oh').textContent    = fmt(oh);
+    $('o-pr').textContent    = fmt(pr);
+    $('o-total').textContent = fmt(total);
+    $('o-unit').textContent  = fmt(unit);
+
+    localStorage.setItem('dq_q_ws-name', $('ws-name').value);
+    localStorage.setItem('dq_q_ws-phone', $('ws-phone').value);
+    last = { total, unit, qty, sub, oh, pr, rows };
+  }
+
+  function quoteText() {
+    const L = [];
+    L.push('*عرض سعر — ' + ($('ws-name').value || 'دقة قلم') + '*');
+    if ($('ws-phone').value) L.push('هاتف: ' + $('ws-phone').value);
+    L.push($('o-num').textContent + ' • ' + $('o-date').textContent);
+    L.push('العميل: ' + ($('cl-name').value || '—'));
+    if ($('proj').value) L.push('المشروع: ' + $('proj').value);
+    L.push('———————————————');
+    last.rows.forEach(r => L.push(`${r[0]}: ${fmt(r[3])} د.ع`));
+    L.push('———————————————');
+    L.push('المجموع الفرعي: ' + fmt(last.sub) + ' د.ع');
+    L.push('مصاريف إضافية: ' + fmt(last.oh) + ' د.ع');
+    L.push('هامش الربح: ' + fmt(last.pr) + ' د.ع');
+    L.push('*الإجمالي: ' + fmt(last.total) + ' د.ع*');
+    if (last.qty > 1) L.push('سعر القطعة: ' + fmt(last.unit) + ' د.ع');
+    L.push('———————————————');
+    L.push($('o-valid').textContent);
+    L.push('صُدِر عبر دقة قلم — diqqatqalam.com');
+    return L.join('\n');
+  }
+
+  $('btn-wa').addEventListener('click', () =>
+    window.open('https://wa.me/?text=' + encodeURIComponent(quoteText()), '_blank'));
+  $('btn-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(quoteText()); $('btn-copy').textContent = '✓ نُسخ'; setTimeout(()=>$('btn-copy').textContent='نسخ النص',1500); }
+    catch(_) { alert(quoteText()); }
+  });
+
+  inputs.forEach(id => $(id).addEventListener('input', render));
+  render();
+</script>
+</body>
+</html>

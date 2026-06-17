@@ -220,6 +220,7 @@ app.get('/auth',     (req, res) => res.sendFile(path.join(__dirname, 'public', '
 app.get('/app',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
 app.get('/feeds',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'feeds.html')));
+app.get('/quote',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'quote.html')));
 
 // ── Public config (Supabase public keys only) ─────────────────────────────────
 app.get('/api/config', (req, res) => {
