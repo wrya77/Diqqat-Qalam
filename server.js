@@ -120,6 +120,15 @@ const uploadLimiter = rateLimit({
   message: { error: 'تجاوزت حد رفع الملفات. حاول مجدداً.' },
 });
 
+// مسارات callback للدفع عامة — حدّ مخصص يمنع إجهاد الاستعلام من المزوّد
+const callbackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max:      30,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message: { ok: false },
+});
+
 // ── Compression: gzip لكل الاستجابات (يقلص النقل ~75%) ───────────────────────
 app.use(compression());
 
@@ -245,10 +254,8 @@ app.get('/api/config', (req, res) => {
 });
 
 // ── File upload setup ─────────────────────────────────────────────────────────
-const ALLOWED_MIME_TYPES = new Set([
-  'image/svg+xml', 'application/octet-stream', 'text/plain',
-  'application/x-dxf', 'application/dxf',
-]);
+// الضابط الفعلي هو قائمة الامتدادات المسموحة أدناه (أنواع CNC مثل .nc/.gcode/.tap
+// تصل بأنواع MIME متعددة، فالاعتماد على الامتداد + حجم محدود + اسم عشوائي).
 const ALLOWED_EXTENSIONS = new Set(['.svg', '.dxf', '.nc', '.gcode', '.tap']);
 
 const storage = multer.diskStorage({
@@ -632,7 +639,7 @@ app.get('/api/payments/:id/status', requireAuth, async (req, res) => {
 });
 
 // إشعار FIB (خادم↔خادم) — لا نثق بالمحتوى، نتحقق من المزوّد مباشرة
-app.post('/api/payments/callback/fib', async (req, res) => {
+app.post('/api/payments/callback/fib', callbackLimiter, async (req, res) => {
   try {
     const payment = payMgr.find(req.query.pid) || payMgr.findByRef(req.body?.id);
     if (payment) await payMgr.reconcile(payment);
@@ -641,7 +648,7 @@ app.post('/api/payments/callback/fib', async (req, res) => {
 });
 
 // إشعار/عودة Zain Cash — التحقق عبر استعلام المزوّد
-app.all('/api/payments/callback/zaincash', async (req, res) => {
+app.all('/api/payments/callback/zaincash', callbackLimiter, async (req, res) => {
   try {
     const payment = payMgr.find(req.query.pid);
     if (payment) await payMgr.reconcile(payment);
@@ -653,7 +660,7 @@ app.all('/api/payments/callback/zaincash', async (req, res) => {
 });
 
 // إشعار/عودة PayTabs — التحقق دائماً عبر استعلام المزوّد
-app.all('/api/payments/callback/card', async (req, res) => {
+app.all('/api/payments/callback/card', callbackLimiter, async (req, res) => {
   try {
     const ref = req.body?.tran_ref || req.query?.tranRef;
     const payment = ref ? payMgr.findByRef(ref) : null;

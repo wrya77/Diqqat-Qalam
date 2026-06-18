@@ -1,6 +1,11 @@
 /**
  * ui-controls.js — All UI event bindings & config reading
  */
+// تعقيم نص قبل حقنه في innerHTML — يمنع XSS من مخرجات الذكاء الاصطناعي أو رسائل الأخطاء
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
 class UIControls {
   constructor(app) {
     this.app = app;
@@ -153,7 +158,7 @@ class UIControls {
   showAISuggestions(suggestions, saving) {
     const box = document.getElementById('ai-box');
     if(!box||!suggestions?.length) return;
-    const html=`<b>🤖 اقتراحات AI (توفير: ${saving})</b><ul>${suggestions.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+    const html=`<b>🤖 اقتراحات AI (توفير: ${escHtml(saving)})</b><ul>${suggestions.map(s=>`<li>${escHtml(s)}</li>`).join('')}</ul>`;
     box.innerHTML=html; box.classList.add('visible');
     // لا تكتب فوق توفير التنقل الحقيقي (NN+2opt) إلا إن كان AI أكبر فعلاً
     const st=document.getElementById('st-saving');
@@ -174,7 +179,7 @@ class UIControls {
     this._lastAIProcessedShapes = JSON.parse(JSON.stringify(processedShapes || []));
 
     const meta = document.getElementById('ai-review-meta');
-    meta.innerHTML = `<div><b>توفير متوقع:</b> ${saving}</div>` + (aiMetadata?`<div style="font-size:12px;color:var(--muted)">${JSON.stringify(aiMetadata)}</div>`:'');
+    meta.innerHTML = `<div><b>توفير متوقع:</b> ${escHtml(saving)}</div>` + (aiMetadata?`<div style="font-size:12px;color:var(--muted)">${escHtml(JSON.stringify(aiMetadata))}</div>`:'');
 
     const tbody = document.getElementById('ai-analysis-tbody');
     tbody.innerHTML = '';
@@ -182,14 +187,14 @@ class UIControls {
       const r = document.createElement('tr');
       r.innerHTML = `
         <td style="text-align:center"><input type="checkbox" class="ai-apply-checkbox" checked></td>
-        <td>${a.index}</td>
-        <td>${a.type}</td>
-        <td>${(a.length||0).toFixed? (a.length||0).toFixed(1): (a.length||0)}</td>
-        <td><input class="ai-feed-input" style="width:90px" type="number" step="1" min="1" value="${a.feedRate||''}"></td>
-        <td>${a.maxRecommendedFeedRate||'–'}</td>
-        <td>${a.forceEstimate? a.forceEstimate.Ft : '–'}</td>
-        <td>${a.forceEstimate? a.forceEstimate.Fr : '–'}</td>
-        <td>${a.engagement||'–'}</td>
+        <td>${escHtml(a.index)}</td>
+        <td>${escHtml(a.type)}</td>
+        <td>${(a.length||0).toFixed? (a.length||0).toFixed(1): escHtml(a.length||0)}</td>
+        <td><input class="ai-feed-input" style="width:90px" type="number" step="1" min="1" value="${escHtml(a.feedRate||'')}"></td>
+        <td>${escHtml(a.maxRecommendedFeedRate||'–')}</td>
+        <td>${a.forceEstimate? escHtml(a.forceEstimate.Ft) : '–'}</td>
+        <td>${a.forceEstimate? escHtml(a.forceEstimate.Fr) : '–'}</td>
+        <td>${escHtml(a.engagement||'–')}</td>
       `;
       tbody.appendChild(r);
     });

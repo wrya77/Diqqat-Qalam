@@ -74,7 +74,9 @@ const AuthManager = (() => {
                    || 'مستخدم';
       // Sanitize to prevent XSS
       const safeName   = name.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
-      const safeAvatar = avatar ? avatar.replace(/"/g, '%22') : '';
+      // اقبل فقط روابط https أو data:image — يمنع javascript:/data:text وغيرها
+      const safeAvatar = (avatar && /^(https:\/\/|data:image\/)/i.test(avatar))
+        ? avatar.replace(/"/g, '%22') : '';
 
       pill.innerHTML = safeAvatar
         ? `<img src="${safeAvatar}" alt="" class="user-avatar" onerror="this.style.display='none'">`
