@@ -8,6 +8,7 @@
  *  5. حدود طاولة الآلة على اللوحة (من حدود X/Y في الإعدادات)
  *  6. توهج زر التوليد عند جاهزية التصميم
  *  7. اسم الأداة الحالية في شريط الحالة
+ *  8. بطاقة ترحيب احترافية + تنظيف الشريط العلوي (حقن وقت التشغيل)
  */
 (function uiPolish() {
   'use strict';
@@ -188,8 +189,82 @@
     window.addEventListener('resize', () => { if (window.innerWidth > 768) bar.classList.remove('open'); });
   }
 
+  /* ══ 8) بطاقة ترحيب احترافية + تنظيف الشريط العلوي ══
+     يُطبَّق وقت التشغيل دون تعديل index.html:
+       • يستبدل "المستطيل الفارغ" ببطاقة ترحيب فيها أزرار الأدوات المساعدة
+       • يُخفي أزرار التحرير المكررة من الشريط (متوفرة في القوائم وشريط الشكل) */
+  function initEnhancements() {
+    // تحميل أنماط البطاقة
+    if (!document.querySelector('link[href="css/welcome.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'css/welcome.css';
+      document.head.appendChild(link);
+    }
+
+    // تنظيف الشريط العلوي: إخفاء الأزرار المكررة (نسخ/لصق/تكرار/تحديد الكل)
+    ['btn-select-all', 'btn-copy', 'btn-paste', 'btn-duplicate'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b && b.closest('.toolbar')) b.style.display = 'none';
+    });
+    // أزل الفاصل اليتيم الذي كان يسبق تلك الأزرار، إن بقي بلا أزرار ظاهرة بعده
+    document.querySelectorAll('.toolbar .tbtn-div').forEach(div => {
+      let n = div.nextElementSibling, hasVisible = false;
+      while (n && !n.classList.contains('tbtn-div')) {
+        if (n.offsetParent !== null || n.style.display !== 'none') { hasVisible = true; break; }
+        n = n.nextElementSibling;
+      }
+      if (!hasVisible) div.style.display = 'none';
+    });
+
+    // بطاقة الترحيب على اللوحة الفارغة
+    const es = document.getElementById('canvas-empty-state');
+    if (es && !es.querySelector('.ce-card')) {
+      es.innerHTML = `
+        <div class="ce-card">
+          <div class="ce-head">
+            <svg class="ce-logo" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+              <defs><linearGradient id="dqgEmpty" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/>
+              </linearGradient></defs>
+              <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#dqgEmpty)"/>
+              <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#ffffff"/>
+              <path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
+              <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
+            </svg>
+            <div class="ce-head-txt">
+              <h2>ابدأ تصميمك</h2>
+              <p>اختر أداة من الشريط الجانبي وارسم — أو استورد ملفاً جاهزاً. المشروع يُحفظ تلقائياً.</p>
+            </div>
+          </div>
+
+          <button class="ce-import" id="empty-import">
+            <span class="ce-import-ic">📂</span>
+            <span class="ce-import-t">استيراد ملف تصميم<small>SVG · DXF · صورة · G-Code</small></span>
+          </button>
+
+          <div class="ce-tools">
+            <span class="ce-tools-label">أدوات مساعدة</span>
+            <div class="ce-tools-row">
+              <a class="ce-tool" href="/feeds" target="_blank" rel="noopener">
+                <span class="ce-tool-ic">⚡</span><span>حاسبة السرعات والتغذية</span>
+              </a>
+              <a class="ce-tool" href="/quote" target="_blank" rel="noopener">
+                <span class="ce-tool-ic">🧾</span><span>مولّد عروض الأسعار</span>
+              </a>
+              <a class="ce-tool" href="/calligraphy" target="_blank" rel="noopener">
+                <span class="ce-tool-ic">✒</span><span>محرك الخط العربي</span>
+              </a>
+            </div>
+          </div>
+        </div>`;
+      document.getElementById('empty-import')?.addEventListener('click',
+        () => document.getElementById('btn-import')?.click());
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initTooltips(); initA11y(); initDrawers(); initMobileMenu(); });
-  } else { initTooltips(); initA11y(); initDrawers(); initMobileMenu(); }
+    document.addEventListener('DOMContentLoaded', () => { initTooltips(); initA11y(); initDrawers(); initMobileMenu(); initEnhancements(); });
+  } else { initTooltips(); initA11y(); initDrawers(); initMobileMenu(); initEnhancements(); }
   initEditorHooks();
 })();
