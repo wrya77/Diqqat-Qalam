@@ -77,7 +77,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:  ["'self'"],
-      scriptSrc:   ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+      // 'wasm-unsafe-eval' يسمح بتشغيل HarfBuzz (WebAssembly) لتشكيل الخط العربي — دون السماح بـ eval الكامل
+      scriptSrc:   ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'cdn.jsdelivr.net'],
       // معالجات inline (onclick/oninput/onsubmit) — يستخدمها auth.html و index.html
       // بدون هذا السطر يبقى الافتراضي 'none' في Helmet فتتعطّل كل الأزرار (زر التسجيل مثلاً)
       scriptSrcAttr: ["'unsafe-inline'"],
@@ -231,6 +232,7 @@ app.get('/app',      (req, res) => res.sendFile(path.join(__dirname, 'public', '
 app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
 app.get('/feeds',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'feeds.html')));
 app.get('/quote',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'quote.html')));
+app.get('/calligraphy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'calligraphy.html')));
 
 // ── Public config (Supabase public keys only) ─────────────────────────────────
 app.get('/api/config', (req, res) => {

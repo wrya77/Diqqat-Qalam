@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محرك الخط العربي — دقة قلم</title>
+<meta name="description" content="حوّل أي نص عربي إلى مسار CNC احترافي بخطوط النسخ والكوفي والرقعة — تشكيل صحيح متصل واتجاه من اليمين، وإخراج G-Code جاهز للحفر والقص.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1020; --panel:#141a2e; --panel2:#1b2238; --line:#283150;
+    --text:#eef2f7; --muted:#9aa6c4; --accent:#3b82f6; --accent-h:#60a5fa;
+    --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --info:#38bdf8;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Tajawal',system-ui,sans-serif;background:var(--bg);color:var(--text);
+    min-height:100vh;line-height:1.6;padding:24px 16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+  .brand .logo{width:34px;height:34px;display:grid;place-items:center;background:var(--accent);
+    border-radius:9px;color:#fff;font-size:18px}
+  .top a{color:var(--muted);text-decoration:none;font-size:14px}
+  .top a:hover{color:var(--accent-h)}
+  h1{font-size:24px;font-weight:700;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:22px}
+  .grid{display:grid;grid-template-columns:1fr 1.15fr;gap:20px;align-items:start}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .card h2{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:15px;outline:none}
+  .field textarea{resize:vertical;min-height:84px;font-size:20px;line-height:1.8}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .hint{font-size:12px;color:var(--muted);margin-top:2px}
+  .divider{height:1px;background:var(--line);margin:18px 0}
+  details summary{cursor:pointer;color:var(--accent-h);font-size:14px;font-weight:500;list-style:none;user-select:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:'▸ ';font-size:11px}
+  details[open] summary::before{content:'▾ '}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  button.act{flex:1;min-width:120px;background:var(--accent);color:#fff;border:0;border-radius:10px;
+    padding:12px 14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
+  button.act:hover{background:var(--accent-h)}
+  button.act:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+  button.ghost:hover{border-color:var(--accent)}
+  .stage{background:#070a14;border:1px solid var(--line);border-radius:12px;min-height:260px;
+    display:grid;place-items:center;overflow:hidden;position:relative}
+  .stage svg{width:100%;height:auto;display:block}
+  .stage .empty{color:var(--muted);font-size:14px;text-align:center;padding:30px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:14px}
+  .stat{display:flex;align-items:baseline;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+  .stat .k{color:var(--muted);font-size:13px}
+  .stat .v{font-size:17px;font-weight:700}
+  .stat .u{font-size:11px;color:var(--muted);margin-right:3px}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(59,130,246,.15);
+    color:var(--accent-h);border:1px solid rgba(59,130,246,.3)}
+  .note{font-size:13px;color:var(--muted);margin-top:12px;padding:10px 12px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:10px}
+  .err{display:none;margin-top:12px;padding:10px 12px;border-radius:10px;font-size:14px;
+    background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#fecaca}
+  .foot{margin-top:24px;text-align:center;color:var(--muted);font-size:13px}
+  .foot a{color:var(--accent-h);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="logo">✎</span> دقة قلم</div>
+    <a href="/app">← العودة للتطبيق</a>
+  </div>
+
+  <h1>محرك الخط العربي <span class="badge">جديد</span></h1>
+  <p class="sub">اكتب نصاً عربياً، اختر نمط الخط، واحصل على مسار CNC احترافي — تشكيل صحيح متصل واتجاه من اليمين، جاهز للحفر أو قص الحروف. يعمل بالكامل دون إنترنت.</p>
+
+  <div class="grid">
+    <!-- المُدخلات -->
+    <div class="card">
+      <h2>النص والخط</h2>
+      <div class="field">
+        <label for="txt">النص العربي (سطر لكل خط جديد)</label>
+        <textarea id="txt" dir="rtl" placeholder="بسم الله الرحمن الرحيم">بسم الله</textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="font">نمط الخط</label>
+          <select id="font"></select>
+        </div>
+        <div class="field">
+          <label for="h">ارتفاع النص (mm)</label>
+          <input type="number" id="h" value="30" min="2" max="500" step="1">
+        </div>
+      </div>
+      <div class="field">
+        <label for="ls">تباعد الأسطر</label>
+        <input type="range" id="ls" min="1" max="2.2" step="0.05" value="1.35">
+        <div class="hint" id="ls-val">1.35×</div>
+      </div>
+
+      <div class="divider"></div>
+      <details>
+        <summary>إعدادات الآلة والقطع</summary>
+        <div style="margin-top:14px">
+          <div class="row3">
+            <div class="field"><label for="tool">قطر العدّة (mm)</label><input type="number" id="tool" value="3" min="0.1" max="25" step="0.1"></div>
+            <div class="field"><label for="depth">العمق الكلي (mm)</label><input type="number" id="depth" value="3" min="0.1" max="100" step="0.5"></div>
+            <div class="field"><label for="pass">عمق التمريرة (mm)</label><input type="number" id="pass" value="1.5" min="0.1" max="50" step="0.5"></div>
+          </div>
+          <div class="row3">
+            <div class="field"><label for="fxy">تغذية XY</label><input type="number" id="fxy" value="1000" min="50" step="50"></div>
+            <div class="field"><label for="fz">تغذية Z</label><input type="number" id="fz" value="300" min="20" step="20"></div>
+            <div class="field"><label for="rpm">دوران (RPM)</label><input type="number" id="rpm" value="18000" min="0" step="500"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="safe">ارتفاع الأمان (mm)</label><input type="number" id="safe" value="5" min="1" step="1"></div>
+            <div class="field"><label for="origin">نقطة الصفر</label>
+              <select id="origin">
+                <option value="bottom-left">أسفل-يسار</option>
+                <option value="center">المركز</option>
+                <option value="top-left">أعلى-يسار</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="divider"></div>
+      <div class="btns">
+        <button class="act" id="gen">توليد المسار</button>
+      </div>
+      <div class="err" id="err"></div>
+      <div class="note">القص يتبع <b>حدود كل حرف وثقوبه الداخلية</b> (مثل دائرة الـ و/ه/ق) — الأنسب للافتات وفنون الجدار وقص الحروف.</div>
+    </div>
+
+    <!-- المعاينة -->
+    <div class="card">
+      <h2>المعاينة والإخراج</h2>
+      <div class="stage" id="stage">
+        <div class="empty" id="empty">⏳ جارٍ تحميل المحرك والخطوط…</div>
+      </div>
+      <div class="stats" id="stats" style="display:none">
+        <div class="stat"><span class="k">الأبعاد</span><span><span class="v" id="s-dim">—</span><span class="u">mm</span></span></div>
+        <div class="stat"><span class="k">الزمن التقديري</span><span class="v" id="s-time">—</span></div>
+        <div class="stat"><span class="k">عدد الكنتورات</span><span class="v" id="s-cont">—</span></div>
+        <div class="stat"><span class="k">أسطر G-Code</span><span class="v" id="s-lines">—</span></div>
+      </div>
+      <div class="btns" id="actions" style="display:none;margin-top:14px">
+        <button class="act" id="dl">تنزيل G-Code (.nc)</button>
+        <button class="act ghost" id="copy">نسخ</button>
+        <button class="act ghost" id="svg">تنزيل SVG</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">يدعم النسخ والحديث والكوفي والرقعة (خطوط OFL مفتوحة المصدر). جزء من <a href="/">دقة قلم</a> · <a href="/feeds">حاسبة السرعات</a> · <a href="/quote">عرض السعر</a></p>
+</div>
+
+<!-- المحرك المشترك -->
+<script src="/shared/geometry.js"></script>
+<script src="/shared/MachineConfig.js"></script>
+<script src="/shared/HeaderGenerator.js"></script>
+<script src="/shared/PocketGenerator.js"></script>
+<script src="/shared/ToolpathGenerator.js"></script>
+<script src="/shared/PathSort.js"></script>
+<script src="/shared/GCodeGenerator.js"></script>
+<script src="/shared/CalligraphyEngine.js"></script>
+<!-- التشكيل والمخططات -->
+<script src="/vendor/opentype.min.js"></script>
+<script src="/vendor/hbjs.js"></script>
+<script src="/js/calligraphy.js"></script>
+</body>
+</html>

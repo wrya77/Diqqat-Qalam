@@ -30,6 +30,12 @@ const REQUIRED_FILES = [
   // المحرك المشترك (خادم + متصفح)
   'shared/geometry.js','shared/MachineConfig.js','shared/HeaderGenerator.js',
   'shared/PocketGenerator.js','shared/ToolpathGenerator.js','shared/PathSort.js','shared/GCodeGenerator.js',
+  'shared/CalligraphyEngine.js',
+  // محرك الخط العربي (صفحة مستقلة + خطوط OFL + HarfBuzz)
+  'public/calligraphy.html','public/js/calligraphy.js',
+  'public/vendor/opentype.min.js','public/vendor/hbjs.js','public/vendor/hb.wasm',
+  'public/fonts/Amiri-Regular.ttf','public/fonts/Cairo-Regular.ttf',
+  'public/fonts/ReemKufi-Regular.ttf','public/fonts/ArefRuqaa-Regular.ttf',
   // الخادم
   'src/middleware/auth.js',
   'src/payments/PaymentManager.js','src/payments/providers.js',
