@@ -217,73 +217,9 @@
       if (!hasVisible) div.style.display = 'none';
     });
 
-    // قسم "أدوات مساعدة" ظاهر دائماً في أعلى الشريط الجانبي (أزرار حقيقية لا تختفي)
-    const sp = document.querySelector('.settings-panel');
-    if (sp && !document.getElementById('dq-helper-tools')) {
-      const sec = document.createElement('details');
-      sec.className = 'section';
-      sec.id = 'dq-helper-tools';
-      sec.open = true;
-      sec.innerHTML = `
-        <summary class="sec-title">🧰 أدوات مساعدة</summary>
-        <div class="dq-tools-grid">
-          <a class="dq-tool-btn" href="/feeds" target="_blank" rel="noopener">
-            <span class="dq-tool-ic">⚡</span><span>حاسبة السرعات والتغذية</span>
-          </a>
-          <a class="dq-tool-btn" href="/quote" target="_blank" rel="noopener">
-            <span class="dq-tool-ic">🧾</span><span>مولّد عروض الأسعار</span>
-          </a>
-          <a class="dq-tool-btn" href="/calligraphy" target="_blank" rel="noopener">
-            <span class="dq-tool-ic">✒</span><span>محرك الخط العربي</span>
-          </a>
-        </div>`;
-      sp.insertBefore(sec, sp.firstElementChild);
-    }
-
-    // بطاقة الترحيب على اللوحة الفارغة
-    const es = document.getElementById('canvas-empty-state');
-    if (es && !es.querySelector('.ce-card')) {
-      es.innerHTML = `
-        <div class="ce-card">
-          <div class="ce-head">
-            <svg class="ce-logo" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
-              <defs><linearGradient id="dqgEmpty" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/>
-              </linearGradient></defs>
-              <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#dqgEmpty)"/>
-              <path d="M32 12 L43 30 L32 50 L21 30 Z" fill="#ffffff"/>
-              <path d="M32 12 L43 30 L32 35 L21 30 Z" fill="#cfe3ff"/>
-              <circle cx="32" cy="50" r="3.2" fill="#5bf2b8"/>
-            </svg>
-            <div class="ce-head-txt">
-              <h2>ابدأ تصميمك</h2>
-              <p>اختر أداة من الشريط الجانبي وارسم — أو استورد ملفاً جاهزاً. المشروع يُحفظ تلقائياً.</p>
-            </div>
-          </div>
-
-          <button class="ce-import" id="empty-import">
-            <span class="ce-import-ic">📂</span>
-            <span class="ce-import-t">استيراد ملف تصميم<small>SVG · DXF · صورة · G-Code</small></span>
-          </button>
-
-          <div class="ce-tools">
-            <span class="ce-tools-label">أدوات مساعدة</span>
-            <div class="ce-tools-row">
-              <a class="ce-tool" href="/feeds" target="_blank" rel="noopener">
-                <span class="ce-tool-ic">⚡</span><span>حاسبة السرعات والتغذية</span>
-              </a>
-              <a class="ce-tool" href="/quote" target="_blank" rel="noopener">
-                <span class="ce-tool-ic">🧾</span><span>مولّد عروض الأسعار</span>
-              </a>
-              <a class="ce-tool" href="/calligraphy" target="_blank" rel="noopener">
-                <span class="ce-tool-ic">✒</span><span>محرك الخط العربي</span>
-              </a>
-            </div>
-          </div>
-        </div>`;
-      document.getElementById('empty-import')?.addEventListener('click',
-        () => document.getElementById('btn-import')?.click());
-    }
+    // ملاحظة: قسم «أدوات مساعدة» في الشريط الجانبي وبطاقة اللوحة الفارغة
+    // أصبحا HTML ثابتاً في index.html (أوثق من الحقن وقت التشغيل)، وزر
+    // الاستيراد يُربط في redesign.js. لم يبقَ هنا سوى تنظيف الشريط العلوي أعلاه.
   }
 
   if (document.readyState === 'loading') {

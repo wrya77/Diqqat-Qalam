@@ -50,6 +50,7 @@
   <meta name="theme-color" content="#0d1117">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/welcome.css">
+  <link rel="stylesheet" href="css/redesign.css">
   <!-- Auth gate: hides body until session confirmed, prevents FOUC -->
   <style id="_auth-init-style">
     body > *:not(#_auth-gate) { visibility: hidden; pointer-events: none; }
@@ -293,17 +294,27 @@
     <!-- أدوات مساعدة — ثابتة في الصفحة (لا تعتمد على أي سكربت) -->
     <details class="section" open id="dq-helper-tools">
       <summary class="sec-title">🧰 أدوات مساعدة</summary>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
-        <a href="/feeds" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:9px;color:#e6edf3;font-size:13px;font-weight:600">
-          <span style="font-size:17px">⚡</span><span>حاسبة السرعات والتغذية</span>
-        </a>
-        <a href="/quote" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:9px;color:#e6edf3;font-size:13px;font-weight:600">
-          <span style="font-size:17px">🧾</span><span>مولّد عروض الأسعار</span>
-        </a>
-        <a href="/calligraphy" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:9px;color:#e6edf3;font-size:13px;font-weight:600">
-          <span style="font-size:17px">✒</span><span>محرك الخط العربي</span>
-        </a>
-      </div>
+      <a class="ai-tool-card" data-tool="feed-calc" href="/feeds" target="_blank" rel="noopener">
+        <span class="ai-tool-icon">⚡</span>
+        <span class="ai-tool-text">
+          <span class="ai-tool-label">حاسبة السرعات والتغذية</span>
+          <span class="ai-tool-desc">سرعات القطع والتغذية الآمنة</span>
+        </span>
+      </a>
+      <a class="ai-tool-card" data-tool="quote-gen" href="/quote" target="_blank" rel="noopener">
+        <span class="ai-tool-icon">🧾</span>
+        <span class="ai-tool-text">
+          <span class="ai-tool-label">مولّد عروض الأسعار</span>
+          <span class="ai-tool-desc">تسعير المشاريع وطباعة العرض</span>
+        </span>
+      </a>
+      <a class="ai-tool-card" data-tool="arabic-font" href="/calligraphy" target="_blank" rel="noopener">
+        <span class="ai-tool-icon">✒</span>
+        <span class="ai-tool-text">
+          <span class="ai-tool-label">محرك الخط العربي</span>
+          <span class="ai-tool-desc">تحويل النصوص إلى مسارات قطع</span>
+        </span>
+      </a>
     </details>
 
     <details class="section" open>
@@ -750,17 +761,7 @@
           </svg>
           <p>اختر أداة من الشريط الجانبي وابدأ الرسم</p>
           <span>أو <b id="empty-import">استورد ملف SVG/DXF</b> · المشروع يُحفظ تلقائياً</span>
-          <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;pointer-events:auto">
-            <a href="/feeds" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:120px;padding:13px 8px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:11px;color:#e6edf3;font-size:11.5px;font-weight:600;text-align:center">
-              <span style="font-size:21px">⚡</span><span>حاسبة السرعات والتغذية</span>
-            </a>
-            <a href="/quote" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:120px;padding:13px 8px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:11px;color:#e6edf3;font-size:11.5px;font-weight:600;text-align:center">
-              <span style="font-size:21px">🧾</span><span>مولّد عروض الأسعار</span>
-            </a>
-            <a href="/calligraphy" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:120px;padding:13px 8px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:11px;color:#e6edf3;font-size:11.5px;font-weight:600;text-align:center">
-              <span style="font-size:21px">✒</span><span>محرك الخط العربي</span>
-            </a>
-          </div>
+          <p class="ce-hint">يمكنك الوصول إلى أدوات المساعدة (السرعات · عروض الأسعار · الخط العربي) من الشريط الجانبي الأيمن في أي وقت</p>
         </div>
       </div>
     </div>
@@ -1505,6 +1506,7 @@
 <script src="js/tools-rail-flyout.js"></script>
 <script src="js/tools-dock.js"></script>
 <script src="js/ui-polish.js"></script>
+<script src="js/redesign.js"></script>
 <script src="js/payments.js"></script>
 <script src="js/app.js"></script>
 <script>
