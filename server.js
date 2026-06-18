@@ -11,6 +11,7 @@ const fs         = require('fs');
 const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
 const compression = require('compression');
+const crypto     = require('crypto');
 
 // ── Core modules ──────────────────────────────────────────────────────────────
 const GCodeGenerator    = require('./src/generators/GCodeGenerator');
@@ -73,14 +74,43 @@ const io     = new Server(server, {
 });
 
 // ── Security middleware ───────────────────────────────────────────────────────
+// CSP: بدل 'unsafe-inline' في script-src، نحسب hash لكل سكربت inline في صفحات
+// HTML تلقائياً عند الإقلاع ونضيفه للسياسة. هذا يسمح بسكربتاتنا المعروفة فقط
+// ويمنع تنفيذ أي سكربت inline محقون (تقوية فعلية ضد XSS). إن تعذّر الحساب
+// لأي سبب، نعود إلى 'unsafe-inline' حتى لا تتعطّل الصفحات.
+function collectInlineScriptHashes(dir) {
+  const hashes = new Set();
+  let files = [];
+  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.html')); } catch (_) { return []; }
+  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+  for (const f of files) {
+    let html;
+    try { html = fs.readFileSync(path.join(dir, f), 'utf8'); } catch (_) { continue; }
+    let m;
+    while ((m = re.exec(html))) {
+      const h = crypto.createHash('sha256').update(m[1], 'utf8').digest('base64');
+      hashes.add(`'sha256-${h}'`);
+    }
+  }
+  return [...hashes];
+}
+const INLINE_SCRIPT_HASHES = collectInlineScriptHashes(path.join(__dirname, 'public'));
+const SCRIPT_SRC = ["'self'", "'wasm-unsafe-eval'", 'cdn.jsdelivr.net',
+  ...(INLINE_SCRIPT_HASHES.length ? INLINE_SCRIPT_HASHES : ["'unsafe-inline'"])];
+if (!INLINE_SCRIPT_HASHES.length) {
+  console.warn('⚠ CSP: تعذّر حساب hashes السكربتات المضمّنة — استخدام unsafe-inline احتياطياً');
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:  ["'self'"],
-      // 'wasm-unsafe-eval' يسمح بتشغيل HarfBuzz (WebAssembly) لتشكيل الخط العربي — دون السماح بـ eval الكامل
-      scriptSrc:   ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'cdn.jsdelivr.net'],
-      // معالجات inline (onclick/oninput/onsubmit) — يستخدمها auth.html و index.html
-      // بدون هذا السطر يبقى الافتراضي 'none' في Helmet فتتعطّل كل الأزرار (زر التسجيل مثلاً)
+      // script-src أصبح قائماً على hash (بلا 'unsafe-inline'). 'wasm-unsafe-eval'
+      // يسمح بتشغيل HarfBuzz (WebAssembly) لتشكيل الخط العربي دون السماح بـ eval الكامل.
+      scriptSrc:   SCRIPT_SRC,
+      // معالجات inline (onclick/oninput/onsubmit) — يستخدمها auth.html و index.html.
+      // تُحكَم بـ script-src-attr المنفصل (سطح هجوم أصغر من script-src)؛ إزالتها
+      // تتطلّب إعادة هيكلة عشرات المعالجات وتُترك كخطوة لاحقة.
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc:    ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
       fontSrc:     ["'self'", 'fonts.gstatic.com'],
