@@ -217,6 +217,29 @@
       if (!hasVisible) div.style.display = 'none';
     });
 
+    // قسم "أدوات مساعدة" ظاهر دائماً في أعلى الشريط الجانبي (أزرار حقيقية لا تختفي)
+    const sp = document.querySelector('.settings-panel');
+    if (sp && !document.getElementById('dq-helper-tools')) {
+      const sec = document.createElement('details');
+      sec.className = 'section';
+      sec.id = 'dq-helper-tools';
+      sec.open = true;
+      sec.innerHTML = `
+        <summary class="sec-title">🧰 أدوات مساعدة</summary>
+        <div class="dq-tools-grid">
+          <a class="dq-tool-btn" href="/feeds" target="_blank" rel="noopener">
+            <span class="dq-tool-ic">⚡</span><span>حاسبة السرعات والتغذية</span>
+          </a>
+          <a class="dq-tool-btn" href="/quote" target="_blank" rel="noopener">
+            <span class="dq-tool-ic">🧾</span><span>مولّد عروض الأسعار</span>
+          </a>
+          <a class="dq-tool-btn" href="/calligraphy" target="_blank" rel="noopener">
+            <span class="dq-tool-ic">✒</span><span>محرك الخط العربي</span>
+          </a>
+        </div>`;
+      sp.insertBefore(sec, sp.firstElementChild);
+    }
+
     // بطاقة الترحيب على اللوحة الفارغة
     const es = document.getElementById('canvas-empty-state');
     if (es && !es.querySelector('.ce-card')) {
