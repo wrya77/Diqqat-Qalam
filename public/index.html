@@ -49,6 +49,7 @@
   <link rel="icon" type="image/svg+xml" href="/images/icon.svg">
   <meta name="theme-color" content="#0d1117">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/welcome.css">
   <!-- Auth gate: hides body until session confirmed, prevents FOUC -->
   <style id="_auth-init-style">
     body > *:not(#_auth-gate) { visibility: hidden; pointer-events: none; }
@@ -288,6 +289,22 @@
 
   <!-- ═══ SETTINGS ═══ -->
   <aside class="settings-panel">
+
+    <!-- أدوات مساعدة — ثابتة في الصفحة (لا تعتمد على أي سكربت) -->
+    <details class="section" open id="dq-helper-tools">
+      <summary class="sec-title">🧰 أدوات مساعدة</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+        <a href="/feeds" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:9px;color:#e6edf3;font-size:13px;font-weight:600">
+          <span style="font-size:17px">⚡</span><span>حاسبة السرعات والتغذية</span>
+        </a>
+        <a href="/quote" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:9px;color:#e6edf3;font-size:13px;font-weight:600">
+          <span style="font-size:17px">🧾</span><span>مولّد عروض الأسعار</span>
+        </a>
+        <a href="/calligraphy" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:9px;color:#e6edf3;font-size:13px;font-weight:600">
+          <span style="font-size:17px">✒</span><span>محرك الخط العربي</span>
+        </a>
+      </div>
+    </details>
 
     <details class="section" open>
       <summary class="sec-title">🔩 الأداة</summary>
@@ -727,12 +744,23 @@
       <div class="canvas-area" id="canvas-area">
         <canvas id="main-canvas"></canvas>
         <div id="canvas-empty-state" class="canvas-empty">
-          <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="48" height="48" aria-hidden="true">
             <rect x="6" y="6" width="52" height="52" rx="6" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4" opacity=".5"/>
             <path d="M20 40 L32 18 L44 40 Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
           </svg>
           <p>اختر أداة من الشريط الجانبي وابدأ الرسم</p>
           <span>أو <b id="empty-import">استورد ملف SVG/DXF</b> · المشروع يُحفظ تلقائياً</span>
+          <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;pointer-events:auto">
+            <a href="/feeds" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:120px;padding:13px 8px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:11px;color:#e6edf3;font-size:11.5px;font-weight:600;text-align:center">
+              <span style="font-size:21px">⚡</span><span>حاسبة السرعات والتغذية</span>
+            </a>
+            <a href="/quote" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:120px;padding:13px 8px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:11px;color:#e6edf3;font-size:11.5px;font-weight:600;text-align:center">
+              <span style="font-size:21px">🧾</span><span>مولّد عروض الأسعار</span>
+            </a>
+            <a href="/calligraphy" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:120px;padding:13px 8px;text-decoration:none;background:#1c2128;border:1px solid #30363d;border-radius:11px;color:#e6edf3;font-size:11.5px;font-weight:600;text-align:center">
+              <span style="font-size:21px">✒</span><span>محرك الخط العربي</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
