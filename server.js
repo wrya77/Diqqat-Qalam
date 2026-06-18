@@ -95,8 +95,17 @@ function collectInlineScriptHashes(dir) {
   return [...hashes];
 }
 const INLINE_SCRIPT_HASHES = collectInlineScriptHashes(path.join(__dirname, 'public'));
-const SCRIPT_SRC = ["'self'", "'wasm-unsafe-eval'", 'cdn.jsdelivr.net',
-  ...(INLINE_SCRIPT_HASHES.length ? INLINE_SCRIPT_HASHES : ["'unsafe-inline'"])];
+// النطاق خلف Cloudflare proxy، وهو يحقن beacon تحليلات بعد خروج الصفحة من الخادم:
+// سكربت خارجي من static.cloudflareinsights.com + سكربت inline ثابت. نسمح بهما
+// صراحةً كي لا تحجبهما CSP الصارمة (مع بقاء script-src بلا 'unsafe-inline').
+// ملاحظة: نضيف hash الـ inline فقط في وضع الـ hashes؛ في وضع الاحتياط
+// ('unsafe-inline') لا نضيفه لأن وجود أي hash يُلغي مفعول 'unsafe-inline'.
+const CF_BEACON_HOST = 'https://static.cloudflareinsights.com';
+const CF_INLINE_HASH = "'sha256-YFxjxbw7cR8N4N7ymntqMsl6fuuXhoBB3L9K5HBtWWA='";
+const SCRIPT_SRC = ["'self'", "'wasm-unsafe-eval'", 'cdn.jsdelivr.net', CF_BEACON_HOST,
+  ...(INLINE_SCRIPT_HASHES.length
+      ? [...INLINE_SCRIPT_HASHES, CF_INLINE_HASH]
+      : ["'unsafe-inline'"])];
 if (!INLINE_SCRIPT_HASHES.length) {
   console.warn('⚠ CSP: تعذّر حساب hashes السكربتات المضمّنة — استخدام unsafe-inline احتياطياً');
 }
@@ -114,7 +123,8 @@ app.use(helmet({
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc:    ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
       fontSrc:     ["'self'", 'fonts.gstatic.com'],
-      connectSrc:  ["'self'", 'ws:', 'wss:', 'https://*.supabase.co'],
+      connectSrc:  ["'self'", 'ws:', 'wss:', 'https://*.supabase.co',
+        'https://cloudflareinsights.com'],  // إرسال بيانات Cloudflare RUM beacon
       imgSrc:      ["'self'", 'data:', 'blob:'],
       objectSrc:   ["'none'"],
       upgradeInsecureRequests: [],
