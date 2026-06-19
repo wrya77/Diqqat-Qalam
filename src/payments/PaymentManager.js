@@ -12,6 +12,45 @@ const fs   = require('fs');
 const path = require('path');
 const { FIBProvider, CardProvider, ZainCashProvider } = require('./providers');
 
+// ── تخزين دائم في Supabase (service_role — يتجاوز RLS) ──
+// حرج على serverless: سجلّ الدفعة يجب أن يكون مرئياً لكل النسخ، وإلا فإن callback
+// المزوّد الذي يصل نسخة أخرى لا يجد الدفعة (find=null) فلا تتم الترقية — والمستخدم
+// يكون قد دفع فعلاً. بدون مفاتيح Supabase نعود للتخزين الملفي (تطوير محلي فقط).
+const SUPA_URL    = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const CLOUD       = !!(SUPA_URL && SERVICE_KEY);
+
+async function cloudFetch(method, pathQ, body, prefer) {
+  const headers = {
+    apikey:         SERVICE_KEY,
+    Authorization:  `Bearer ${SERVICE_KEY}`,
+    'Content-Type': 'application/json',
+  };
+  if (prefer) headers.Prefer = prefer;
+  const res = await fetch(`${SUPA_URL}/rest/v1/${pathQ}`, {
+    method, headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`payments ${method} ${res.status}: ${t.slice(0, 150)}`);
+  }
+  if (res.status === 204) return null;
+  return res.json().catch(() => null);
+}
+
+const toRow = (r) => ({
+  id: r.id, user_id: r.userId, plan: r.plan, method: r.method,
+  amount_iqd: r.amountIQD, provider_ref: r.providerRef, status: r.status,
+  created_at: r.createdAt, paid_at: r.paidAt,
+});
+const fromRow = (row) => row && ({
+  id: row.id, userId: row.user_id, plan: row.plan, method: row.method,
+  amountIQD: row.amount_iqd, providerRef: row.provider_ref, status: row.status,
+  createdAt: row.created_at, paidAt: row.paid_at,
+});
+
 // أسعار الخطط بالدينار العراقي — شهري وسنوي (20% خصم للسنوي)
 const PLAN_PRICES = {
   // شهري
@@ -49,7 +88,14 @@ class PaymentManager {
   }
 
   _save() {
-    fs.writeFileSync(this.dataFile, JSON.stringify(this._payments, null, 2), 'utf8');
+    // المخزن الدائم هو Supabase في الإنتاج؛ الملف ذاكرة محلية فقط ويجب ألا يُسقط الطلب
+    try {
+      const dir = path.dirname(this.dataFile);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.dataFile, JSON.stringify(this._payments, null, 2), 'utf8');
+    } catch (e) {
+      if (e && e.code !== 'EROFS') console.error('[payments] local save failed:', e.message);
+    }
   }
 
   /** طرق الدفع المتاحة + الخطط والأسعار (للواجهة) */
@@ -119,6 +165,12 @@ class PaymentManager {
     if (this._payments.length > 2000) this._payments = this._payments.slice(-2000);
     this._save();
 
+    // المخزن الدائم عبر النسخ: نُدرج الصف في Supabase ليجده أي callback لاحقاً
+    if (CLOUD) {
+      try { await cloudFetch('POST', 'payments', toRow(record), 'return=minimal'); }
+      catch (e) { console.error('[payments] cloud insert failed:', e.message); }
+    }
+
     return {
       paymentId: id,
       method,
@@ -130,8 +182,28 @@ class PaymentManager {
     };
   }
 
-  find(id)           { return this._payments.find(p => p.id === id) || null; }
-  findByRef(ref)     { return this._payments.find(p => p.providerRef === ref) || null; }
+  // البحث عبر Supabase أولاً (المصدر الدائم المرئي لكل النسخ)، ثم احتياطياً في الذاكرة
+  async find(id) {
+    if (!id) return null;
+    if (CLOUD) {
+      try {
+        const rows = await cloudFetch('GET', `payments?id=eq.${encodeURIComponent(id)}&select=*&limit=1`);
+        if (rows && rows[0]) return fromRow(rows[0]);
+      } catch (e) { console.error('[payments] cloud find failed:', e.message); }
+    }
+    return this._payments.find(p => p.id === id) || null;
+  }
+
+  async findByRef(ref) {
+    if (!ref) return null;
+    if (CLOUD) {
+      try {
+        const rows = await cloudFetch('GET', `payments?provider_ref=eq.${encodeURIComponent(ref)}&select=*&limit=1`);
+        if (rows && rows[0]) return fromRow(rows[0]);
+      } catch (e) { console.error('[payments] cloud findByRef failed:', e.message); }
+    }
+    return this._payments.find(p => p.providerRef === ref) || null;
+  }
 
   /**
    * التحقق من حالة الدفعة لدى المزوّد وترقية الاشتراك عند السداد.
@@ -158,7 +230,17 @@ class PaymentManager {
           method: payment.method, amountIQD: payment.amountIQD,
         });
       }
+      // حدّث الذاكرة المحلية إن وُجد الصف فيها
+      const local = this._payments.find(p => p.id === payment.id);
+      if (local) { local.status = payment.status; local.paidAt = payment.paidAt; }
       this._save();
+      // حدّث المخزن الدائم ليرى كل النسخ الحالة الجديدة (idempotent)
+      if (CLOUD) {
+        try {
+          await cloudFetch('PATCH', `payments?id=eq.${encodeURIComponent(payment.id)}`,
+            { status: payment.status, paid_at: payment.paidAt }, 'return=minimal');
+        } catch (e) { console.error('[payments] cloud update failed:', e.message); }
+      }
     }
     return payment;
   }

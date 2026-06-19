@@ -25,6 +25,19 @@ class TemplateManager {
     fs.writeFileSync(this.indexFile, JSON.stringify(this.index, null, 2));
   }
 
+  // حارس اجتياز المسار: المعرّفات التي يولّدها الخادم تطابق ^[A-Za-z0-9_-]+$
+  // (tmpl_… و builtin_…). أي معرّف يحوي "/" أو "\" أو ".." أو فواصل مسار يُرفض،
+  // فيُغلق قراءة/حذف ملفات .json عشوائية عبر /api/templates/:id.
+  _resolveFile(id) {
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
+      throw new Error('معرّف القالب غير صالح');
+    }
+    const file = path.join(this.dataDir, `${id}.json`);
+    const root = path.resolve(this.dataDir) + path.sep;
+    if (!path.resolve(file).startsWith(root)) throw new Error('معرّف القالب غير صالح');
+    return file;
+  }
+
   save(name, config, metadata = {}) {
     if (!name || !config) throw new Error('الاسم والإعدادات مطلوبان');
     const id       = `tmpl_${Date.now()}_${name.replace(/[^a-z0-9]/gi, '_').slice(0, 20)}`;
@@ -47,7 +60,7 @@ class TemplateManager {
   }
 
   load(id) {
-    const file = path.join(this.dataDir, `${id}.json`);
+    const file = this._resolveFile(id);
     if (!fs.existsSync(file)) throw new Error('القالب غير موجود');
     const template = JSON.parse(fs.readFileSync(file, 'utf8'));
     template.usageCount++;
@@ -64,7 +77,7 @@ class TemplateManager {
   }
 
   delete(id) {
-    const file = path.join(this.dataDir, `${id}.json`);
+    const file = this._resolveFile(id);
     if (!fs.existsSync(file)) throw new Error('القالب غير موجود');
     fs.unlinkSync(file);
     this.index = this.index.filter(t => t.id !== id);

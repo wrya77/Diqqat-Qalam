@@ -76,6 +76,30 @@ DROP POLICY IF EXISTS "read own subscription" ON subscriptions;
 CREATE POLICY "sub_read_own" ON subscriptions
   FOR SELECT USING (auth.uid()::text = user_id::text);
 
+-- ── 4. الدفعات (الخادم يكتب عبر service_role؛ المستخدم يقرأ دفعاته فقط) ───────
+-- حرج على serverless: سجلّ الدفعة يجب أن يكون دائماً ومرئياً لكل نسخ الدالة، وإلا
+-- فإن callback المزوّد الذي يصل نسخة مختلفة لا يجد الدفعة فلا تتم الترقية رغم الدفع.
+CREATE TABLE IF NOT EXISTS payments (
+  id           TEXT        PRIMARY KEY,            -- يولّده الخادم: "pay_<ts>_<rand>"
+  user_id      UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  plan         TEXT        NOT NULL,               -- معرّف الخطة (pro_monthly… إلخ)
+  method       TEXT        NOT NULL,               -- fib | card | zaincash
+  amount_iqd   INTEGER,
+  provider_ref TEXT,                               -- مرجع المزوّد (للاستعلام عن الحالة)
+  status       TEXT        NOT NULL DEFAULT 'pending',  -- pending | paid | failed
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  paid_at      TIMESTAMPTZ
+);
+
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "pay_read_own" ON payments;
+CREATE POLICY "pay_read_own" ON payments
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+
+CREATE INDEX IF NOT EXISTS payments_provider_ref_idx ON payments(provider_ref);
+CREATE INDEX IF NOT EXISTS payments_user_idx         ON payments(user_id, created_at DESC);
+
 -- ══════════════════════════════════════════════════════════════════════════════
 -- (اختياري) تنظيف جداول قديمة غير مستخدمة من إعدادات سابقة
 -- جدولا "tools" و"profiles" لا يستخدمهما التطبيق (فارغان). لإزالتهما أزل علامة
