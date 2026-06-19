@@ -67,7 +67,9 @@ const jobQueue     = new JobQueue();
 const costEst      = new CostEstimator();
 const subMgr       = new SubscriptionManager();
 const WorkerPool   = require('./src/core/WorkerPool');
-const genPool      = new WorkerPool();   // توليد G-Code خارج الخيط الرئيسي
+// على Vercel (serverless): تنفيذ داخل الخيط — لا فائدة من خيوط العمل في عزلة الطلب
+// الواحد، وإنشاؤها يُثقل البدء البارد ويهدر الذاكرة. خارجه: مجمّع خيوط كالمعتاد.
+const genPool      = new WorkerPool(process.env.VERCEL ? 0 : undefined);
 const templateMgr  = new TemplateManager();
 const analytics    = new Analytics();
 const backupMgr    = new BackupManager();
@@ -81,12 +83,20 @@ const app    = express();
 // مطلوب لعمل rate limiting وروابط callback الدفع بشكل سليم
 app.set('trust proxy', 1);
 const server = http.createServer(app);
-const io     = new Server(server, {
-  cors: {
-    origin:  process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
-    methods: ['GET', 'POST'],
-  },
-});
+
+// Socket.io يتطلّب اتصالاً دائماً لا توفّره دوال Vercel serverless (طلب/استجابة فقط)،
+// فمحاولاته تفشل وتُعاد بلا طائل (وكل محاولة استدعاء دالة مدفوع). نُفعّله فقط على
+// خادم دائم (محلي/Electron/Railway)، وعلى Vercel نستبدله بكائن صامت (no-op) كي تبقى
+// كل نداءات io.emit/io.on غير ضارّة دون تعديل بقية الكود.
+const REALTIME = !process.env.VERCEL;
+const io = REALTIME
+  ? new Server(server, {
+      cors: {
+        origin:  process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+        methods: ['GET', 'POST'],
+      },
+    })
+  : { emit() {}, on() {}, use() {}, to() { return { emit() {} }; } };
 
 // ── Security middleware ───────────────────────────────────────────────────────
 // CSP — script-src يسمح بالسكربتات المضمّنة عبر 'unsafe-inline'.
@@ -169,15 +179,26 @@ const callbackLimiter = rateLimit({
 app.use(compression());
 
 // ── Static files served BEFORE rate limiting ──────────────────────────────────
-// كاش ساعة للملفات الثابتة — Service Worker يتكفل بالتحديث الفوري للعائدين
+// كاش قويّ على الأصول كي تخزّنها Cloudflare على الحافة وتخدم التكرارات دون لمس
+// الدالة (يقلّص استدعاءات الدالة جذرياً عند 5000 زائر/يوم). Service Worker يتكفّل
+// بالتحديث الفوري للعائدين. ملفات HTML والـ API لا تُكَش (تمرّ عبر no-store لاحقاً).
+const IMMUTABLE_DIRS = /[\\/](vendor|fonts|images|icons)[\\/]/;   // نادراً ما تتغيّر
+const ASSET_EXT      = /\.(?:js|mjs|css|woff2?|ttf|otf|eot|wasm|png|jpe?g|gif|svg|ico|webp|map)$/i;
 const staticOpts = {
-  maxAge: '1h',
-  // لا تعرض index.html تلقائياً على / — مسار / يخدم صفحة الهبوط landing.html
-  index: false,
+  index: false,   // لا تعرض index.html تلقائياً على / — مسار / يخدم landing.html
   setHeaders(res, filePath) {
-    // ملف الـ SW نفسه يجب ألا يُكَش حتى تصل التحديثات فوراً
     if (filePath.endsWith('sw.js')) {
+      // الـ SW نفسه يجب ألا يُكَش حتى تصل التحديثات فوراً
       res.setHeader('Cache-Control', 'no-cache');
+    } else if (IMMUTABLE_DIRS.test(filePath)) {
+      // مكتبات/خطوط/صور شبه ثابتة — كاش طويل (٣٠ يوماً)
+      res.setHeader('Cache-Control', 'public, max-age=2592000');
+    } else if (ASSET_EXT.test(filePath)) {
+      // js/css التطبيق قد تتغيّر مع كل نشر — يوم طازج ثم تحديث في الخلفية أسبوعاً
+      // (الـ SW يوصل التحديث فوراً للعائدين؛ هذا يقلّل لمس الدالة دون تجميد التحديثات)
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
     }
   },
 };
@@ -1019,7 +1040,9 @@ app.use((err, req, res, _next) => {
 app.use((req, res) => res.status(404).json({ error: 'المسار غير موجود' }));
 
 // ── Start scheduled services ──────────────────────────────────────────────────
-backupMgr.startScheduled();
+// النسخ المجدول يعتمد setInterval ونظام ملفات دائم — لا يعملان على Vercel (الدالة
+// تُجمَّد بين الطلبات) وينفّذ نسخاً متزامناً يُثقل البدء البارد بلا فائدة. للخادم الدائم فقط.
+if (!process.env.VERCEL) backupMgr.startScheduled();
 
 // ── Server launch ─────────────────────────────────────────────────────────────
 if (process.env.VERCEL) {
