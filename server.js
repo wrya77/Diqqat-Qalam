@@ -246,6 +246,13 @@ monitor.attach(cnc);
 const Telegram = require('./src/notify/Telegram');
 const telegram = new Telegram();
 
+// ── تنبيهات تشغيلية: أخطاء الخادم والانقطاعات → Telegram (+ Sentry اختياري) ──
+// يحلّ «السقوط الصامت»: يصل صاحب الموقع تنبيه فوري عند خطأ 500 أو رفض وعد غير معالَج.
+const Alerting = require('./src/core/alerting');
+const alerting = new Alerting(telegram);
+alerting.initSentry();
+alerting.installProcessHandlers();   // تُسجَّل على Vercel أيضاً (كانت غائبة هناك)
+
 // Forward monitor events to WebSocket clients
 monitor.on('machine-alarm',    d => io.emit('monitor-alarm',    d));
 monitor.on('critical-alarm',   d => io.emit('monitor-critical', d));
@@ -330,6 +337,31 @@ app.get('/api/info', (req, res) => {
     profiles:   MachineConfig.getProfiles(),
     features:   ['queue', 'cost', 'subscriptions', 'templates', 'analytics', 'backup', 'webhooks', 'monitor', 'batch', 'material-cost'],
   });
+});
+
+// نقطة فحص الصحّة لمراقب خارجي (UptimeRobot/BetterStack). بدون ?deep تُعيد 200 فوراً
+// (حيّة). مع ?deep=1 تتحقّق من وصول Supabase وتُعيد 503 إن كانت التبعية ساقطة —
+// كي يكتشف المراقب الانقطاع وينبّهك بدل «السقوط الصامت».
+app.get('/api/health', async (req, res) => {
+  const out = { status: 'ok', uptime: Math.round(process.uptime()), ts: new Date().toISOString() };
+  if (req.query.deep) {
+    const url = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+    if (url) {
+      try {
+        const r = await fetch(`${url}/auth/v1/health`, {
+          headers: process.env.SUPABASE_ANON_KEY ? { apikey: process.env.SUPABASE_ANON_KEY } : {},
+          signal: AbortSignal.timeout(4000),
+        });
+        out.supabase = r.ok || r.status < 500 ? 'up' : `down(${r.status})`;
+      } catch (e) {
+        out.supabase = 'unreachable';
+      }
+      if (out.supabase !== 'up') { out.status = 'degraded'; return res.status(503).json(out); }
+    } else {
+      out.supabase = 'not-configured';
+    }
+  }
+  res.json(out);
 });
 
 // ── API: Generate G-Code ──────────────────────────────────────────────────────
@@ -979,6 +1011,7 @@ app.use((err, req, res, _next) => {
   }
   console.error('Unhandled error:', err.message);
   analytics.track('error', { type: 'unhandled', message: err.message, path: req.path });
+  alerting.notifyServerError(err, req);   // تنبيه فوري لصاحب الموقع (Telegram/Sentry)
   res.status(500).json({ error: 'خطأ داخلي في الخادم' });
 });
 
