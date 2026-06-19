@@ -214,7 +214,18 @@ class PaymentManager {
     if (payment.status === 'paid') return payment;   // مؤكدة سابقاً
 
     const provider = this.providers[payment.method];
-    const status   = await provider.getStatus(payment.providerRef);
+    const result   = await provider.getStatus(payment.providerRef);
+    // دعم الشكلين: نص (قديم) أو كائن { status, paidAmount }
+    let status       = typeof result === 'string' ? result : result.status;
+    const paidAmount = (result && typeof result === 'object') ? result.paidAmount : undefined;
+
+    // تحقق من المبلغ: إن أبلغ المزوّد بمبلغ أقل من المتوقع، لا نرقّي (نُبقيها معلّقة
+    // للمراجعة). fail-open متعمّد حين لا يوفّر المزوّد المبلغ (undefined) كي لا
+    // نعطّل ترقية مشروعة — تُشدَّد لاحقاً بعد تأكيد أسماء حقول المزوّد الفعلية.
+    if (status === 'paid' && Number.isFinite(paidAmount) && (paidAmount + 1e-6) < payment.amountIQD) {
+      console.error(`[payments] مبلغ غير مطابق للدفعة ${payment.id}: مدفوع ${paidAmount} < متوقع ${payment.amountIQD} — لن تتم الترقية`);
+      status = 'pending';
+    }
 
     if (status !== payment.status) {
       payment.status = status;

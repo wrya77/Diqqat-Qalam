@@ -150,12 +150,25 @@ class WebhookManager {
       };
       if (secret) headers['X-Webhook-Secret'] = secret;
 
-      // تحقق أن اسم النطاق لا يُحَلّ إلى عنوان داخلي (SSRF عبر DNS)
+      // تحقق أن اسم النطاق لا يُحَلّ إلى عنوان داخلي (SSRF عبر DNS)، ثم ثبّت
+      // الاتصال على العنوان المُتحقَّق منه عبر دالة lookup كي لا يُعاد الحلّ وقت
+      // الاتصال فيُلتفّ على الفحص (DNS-rebinding / TOCTOU). يبقى hostname للـ Host
+      // وSNI والتحقق من الشهادة.
       dns.lookup(parsed.hostname, { all: true }, (err, addrs) => {
         if (err) return reject(err);
-        if (addrs.some(a => isPrivateAddr(a.address))) return reject(new Error('وجهة داخلية غير مسموحة'));
+        if (!addrs.length || addrs.some(a => isPrivateAddr(a.address))) {
+          return reject(new Error('وجهة داخلية غير مسموحة'));
+        }
+        const pinned = addrs[0];
 
-      const req = lib.request({ hostname: parsed.hostname, port: parsed.port, path: parsed.pathname + parsed.search, method: 'POST', headers }, res => {
+      const req = lib.request({
+        hostname: parsed.hostname,
+        port:     parsed.port,
+        path:     parsed.pathname + parsed.search,
+        method:   'POST',
+        headers,
+        lookup:   (_h, _o, cb) => cb(null, pinned.address, pinned.family),
+      }, res => {
         resolve(res.statusCode);
         res.resume();
       });

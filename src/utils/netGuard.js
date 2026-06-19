@@ -37,11 +37,13 @@ function isPrivateAddr(host) {
 
 // يرفع خطأً إن كان المضيف داخلياً أو يُحَلّ (DNS) إلى عنوان داخلي.
 // يجب استدعاؤه (await) قبل أي socket.connect على مضيف من المستخدم.
+// يُعيد عنوان IP عاماً مُتحقَّقاً منه — يجب الاتصال به مباشرةً (وليس باسم المضيف)
+// كي لا يُعاد حلّ الاسم وقت الاتصال فيُلتفّ على الحارس عبر DNS-rebinding (TOCTOU).
 async function assertPublicHost(host) {
   const h = String(host || '').trim().replace(/^\[|\]$/g, '');
   if (!h) throw new Error('مضيف غير صالح');
   if (isPrivateAddr(h)) throw new Error('وجهة داخلية غير مسموحة');
-  if (net.isIP(h)) return h; // عنوان عام صريح
+  if (net.isIP(h)) return h; // عنوان عام صريح — لا حلّ DNS
 
   const addrs = await new Promise((resolve, reject) => {
     dns.lookup(h, { all: true }, (err, a) => (err ? reject(new Error('تعذّر حلّ اسم المضيف')) : resolve(a)));
@@ -49,7 +51,7 @@ async function assertPublicHost(host) {
   if (!addrs.length || addrs.some(a => isPrivateAddr(a.address))) {
     throw new Error('وجهة داخلية غير مسموحة');
   }
-  return h;
+  return addrs[0].address; // عنوان عام مثبَّت — يُمرَّر للاتصال بدل اسم المضيف
 }
 
 module.exports = { isPrivateAddr, assertPublicHost };

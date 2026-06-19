@@ -29,9 +29,26 @@ setInterval(() => {
   for (const [k, v] of tokenCache) if (v.expires < now) tokenCache.delete(k);
 }, 5 * 60 * 1000).unref();
 
+// يقرأ exp (ميلي ثانية) من حمولة JWT دون تحقق من التوقيع — لأغراض انتهاء الكاش فقط.
+// التحقق الفعلي من التوقيع يبقى على Supabase. يُرجِع 0 إن تعذّر القراءة.
+function jwtExpMs(token) {
+  try {
+    const seg = String(token).split('.')[1];
+    if (!seg) return 0;
+    const json = Buffer.from(seg.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+    const exp  = JSON.parse(json).exp;
+    return Number.isFinite(exp) ? exp * 1000 : 0;
+  } catch { return 0; }
+}
+
 async function verifyToken(token) {
+  const now = Date.now();
+  // توكن منتهٍ ذاتياً: لا تقبله ولو كان مخزّناً — يُغلق نافذة الـ 60ث للتوكن المنتهي.
+  const exp = jwtExpMs(token);
+  if (exp && exp <= now) { tokenCache.delete(token); return null; }
+
   const hit = tokenCache.get(token);
-  if (hit && hit.expires > Date.now()) return hit.user;
+  if (hit && hit.expires > now) return hit.user;
 
   const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
     headers: { apikey: supabaseKey, Authorization: `Bearer ${token}` },
@@ -47,7 +64,9 @@ async function verifyToken(token) {
     email: data.email || null,
     name:  data.user_metadata?.full_name || data.user_metadata?.name || null,
   };
-  tokenCache.set(token, { user, expires: Date.now() + TOKEN_CACHE_TTL });
+  // لا نُبقي الإدخال أطول من عمر التوكن نفسه (exp) ولا أكثر من TTL.
+  const expires = exp ? Math.min(now + TOKEN_CACHE_TTL, exp) : now + TOKEN_CACHE_TTL;
+  tokenCache.set(token, { user, expires });
   return user;
 }
 

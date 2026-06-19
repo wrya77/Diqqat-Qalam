@@ -81,9 +81,11 @@ class FIBProvider {
     });
     if (!res.ok) throw new Error('فشل استعلام حالة FIB: ' + res.status);
     const d = await res.json();
-    if (d.status === 'PAID')     return 'paid';
-    if (d.status === 'DECLINED') return 'failed';
-    return 'pending';
+    const amt = Number(d?.amount?.amount ?? d?.monetaryValue?.amount ?? d?.amount);
+    const paidAmount = Number.isFinite(amt) ? amt : undefined;
+    if (d.status === 'PAID')     return { status: 'paid',    paidAmount };
+    if (d.status === 'DECLINED') return { status: 'failed',  paidAmount };
+    return { status: 'pending', paidAmount };
   }
 }
 
@@ -136,9 +138,11 @@ class CardProvider {
     });
     const d = await res.json().catch(() => ({}));
     const code = d?.payment_result?.response_status;
-    if (code === 'A') return 'paid';                    // Authorized
-    if (code === 'D' || code === 'E') return 'failed';  // Declined / Error
-    return 'pending';
+    const amt  = Number(d?.tran_total ?? d?.cart_amount);
+    const paidAmount = Number.isFinite(amt) ? amt : undefined;
+    if (code === 'A') return { status: 'paid',   paidAmount };  // Authorized
+    if (code === 'D' || code === 'E') return { status: 'failed', paidAmount }; // Declined / Error
+    return { status: 'pending', paidAmount };
   }
 }
 
@@ -199,9 +203,11 @@ class ZainCashProvider {
       signal:  AbortSignal.timeout(15000),
     });
     const d = await res.json().catch(() => ({}));
-    if (d.status === 'success'  || d.msg === 'approved') return 'paid';
-    if (d.status === 'failed'   || d.status === 'rejected') return 'failed';
-    return 'pending';
+    const amt = Number(d?.amount);
+    const paidAmount = Number.isFinite(amt) ? amt : undefined;
+    if (d.status === 'success'  || d.msg === 'approved') return { status: 'paid',   paidAmount };
+    if (d.status === 'failed'   || d.status === 'rejected') return { status: 'failed', paidAmount };
+    return { status: 'pending', paidAmount };
   }
 }
 

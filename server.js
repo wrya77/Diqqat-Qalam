@@ -92,7 +92,13 @@ const REALTIME = !process.env.VERCEL;
 const io = REALTIME
   ? new Server(server, {
       cors: {
-        origin:  process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+        // لا نعكس أي Origin: قائمة محدّدة من ALLOWED_ORIGINS، وإلا نطاق الإنتاج
+        // المعروف في الإنتاج، و'*' في التطوير المحلي فقط.
+        origin:  process.env.ALLOWED_ORIGINS
+          ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+          : (process.env.NODE_ENV === 'production'
+              ? ['https://diqqatqalam.com', 'https://www.diqqatqalam.com']
+              : '*'),
         methods: ['GET', 'POST'],
       },
     })
@@ -941,13 +947,15 @@ app.post('/api/cnc/connect', requireAuthOrApiKey, async (req, res) => {
       await cnc.connectSerial(serialPort, +baudRate || 115200);
     } else {
       if (!host || !port) return res.status(400).json({ error: 'host و port مطلوبان' });
-      // حماية SSRF: امنع الاتصال بعناوين داخلية/خاصة أو خدمة الميتاداتا
-      await assertPublicHost(host);
+      // حماية SSRF: امنع الاتصال بعناوين داخلية/خاصة أو خدمة الميتاداتا.
+      // نتصل بالـ IP المثبَّت الذي يُعيده الحارس (وليس اسم المضيف) كي لا يُعاد
+      // حلّ الاسم وقت الاتصال فيُلتفّ على الفحص عبر DNS-rebinding.
+      const safeHost = await assertPublicHost(host);
       const p = +port;
       if (!Number.isInteger(p) || p < 1 || p > 65535) {
         return res.status(400).json({ error: 'رقم منفذ غير صالح' });
       }
-      await cnc.connectTCP(host, p);
+      await cnc.connectTCP(safeHost, p);
     }
     analytics.track('cnc_connected', { type });
     res.json({ success: true, status: cnc.getStatus() });
@@ -1004,6 +1012,11 @@ io.on('connection', socket => {
       streamCalls.push(now);
       if (!Array.isArray(shapes) || shapes.length > 5000) {
         return socket.emit('stream-error', { error: 'عدد الأشكال غير صالح (الحد 5000)' });
+      }
+      // نفس حدود مسار HTTP (سقف النقاط/الأشكال المطلق ضد DoS)
+      const verr = validator.validateShapes(shapes);
+      if (verr && verr.length) {
+        return socket.emit('stream-error', { error: verr[0] });
       }
       const config = new MachineConfig(rawConfig).toObject();
       const opt    = new PathOptimizer(config);

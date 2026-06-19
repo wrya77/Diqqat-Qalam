@@ -2,6 +2,12 @@
  * validator.js — التحقق من صحة الإدخالات
  */
 
+// حدود مطلقة ضد إساءة الاستخدام (DoS) — مستقلة عن خطة الاشتراك. سخيّة جداً
+// للاستخدام المشروع (نقش معقّد) لكنها تمنع طلباً واحداً من حجز غيغابايتات.
+const MAX_SHAPES           = 100000;
+const MAX_POINTS_PER_SHAPE = 200000;
+const MAX_TOTAL_POINTS     = 1000000;
+
 const validator = {
   // التحقق من إعدادات المطبعة
   validateConfig(config) {
@@ -24,17 +30,42 @@ const validator = {
     return errors;
   },
 
+  // عدد نقاط الشكل التقريبي (للحدّ من DoS)
+  countPoints(shape) {
+    if (!shape || typeof shape !== 'object') return 0;
+    if (Array.isArray(shape.points))  return shape.points.length;
+    if (Array.isArray(shape.strokes)) {
+      return shape.strokes.reduce((s, st) =>
+        s + (Array.isArray(st) ? st.length : (Array.isArray(st?.points) ? st.points.length : 1)), 0);
+    }
+    return 1;
+  },
+
   // التحقق من قائمة الأشكال
   validateShapes(shapes) {
     const errors = [];
 
     if (!Array.isArray(shapes))       { errors.push('الأشكال يجب أن تكون مصفوفة'); return errors; }
     if (shapes.length === 0)          errors.push('لا توجد أشكال للمعالجة');
+    // حدّ مطلق قبل أي تكرار — لا نمرّ على مصفوفة عملاقة أصلاً
+    if (shapes.length > MAX_SHAPES) {
+      errors.push(`عدد الأشكال يتجاوز الحد الأقصى (${MAX_SHAPES})`);
+      return errors;
+    }
 
+    let totalPoints = 0;
     shapes.forEach((shape, i) => {
+      const n = this.countPoints(shape);
+      if (n > MAX_POINTS_PER_SHAPE) {
+        errors.push(`الشكل ${i + 1}: عدد النقاط يتجاوز الحد الأقصى (${MAX_POINTS_PER_SHAPE})`);
+      }
+      totalPoints += n;
       const shapeErrors = this.validateShape(shape);
       shapeErrors.forEach(e => errors.push(`الشكل ${i + 1}: ${e}`));
     });
+    if (totalPoints > MAX_TOTAL_POINTS) {
+      errors.push(`إجمالي عدد النقاط يتجاوز الحد الأقصى (${MAX_TOTAL_POINTS})`);
+    }
 
     return errors;
   },
