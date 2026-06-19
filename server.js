@@ -11,7 +11,6 @@ const fs         = require('fs');
 const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
 const compression = require('compression');
-const crypto     = require('crypto');
 
 // ── Core modules ──────────────────────────────────────────────────────────────
 const GCodeGenerator    = require('./src/generators/GCodeGenerator');
@@ -74,52 +73,25 @@ const io     = new Server(server, {
 });
 
 // ── Security middleware ───────────────────────────────────────────────────────
-// CSP: بدل 'unsafe-inline' في script-src، نحسب hash لكل سكربت inline في صفحات
-// HTML تلقائياً عند الإقلاع ونضيفه للسياسة. هذا يسمح بسكربتاتنا المعروفة فقط
-// ويمنع تنفيذ أي سكربت inline محقون (تقوية فعلية ضد XSS). إن تعذّر الحساب
-// لأي سبب، نعود إلى 'unsafe-inline' حتى لا تتعطّل الصفحات.
-function collectInlineScriptHashes(dir) {
-  const hashes = new Set();
-  let files = [];
-  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.html')); } catch (_) { return []; }
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
-  for (const f of files) {
-    let html;
-    try { html = fs.readFileSync(path.join(dir, f), 'utf8'); } catch (_) { continue; }
-    let m;
-    while ((m = re.exec(html))) {
-      const h = crypto.createHash('sha256').update(m[1], 'utf8').digest('base64');
-      hashes.add(`'sha256-${h}'`);
-    }
-  }
-  return [...hashes];
-}
-const INLINE_SCRIPT_HASHES = collectInlineScriptHashes(path.join(__dirname, 'public'));
-// النطاق خلف Cloudflare proxy، وهو يحقن beacon تحليلات بعد خروج الصفحة من الخادم:
-// سكربت خارجي من static.cloudflareinsights.com + سكربت inline ثابت. نسمح بهما
-// صراحةً كي لا تحجبهما CSP الصارمة (مع بقاء script-src بلا 'unsafe-inline').
-// ملاحظة: نضيف hash الـ inline فقط في وضع الـ hashes؛ في وضع الاحتياط
-// ('unsafe-inline') لا نضيفه لأن وجود أي hash يُلغي مفعول 'unsafe-inline'.
-const CF_BEACON_HOST = 'https://static.cloudflareinsights.com';
-const CF_INLINE_HASH = "'sha256-YFxjxbw7cR8N4N7ymntqMsl6fuuXhoBB3L9K5HBtWWA='";
-const SCRIPT_SRC = ["'self'", "'wasm-unsafe-eval'", 'cdn.jsdelivr.net', CF_BEACON_HOST,
-  ...(INLINE_SCRIPT_HASHES.length
-      ? [...INLINE_SCRIPT_HASHES, CF_INLINE_HASH]
-      : ["'unsafe-inline'"])];
-if (!INLINE_SCRIPT_HASHES.length) {
-  console.warn('⚠ CSP: تعذّر حساب hashes السكربتات المضمّنة — استخدام unsafe-inline احتياطياً');
-}
+// CSP — script-src يسمح بالسكربتات المضمّنة عبر 'unsafe-inline'.
+// ملاحظة معمارية: جرّبنا تقوية script-src عبر hashes (sha256 لكل سكربت inline)،
+// لكن النطاق خلف Cloudflare proxy الذي يعيد كتابة بايتات بعض السكربتات المضمّنة
+// في الطريق (Rocket Loader / تحسين HTML‑JS)، فيختلف ما يراه المتصفح عمّا نحسبه
+// ويُحجب السكربت. وبما أن التطبيق أصلاً يحتاج 'unsafe-inline' لمعالجات الأحداث
+// (script-src-attr)، فإن قفل السكربتات المضمّنة لم يكن كاملاً؛ لذا نُبقي
+// 'unsafe-inline' هنا لأنه الحل المتين ضد كل تعديلات Cloudflare على الـ HTML.
+// static.cloudflareinsights.com مطلوب لسكربت beacon التحليلات الخارجي.
+const SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", 'cdn.jsdelivr.net',
+  'https://static.cloudflareinsights.com'];
 
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:  ["'self'"],
-      // script-src أصبح قائماً على hash (بلا 'unsafe-inline'). 'wasm-unsafe-eval'
-      // يسمح بتشغيل HarfBuzz (WebAssembly) لتشكيل الخط العربي دون السماح بـ eval الكامل.
+      // 'wasm-unsafe-eval' يسمح بتشغيل HarfBuzz (WebAssembly) لتشكيل الخط العربي
+      // دون السماح بـ eval الكامل.
       scriptSrc:   SCRIPT_SRC,
       // معالجات inline (onclick/oninput/onsubmit) — يستخدمها auth.html و index.html.
-      // تُحكَم بـ script-src-attr المنفصل (سطح هجوم أصغر من script-src)؛ إزالتها
-      // تتطلّب إعادة هيكلة عشرات المعالجات وتُترك كخطوة لاحقة.
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc:    ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
       fontSrc:     ["'self'", 'fonts.gstatic.com'],
