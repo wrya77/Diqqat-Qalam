@@ -12,6 +12,16 @@ const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
 const compression = require('compression');
 
+// ── Writable runtime dir on serverless ────────────────────────────────────────
+// على Vercel نظام ملفات الكود (/var/task) للقراءة فقط؛ /tmp وحده قابل للكتابة.
+// ننتقل إليه مبكّراً — قبل تحميل الوحدات التي تلتقط cwd (مثل ProjectManager) —
+// كي تكتب الخدمات الملفّية (تحليلات/رفع/تصدير/مشاريع/اشتراكات) في مكان مسموح،
+// بدل أن يُسقِط أول mkdirSync تهيئةَ الدالة كاملة فيفشل كل طلب بـ 500.
+// التخزين الدائم الحقيقي عبر Supabase؛ ملفات /tmp مؤقتة لكل استدعاء serverless.
+if (process.env.VERCEL) {
+  try { process.chdir('/tmp'); } catch (e) { console.error('[init] chdir(/tmp) failed:', e.message); }
+}
+
 // ── Core modules ──────────────────────────────────────────────────────────────
 const GCodeGenerator    = require('./src/generators/GCodeGenerator');
 const PathOptimizer     = require('./src/optimizers/PathOptimizer');
@@ -40,8 +50,14 @@ const BatchProcessor        = require('./src/core/BatchProcessor');
 const MaterialCostCalculator = require('./src/utils/MaterialCostCalculator');
 
 // ── Ensure required directories exist ────────────────────────────────────────
+// محميّة بـ try/catch: على نظام ملفات للقراءة فقط لا يجوز أن يُسقِط فشلُ الإنشاء
+// تهيئةَ الخادم — تتدهور الكتابة الملفّية برفق (التخزين الدائم عبر Supabase).
 ['uploads', 'exports', 'projects', 'data', 'backups'].forEach(d => {
-  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  try {
+    if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  } catch (e) {
+    console.error(`[init] تعذّر إنشاء مجلّد ${d} — متابعة:`, e.message);
+  }
 });
 
 // ── Service instances ─────────────────────────────────────────────────────────

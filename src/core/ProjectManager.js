@@ -2,7 +2,9 @@
 const fs   = require('fs');
 const path = require('path');
 
-const PROJECTS_DIR = path.join(__dirname, '..', '..', 'projects');
+// يعتمد cwd (لا __dirname) كي يحترم انتقالنا إلى /tmp على بيئة serverless
+// للقراءة فقط؛ محلياً cwd هو جذر المشروع فالمسار مطابق للسابق.
+const PROJECTS_DIR = path.join(process.cwd(), 'projects');
 
 class ProjectManager {
   constructor() {
