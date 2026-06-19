@@ -9,7 +9,10 @@
 const Toolpath3D = (() => {
   'use strict';
 
-  const THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+  // النسخة المحلية أولاً (لا اعتماد على CDN كنقطة فشل وحيدة)؛ يبقى CDN احتياطاً
+  // إن لم يكن الملف المحلي موجوداً بعد.
+  const THREE_LOCAL = '/vendor/three.min.js';
+  const THREE_CDN   = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
 
   let _loaded = false, _loading = null;
   let scene, camera, renderer, raf = null;
@@ -33,17 +36,27 @@ const Toolpath3D = (() => {
 
   const COLORS = { rapid: 0xf85149, cut: 0x3fb950, arc: 0x79c0ff };
 
-  /* ── تحميل Three.js عند الطلب ── */
+  /* ── تحميل سكربت خارجي مرة واحدة ── */
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload  = () => resolve();
+      s.onerror = () => reject(new Error('فشل تحميل ' + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  /* ── تحميل Three.js عند الطلب: محلي أولاً ثم CDN احتياطاً ── */
   function loadThree() {
     if (_loaded) return Promise.resolve();
     if (_loading) return _loading;
-    _loading = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = THREE_CDN;
-      s.onload  = () => { _loaded = true; resolve(); };
-      s.onerror = () => reject(new Error('تعذر تحميل Three.js'));
-      document.head.appendChild(s);
-    });
+    _loading = loadScript(THREE_LOCAL)
+      .catch(() => loadScript(THREE_CDN))      // الملف المحلي غائب/تعذّر → ارجع للـ CDN
+      .then(() => {
+        if (typeof THREE === 'undefined') throw new Error('تعذر تحميل Three.js');
+        _loaded = true;
+      });
     return _loading;
   }
 
