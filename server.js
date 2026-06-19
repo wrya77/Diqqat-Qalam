@@ -187,6 +187,15 @@ const { attachUser, requireAuth, requireAuthOrApiKey, isValidApiKey } = require(
 // Verifies Bearer token (if any) and sets req.user — never blocks
 app.use('/api', attachUser);
 
+// Lazy-hydrate the authenticated user's subscription from Supabase before any
+// route reads it — required on serverless (Vercel) where hydrate() never runs,
+// so a paid user isn't mistaken for "free" after a cold start. Fail-open: never blocks.
+app.use('/api', async (req, res, next) => {
+  try { if (req.user && req.user.id) await subMgr.ensureHydrated(req.user.id); }
+  catch (_) { /* fail-open */ }
+  next();
+});
+
 // Admin-only endpoints: timing-safe API key check, header only (never query string)
 const requireApiKey = (req, res, next) => {
   const serverKey = process.env.API_SECRET_KEY;

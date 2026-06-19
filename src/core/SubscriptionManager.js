@@ -71,6 +71,10 @@ class SubscriptionManager {
     const path = require('path');
     this.dataFile = dataPath || path.join(process.cwd(), 'data', 'subscriptions.json');
     this.cloud = !!(SUPA_URL && SERVICE_KEY);
+    // كاش زمني للترطيب الكسول لكل مستخدم (serverless): يمنع جلب Supabase المتكرر
+    // للمستخدمين المجانيين الذين لا صفّ لهم. ترقية مدفوعة تظهر خلال هذه المهلة كحدّ أقصى.
+    this._checkedAt    = new Map();
+    this._hydrateTtlMs = 30000;
     if (this.cloud) {
       // المصدر الدائم هو Supabase؛ نبدأ فارغين ثم hydrate() عند إقلاع الخادم
       this.data = {};
@@ -110,6 +114,36 @@ class SubscriptionManager {
       map[r.user_id] = { plan: r.plan || 'free', renewsAt: r.renews_at || null, usage: r.usage || {} };
     }
     this.data = map;
+  }
+
+  // ترطيب كسول لمستخدم واحد — ضروري على serverless حيث لا يُستدعى hydrate() عند
+  // كل cold-start، فيظهر المشترك المدفوع «free» إن لم يُقرأ صفّه من Supabase.
+  // fail-open: عند أي إخفاق يُعامَل كـ free لهذا الطلب ويُعاد المحاولة لاحقاً.
+  async ensureHydrated(userId) {
+    if (!this.cloud) return;
+    if (!userId || String(userId).startsWith('anon:')) return;
+    if (this.data[userId]) return;                       // محمّل بالفعل في الذاكرة
+    const now  = Date.now();
+    const last = this._checkedAt.get(userId) || 0;
+    if (now - last < this._hydrateTtlMs) return;         // فُحص قريباً ولا صفّ له — لا نُرهق Supabase
+    this._checkedAt.set(userId, now);
+    try {
+      const rows = await this._cloudFetch(
+        'GET',
+        `subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=user_id,plan,renews_at,usage&limit=1`,
+      );
+      const r = rows && rows[0];
+      if (r) {
+        this.data[userId] = {
+          plan:     r.plan || 'free',
+          renewsAt: r.renews_at || null,
+          usage:    r.usage || {},
+        };
+      }
+    } catch (e) {
+      this._checkedAt.delete(userId);                    // فشل الشبكة: اسمح بإعادة المحاولة فوراً
+      console.error('[subscriptions] ensureHydrated failed:', e.message);
+    }
   }
 
   // كتابة صف مستخدم للمخزن الدائم — خلفي، لا يُعطّل الاستجابة
