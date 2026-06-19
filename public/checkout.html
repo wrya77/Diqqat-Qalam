@@ -156,6 +156,12 @@
       <p style="text-align:center;color:var(--text3)">جاري التحقق…</p>
     </div>
 
+    <noscript>
+      <div class="box-title">يتطلب جافاسكربت</div>
+      <p class="box-sub">هذه الصفحة تحتاج تفعيل JavaScript لإتمام الاشتراك. فعّله ثم أعد التحميل، أو
+        <a href="/#pricing" style="color:var(--accent-h)">عُد لصفحة الأسعار</a>.</p>
+    </noscript>
+
     <!-- STATE: auth required -->
     <div id="s-auth" class="state">
       <div class="box-title">سجّل دخولك أولاً</div>
@@ -288,8 +294,11 @@ const retPid   = q.get('payment');
 let _token    = null;
 let _pollRef  = null;
 let _methodBtns = {};
+let _watchdog = null;   // يمنع بقاء دوّارة «جاري التحقق» للأبد عند تعثّر الشبكة/المكتبة
 
 function show_(id) {
+  // أي حالة غير «جاري التحقق» تعني أننا تجاوزنا الإقلاع — أوقف المؤقّت الحارس
+  if (id !== 's-loading' && _watchdog) { clearTimeout(_watchdog); _watchdog = null; }
   document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
@@ -304,13 +313,23 @@ function goLogin() {
 }
 
 async function init() {
+  // حارس: إن لم نتجاوز شاشة الإقلاع خلال 15ث (مكتبة لم تُحمَّل/شبكة معلّقة) أظهر خطأً
+  _watchdog = setTimeout(() => {
+    showError('تعذّر تحميل الصفحة — تحقّق من اتصالك ثم أعد المحاولة.');
+  }, 15000);
+
   // cache method button refs
   ['fib','zaincash','card'].forEach(m => {
     _methodBtns[m] = document.getElementById('btn-' + m);
   });
 
+  // مهلة على الإعداد كي لا يعلّق الإقلاع إن تأخّر الخادم
+  const withTimeout = (p, ms) => Promise.race([
+    p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
+  ]);
+
   let cfg = {};
-  try { cfg = await fetch('/api/config').then(r => r.json()); } catch (_) {}
+  try { cfg = await withTimeout(fetch('/api/config').then(r => r.json()), 12000); } catch (_) {}
 
   // Returning from card/ZainCash redirect
   if (retPid) {

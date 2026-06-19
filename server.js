@@ -125,6 +125,8 @@ app.use(helmet({
       scriptSrc:   SCRIPT_SRC,
       // معالجات inline (onclick/oninput/onsubmit) — يستخدمها auth.html و index.html.
       scriptSrcAttr: ["'unsafe-inline'"],
+      // Web Worker لتتبّع الصور خارج الخيط الرئيسي — same-origin أو blob
+      workerSrc:   ["'self'", 'blob:'],
       styleSrc:    ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
       fontSrc:     ["'self'", 'fonts.gstatic.com'],
       connectSrc:  ["'self'", 'ws:', 'wss:', 'https://*.supabase.co',

@@ -11,9 +11,11 @@ class MachineControl {
     this.jogStep    = 1;      // mm
     this.jogFeed    = 1000;   // mm/min
     this.streaming  = false;
+    this._portsLoaded = false;
     this._initSocket();
     this._bindUI();
-    this._loadPorts();
+    // المنافذ التسلسلية تُحمَّل عند الحاجة فقط (اختيار وضع Serial) — لا طلب /api/cnc/ports
+    // على كل فتح للتطبيق، خاصة على البيئات بلا منافذ (Vercel) أو لمستخدمي TCP.
   }
 
   // ── Socket.io ────────────────────────────────────────────────────────────────
@@ -77,6 +79,8 @@ class MachineControl {
         this.connType = btn.dataset.type;
         document.getElementById('tcp-fields')?.classList.toggle('hidden', this.connType !== 'tcp');
         document.getElementById('serial-fields')?.classList.toggle('hidden', this.connType !== 'serial');
+        // حمّل المنافذ أول مرة يُختار فيها وضع Serial فقط
+        if (this.connType === 'serial' && !this._portsLoaded) { this._portsLoaded = true; this._loadPorts(); }
       });
     });
 

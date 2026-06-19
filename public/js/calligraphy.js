@@ -11,7 +11,8 @@
   // ── تحميل HarfBuzz مرة واحدة ──────────────────────────────
   async function ensureHB() {
     if (state.hb) return state.hb;
-    const buf = await fetch('/vendor/hb.wasm').then(r => r.arrayBuffer());
+    // مهلة كي لا تبقى دوّارة «جارٍ تحميل المحرك» للأبد عند تعثّر الشبكة
+    const buf = await fetch('/vendor/hb.wasm', { signal: AbortSignal.timeout(20000) }).then(r => r.arrayBuffer());
     const { instance } = await WebAssembly.instantiate(buf, {});
     state.hb = hbjs(instance);
     return state.hb;
@@ -21,7 +22,7 @@
   async function loadFont(id) {
     if (state.fonts[id]) return state.fonts[id];
     const meta = CE.getFont(id);
-    const ab   = await fetch('/fonts/' + meta.file).then(r => r.arrayBuffer());
+    const ab   = await fetch('/fonts/' + meta.file, { signal: AbortSignal.timeout(20000) }).then(r => r.arrayBuffer());
     const ot   = opentype.parse(ab);
     const hb   = await ensureHB();
     const blob = hb.createBlob(new Uint8Array(ab));

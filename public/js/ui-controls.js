@@ -80,9 +80,11 @@ class UIControls {
     document.getElementById('btn-device-disconnect')?.addEventListener('click', ()=>this.disconnectDevice());
     document.getElementById('btn-send-to-device')?.addEventListener('click', ()=>this.sendToDevice());
 
-    // Start polling device status
+    // Start polling device status — يتوقف تلقائياً في التبويب المخفي (يوفّر طلبات الخادم/البطارية)
     this._updateDeviceStatus();
     if (!this._devicePollInterval) this._devicePollInterval = setInterval(()=>this._updateDeviceStatus(), 2500);
+    // عند العودة للتبويب: حدّث فوراً بدل انتظار الدورة التالية
+    document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) this._updateDeviceStatus(); });
   }
 
   getConfig() {
@@ -365,6 +367,8 @@ class UIControls {
   }
 
   async _updateDeviceStatus() {
+    // لا تستطلع والتبويب مخفي — يُلغي حلقة الطلبات في الخلفية للأبد
+    if (document.hidden) return;
     try {
       const res = await fetch('/api/cnc/status');
       if (!res.ok) { this.updateDeviceUI({ connected: false }); return; }

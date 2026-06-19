@@ -78,13 +78,8 @@ class ImageTracer {
     return best;
   }
 
-  /* ── نقطة الدخول الرئيسية ── */
-  trace(imgEl, opts = {}) {
-    this.threshold = opts.threshold ?? 128;
-    this.simplify  = opts.simplify  ?? 1.5;
-    this.invert    = opts.invert    ?? false;
-    this.blur      = opts.smooth    ?? true;
-
+  /* ── رسم الصورة المُصغّرة واستخراج بكسلاتها (يبقى على الخيط الرئيسي) ── */
+  _rasterize(imgEl) {
     const MAX = 1000;
     let w = imgEl.naturalWidth  || imgEl.width;
     let h = imgEl.naturalHeight || imgEl.height;
@@ -96,12 +91,64 @@ class ImageTracer {
     off.width = w; off.height = h;
     const ctx = off.getContext('2d');
     ctx.drawImage(imgEl, 0, 0, w, h);
-    const imgData = ctx.getImageData(0, 0, w, h);
+    return { data: ctx.getImageData(0, 0, w, h).data, w, h, ratio };
+  }
 
-    const bin  = this._toBinary(imgData.data, w, h);
+  /* ── جوهر التتبّع على بيانات بكسل خام — يُشارك بين الخيط الرئيسي والـ Worker ── */
+  _traceFromData(data, w, h, { threshold, simplify, invert, blur, scale, ratio } = {}) {
+    this.threshold = threshold ?? 128;
+    this.simplify  = simplify  ?? 1.5;
+    this.invert    = invert    ?? false;
+    this.blur      = blur      ?? true;
+
+    const bin  = this._toBinary(data, w, h);
     const cont = this._traceContours(bin, w, h);
-    const shapes = this._toShapes(cont, opts.scale || 1, ratio);
-    return shapes;
+    return this._toShapes(cont, scale || 1, ratio || 1);
+  }
+
+  /* ── نقطة الدخول المتزامنة (احتياطية + توافق) ── */
+  trace(imgEl, opts = {}) {
+    const { data, w, h, ratio } = this._rasterize(imgEl);
+    return this._traceFromData(data, w, h, {
+      threshold: opts.threshold, simplify: opts.simplify,
+      invert: opts.invert, blur: opts.smooth,
+      scale: opts.scale || 1, ratio,
+    });
+  }
+
+  /* ── نقطة الدخول غير المتزامنة: تُنفّذ التتبّع الثقيل في Web Worker كي لا تتجمّد
+        الواجهة. ترجع للمسار المتزامن إن غاب الـ Worker أو فشل. ── */
+  traceAsync(imgEl, opts = {}) {
+    const { data, w, h, ratio } = this._rasterize(imgEl);
+    const params = {
+      threshold: opts.threshold ?? 128,
+      simplify:  opts.simplify  ?? 1.5,
+      invert:    opts.invert    ?? false,
+      blur:      opts.smooth    ?? true,
+      minPts:    this.minPts,
+      scale:     opts.scale || 1,
+      ratio,
+    };
+    const runSync = () => this._traceFromData(data, w, h, params);
+
+    if (typeof Worker === 'undefined') return Promise.resolve(runSync());
+
+    return new Promise((resolve) => {
+      let worker;
+      try { worker = new Worker('/js/image-tracer.worker.js'); }
+      catch (_) { resolve(runSync()); return; }
+
+      let done = false;
+      const finish = (fn) => { if (done) return; done = true; clearTimeout(timer); try { worker.terminate(); } catch (_) {} fn(); };
+      const timer  = setTimeout(() => finish(() => resolve(runSync())), 20000); // أمان ضد التعليق
+
+      worker.onmessage = (ev) => finish(() =>
+        resolve(ev.data && Array.isArray(ev.data.shapes) ? ev.data.shapes : runSync()));
+      worker.onerror   = () => finish(() => resolve(runSync()));
+
+      // نمرّر نسخة (بلا transfer) كي تبقى البيانات صالحة للمسار الاحتياطي عند الفشل
+      worker.postMessage({ data, width: w, height: h, ...params });
+    });
   }
 
   /* ── تحويل بيانات البيكسل إلى ثنائي ── */

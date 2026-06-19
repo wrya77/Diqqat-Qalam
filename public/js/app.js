@@ -718,17 +718,17 @@ class DiqqatQalamApp {
     const stats = document.getElementById('trace-stats');
     if (stats) { stats.textContent = '⏳ جاري التتبع...'; stats.className = 'trace-stats'; }
 
-    // Run in next tick so UI updates
-    setTimeout(() => {
-      try {
-        const tracer = new window.ImageTracer();
-        const t0 = performance.now();
-        const shapes = tracer.trace(img, { threshold, simplify, invert, scale, smooth });
+    // التتبّع الثقيل يجري في Web Worker (traceAsync) فلا تتجمّد الواجهة؛ يرتدّ
+    // تلقائياً للمسار المتزامن إن غاب الـ Worker. حارس ضد سباق التحديثات السريعة.
+    const tracer = new window.ImageTracer();
+    const seq = (this._traceSeq = (this._traceSeq || 0) + 1);
+    const t0 = performance.now();
+    tracer.traceAsync(img, { threshold, simplify, invert, scale, smooth })
+      .then(shapes => {
+        if (seq !== this._traceSeq) return;   // وصلت نتيجة قديمة بعد تعديل أحدث — تجاهلها
         const ms = Math.round(performance.now() - t0);
-
         this._tracedShapes = shapes;
 
-        // Draw preview
         const resultCanvas = document.getElementById('trace-result-canvas');
         if (resultCanvas) {
           resultCanvas.width  = resultCanvas.offsetWidth  || 300;
@@ -740,12 +740,14 @@ class DiqqatQalamApp {
           stats.textContent = `✅ ${shapes.length} مسار · ${shapes.reduce((n,s)=>n+s.points.length,0)} نقطة · ${ms}ms`;
           stats.className = 'trace-stats ok';
         }
-        document.getElementById('btn-trace-import').disabled = !shapes.length;
-      } catch (err) {
-        if (stats) { stats.textContent = '❌ ' + err.message; stats.className = 'trace-stats err'; }
+        const importBtn = document.getElementById('btn-trace-import');
+        if (importBtn) importBtn.disabled = !shapes.length;
+      })
+      .catch(err => {
+        if (seq !== this._traceSeq) return;
+        if (stats) { stats.textContent = '❌ ' + (err && err.message ? err.message : err); stats.className = 'trace-stats err'; }
         console.error('Trace error:', err);
-      }
-    }, 20);
+      });
   }
 
   _importTraced() {

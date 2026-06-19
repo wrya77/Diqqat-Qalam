@@ -86,7 +86,27 @@
     .nav-links a.lnk::after{content:'';position:absolute;bottom:-6px;right:0;width:0;height:2px;background:var(--accent);transition:.25s;border-radius:2px}
     .nav-links a.lnk:hover::after{width:100%}
     .nav-actions{display:flex;align-items:center;gap:10px}
-    @media(max-width:860px){.nav-links{display:none}}
+    /* زر القائمة للجوال — مخفي على الشاشات الواسعة */
+    .nav-toggle{display:none;background:rgba(255,255,255,.05);border:1px solid var(--border2);
+      color:var(--text);width:42px;height:42px;border-radius:11px;font-size:20px;cursor:pointer;
+      align-items:center;justify-content:center;line-height:1;flex-shrink:0}
+    .nav-toggle:hover{border-color:var(--accent);color:var(--accent-h)}
+    @media(max-width:860px){
+      /* تتحوّل الروابط لقائمة منسدلة تظهر بزر القائمة بدل أن تختفي تماماً */
+      .nav-links{position:absolute;top:100%;inset-inline:0;flex-direction:column;align-items:stretch;
+        gap:0;background:rgba(6,8,13,.97);backdrop-filter:blur(16px) saturate(140%);
+        border-bottom:1px solid var(--border);padding:6px max(5%,calc((100% - var(--maxw))/2));
+        transform:translateY(-10px);opacity:0;pointer-events:none;transition:.22s ease}
+      nav.menu-open .nav-links{transform:none;opacity:1;pointer-events:auto}
+      .nav-links a.lnk{font-size:16px;padding:13px 4px;border-bottom:1px solid var(--border)}
+      .nav-links a.lnk:last-child{border-bottom:none}
+      .nav-links a.lnk::after{display:none}
+      .nav-toggle{display:inline-flex}
+      /* «تسجيل الدخول» ينتقل إلى داخل القائمة المنسدلة، فنُخفيه من الشريط العلوي */
+      .nav-actions .btn-soft{display:none}
+      .nav-mobile-only{display:block}
+    }
+    .nav-mobile-only{display:none}
 
     /* ── Layout ── */
     .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:max(5%,20px)}
@@ -327,15 +347,17 @@
     </svg>
     <span>دقة <span style="color:#60a5fa">قلم</span></span>
   </a>
-  <div class="nav-links">
+  <div class="nav-links" id="nav-links">
     <a href="#features" class="lnk">الميزات</a>
     <a href="#how" class="lnk">كيف يعمل</a>
     <a href="#pricing" class="lnk">الأسعار</a>
     <a href="#download" class="lnk">تحميل</a>
+    <a href="/auth" class="lnk nav-mobile-only">تسجيل الدخول</a>
   </div>
   <div class="nav-actions">
     <a href="/auth" class="btn btn-soft">تسجيل الدخول</a>
     <a href="#pricing" class="btn btn-primary">ابدأ الآن</a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="القائمة" aria-controls="nav-links" aria-expanded="false">☰</button>
   </div>
 </nav>
 
@@ -659,6 +681,22 @@
 // ── Nav scroll state ──────────────────────────────────────────────────────
 const navEl = document.getElementById('nav');
 addEventListener('scroll', () => navEl.classList.toggle('scrolled', scrollY > 20), {passive:true});
+
+// ── Mobile menu toggle ────────────────────────────────────────────────────
+(function(){
+  const btn = document.getElementById('nav-toggle');
+  const links = document.getElementById('nav-links');
+  if (!btn || !links) return;
+  const setOpen = (open) => {
+    navEl.classList.toggle('menu-open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  btn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!navEl.classList.contains('menu-open')); });
+  // إغلاق عند اختيار رابط أو النقر خارج القائمة أو ضغط Esc
+  links.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
+  document.addEventListener('click', (e) => { if (navEl.classList.contains('menu-open') && !navEl.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+})();
 
 // ── Reveal on scroll ──────────────────────────────────────────────────────
 const io = new IntersectionObserver((entries) => {

@@ -19,6 +19,14 @@ const Toolpath3D = (() => {
   let visible = 0;            // عدد المقاطع المرسومة (للتشغيل المتحرك)
   let playing = false;
   let bounds = null;
+  let interacting = false;    // أثناء السحب/التكبير — نُبقي الحلقة حيّة
+  let needsRender = false;    // علم «أعد الرسم» — رسمٌ عند الطلب بدل حلقة دائمة
+
+  // اطلب إطاراً واحداً وأيقظ الحلقة إن كانت نائمة — يمنع تشغيل rAF بلا داعٍ
+  function requestRender() {
+    needsRender = true;
+    if (!raf && renderer) raf = requestAnimationFrame(loop);
+  }
 
   // كرة مدارية بسيطة بدل OrbitControls
   const orbit = { theta: -Math.PI / 4, phi: Math.PI / 4, radius: 220, target: { x: 0, y: 0, z: 0 } };
@@ -127,6 +135,7 @@ const Toolpath3D = (() => {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    requestRender();
   }
 
   /* ── تفاعل: تدوير / تكبير / تحريك ── */
@@ -139,6 +148,8 @@ const Toolpath3D = (() => {
       drag = { x: e.clientX, y: e.clientY, btn: e.button,
                theta: orbit.theta, phi: orbit.phi,
                tx: orbit.target.x, ty: orbit.target.y };
+      interacting = true;
+      requestRender();
     });
     window.addEventListener('mousemove', e => {
       if (!drag) return;
@@ -151,12 +162,14 @@ const Toolpath3D = (() => {
         orbit.theta = drag.theta - dx * 0.008;
         orbit.phi   = Math.min(Math.PI - 0.05, Math.max(0.05, drag.phi - dy * 0.008));
       }
+      requestRender();
     });
-    window.addEventListener('mouseup', () => { drag = null; });
+    window.addEventListener('mouseup', () => { drag = null; interacting = false; requestRender(); });
     el.addEventListener('wheel', e => {
       e.preventDefault();
       orbit.radius *= e.deltaY > 0 ? 1.12 : 0.89;
       orbit.radius = Math.max(10, Math.min(50000, orbit.radius));
+      requestRender();
     }, { passive: false });
   }
 
@@ -217,25 +230,30 @@ const Toolpath3D = (() => {
     orbit.phi    = Math.PI / 4;
   }
 
-  /* ── حلقة الرسم ── */
+  /* ── حلقة الرسم — تعمل عند الطلب فقط (تشغيل/تفاعل) ثم تنام ── */
   function loop() {
-    raf = requestAnimationFrame(loop);
-
     if (playing && visible < segments.length) {
       visible = Math.min(segments.length, visible + Math.max(1, Math.floor(segments.length / 600)));
       pathGeom.setDrawRange(0, visible * 2);
       if (visible >= segments.length) playing = false;
       updateHud();
+      needsRender = true;
     }
 
-    const tip = visible > 0 ? segments[visible - 1] : null;
-    if (toolMesh) {
-      if (tip) toolMesh.position.set(tip.x1, tip.y1, tip.z1 + 3);
-      toolMesh.visible = !!tip;
+    if (needsRender) {
+      const tip = visible > 0 ? segments[visible - 1] : null;
+      if (toolMesh) {
+        if (tip) toolMesh.position.set(tip.x1, tip.y1, tip.z1 + 3);
+        toolMesh.visible = !!tip;
+      }
+      updateCamera();
+      renderer.render(scene, camera);
+      needsRender = false;
     }
 
-    updateCamera();
-    renderer.render(scene, camera);
+    // واصل فقط ما دام هناك تشغيل متحرك أو تفاعل مستمر — وإلا نَم (raf=null)
+    if (playing || interacting) raf = requestAnimationFrame(loop);
+    else raf = null;
   }
 
   function updateHud() {
@@ -260,16 +278,17 @@ const Toolpath3D = (() => {
     updateHud();
 
     resize();
-    if (!raf) loop();
+    requestRender();                // ارسم إطاراً واحداً ثم نَم حتى التفاعل
   }
 
   function hide() {
     if (raf) { cancelAnimationFrame(raf); raf = null; }
     playing = false;
+    interacting = false;
   }
 
-  function play()  { visible = 0; playing = true; }
-  function pause() { playing = !playing; }
+  function play()  { visible = 0; playing = true; requestRender(); }
+  function pause() { playing = !playing; if (playing) requestRender(); }
 
-  return { show, hide, play, pause, fit };
+  return { show, hide, play, pause, fit: () => { fit(); requestRender(); } };
 })();

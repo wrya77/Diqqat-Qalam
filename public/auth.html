@@ -197,22 +197,22 @@
     </div>
 
     <!-- Alerts (shared) -->
-    <div class="alert alert-error"   id="alert-error"></div>
-    <div class="alert alert-success" id="alert-success"></div>
-    <div class="alert alert-info"    id="alert-info"></div>
+    <div class="alert alert-error"   id="alert-error"   role="alert" aria-live="assertive"></div>
+    <div class="alert alert-success" id="alert-success" role="status" aria-live="polite"></div>
+    <div class="alert alert-info"    id="alert-info"    role="status" aria-live="polite"></div>
 
     <!-- ═══ SIGN IN PANEL ═══ -->
     <div id="panel-signin">
-      <form id="form-signin" onsubmit="return false">
+      <form id="form-signin" onsubmit="signInEmail();return false">
         <div class="field">
-          <label>البريد الإلكتروني</label>
+          <label for="si-email">البريد الإلكتروني</label>
           <input type="email" id="si-email" placeholder="you@example.com" autocomplete="email" required>
         </div>
         <div class="field">
-          <label>كلمة المرور</label>
+          <label for="si-password">كلمة المرور</label>
           <div class="pw-wrap">
             <input type="password" id="si-password" placeholder="••••••••" autocomplete="current-password" required>
-            <button type="button" class="pw-toggle" onclick="togglePw('si-password',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('si-password',this)">👁</button>
           </div>
         </div>
         <button type="button" class="btn btn-primary" onclick="signInEmail()" id="btn-signin">
@@ -230,25 +230,25 @@
 
     <!-- ═══ SIGN UP PANEL ═══ -->
     <div id="panel-signup" style="display:none">
-      <form id="form-signup" onsubmit="return false">
+      <form id="form-signup" onsubmit="signUpEmail();return false">
         <div class="field">
-          <label>البريد الإلكتروني</label>
+          <label for="su-email">البريد الإلكتروني</label>
           <input type="email" id="su-email" placeholder="you@example.com" autocomplete="email" required>
         </div>
         <div class="field">
-          <label>كلمة المرور (8 أحرف على الأقل)</label>
+          <label for="su-password">كلمة المرور (8 أحرف على الأقل)</label>
           <div class="pw-wrap">
             <input type="password" id="su-password" placeholder="••••••••" autocomplete="new-password"
                    oninput="checkPwStrength(this.value)" required>
-            <button type="button" class="pw-toggle" onclick="togglePw('su-password',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('su-password',this)">👁</button>
           </div>
           <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
         </div>
         <div class="field">
-          <label>تأكيد كلمة المرور</label>
+          <label for="su-confirm">تأكيد كلمة المرور</label>
           <div class="pw-wrap">
             <input type="password" id="su-confirm" placeholder="••••••••" autocomplete="new-password" required>
-            <button type="button" class="pw-toggle" onclick="togglePw('su-confirm',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('su-confirm',this)">👁</button>
           </div>
         </div>
         <button type="button" class="btn btn-primary" onclick="signUpEmail()" id="btn-signup">
@@ -265,9 +265,9 @@
       <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
         أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.
       </p>
-      <form id="form-forgot" onsubmit="return false">
+      <form id="form-forgot" onsubmit="sendReset();return false">
         <div class="field">
-          <label>البريد الإلكتروني</label>
+          <label for="fp-email">البريد الإلكتروني</label>
           <input type="email" id="fp-email" placeholder="you@example.com" autocomplete="email" required>
         </div>
         <button type="button" class="btn btn-primary" onclick="sendReset()" id="btn-reset">
@@ -283,19 +283,19 @@
       <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
         أدخل كلمة المرور الجديدة لحسابك.
       </p>
-      <form id="form-newpass" onsubmit="return false">
+      <form id="form-newpass" onsubmit="updatePassword();return false">
         <div class="field">
-          <label>كلمة المرور الجديدة (8 أحرف على الأقل)</label>
+          <label for="np-password">كلمة المرور الجديدة (8 أحرف على الأقل)</label>
           <div class="pw-wrap">
             <input type="password" id="np-password" placeholder="••••••••" autocomplete="new-password" required>
-            <button type="button" class="pw-toggle" onclick="togglePw('np-password',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('np-password',this)">👁</button>
           </div>
         </div>
         <div class="field">
-          <label>تأكيد كلمة المرور</label>
+          <label for="np-confirm">تأكيد كلمة المرور</label>
           <div class="pw-wrap">
             <input type="password" id="np-confirm" placeholder="••••••••" autocomplete="new-password" required>
-            <button type="button" class="pw-toggle" onclick="togglePw('np-confirm',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('np-confirm',this)">👁</button>
           </div>
         </div>
         <button type="button" class="btn btn-primary" onclick="updatePassword()" id="btn-newpass">
