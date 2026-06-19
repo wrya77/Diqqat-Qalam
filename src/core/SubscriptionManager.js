@@ -71,6 +71,7 @@ class SubscriptionManager {
     const path = require('path');
     this.dataFile = dataPath || path.join(process.cwd(), 'data', 'subscriptions.json');
     this.cloud = !!(SUPA_URL && SERVICE_KEY);
+    this._loadedAt = {};   // userId -> آخر وقت جلب من Supabase (لتحديد الطزاجة)
     if (this.cloud) {
       // المصدر الدائم هو Supabase؛ نبدأ فارغين ثم hydrate() عند إقلاع الخادم
       this.data = {};
@@ -112,7 +113,33 @@ class SubscriptionManager {
     this.data = map;
   }
 
-  // كتابة صف مستخدم للمخزن الدائم — خلفي، لا يُعطّل الاستجابة
+  // تحميل اشتراك مستخدم واحد عند الطلب (lazy) — يصحّح العطل الحرج على serverless
+  // حيث لا يُستدعى hydrate() فتبدأ كل نسخة باردة فارغة فيظهر المشترك المدفوع «مجاني».
+  // يُستدعى من middleware لكل طلب مصادَق؛ مخزَّن مؤقتاً 30ث لكل مستخدم لتفادي إرهاق Supabase.
+  async loadUser(userId) {
+    if (!this.cloud || !userId || String(userId).startsWith('anon:')) return;
+    const now = Date.now();
+    const at  = this._loadedAt[userId];
+    if (this.data[userId] && at && (now - at) < 30 * 1000) return; // ما زال طازجاً
+    try {
+      const rows = await this._cloudFetch(
+        'GET',
+        `subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=user_id,plan,renews_at,usage&limit=1`
+      );
+      const r = rows && rows[0];
+      if (r) {
+        this.data[userId] = { plan: r.plan || 'free', renewsAt: r.renews_at || null, usage: r.usage || {} };
+      } else if (!this.data[userId]) {
+        this.data[userId] = { plan: 'free', renewsAt: null, usage: {} };
+      }
+      this._loadedAt[userId] = now;
+    } catch (e) {
+      // فشل الجلب يجب ألا يُعطّل الطلب — نُبقي ما في الذاكرة (أو الافتراضي المجاني)
+      console.error('[subscriptions] loadUser failed:', e.message);
+    }
+  }
+
+  // كتابة صف مستخدم للمخزن الدائم — خلفي, لا يُعطّل الاستجابة
   _persist(userId) {
     if (!this.cloud) { try { this._save(); } catch (_) {} return; }
     if (String(userId).startsWith('anon:')) return;   // لا نخزّن الضيوف (يُحدّدون بالـ IP)
