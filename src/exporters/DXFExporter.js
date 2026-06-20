@@ -47,6 +47,9 @@ class DXFExporter {
       case 'polygon':  return s.points ? this._lwpolyline(s.points, true) : null;
       case 'slot':     return this._slotEntity(s);
       case 'polyline': return s.points ? this._lwpolyline(s.points, s.closed || false) : null;
+      case 'compound': return s.contours
+        ? s.contours.filter(r => r && r.length >= 2).flatMap(r => this._lwpolyline(r, true))
+        : null;
       default:         return null;
     }
   }

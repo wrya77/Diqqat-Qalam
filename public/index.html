@@ -167,6 +167,13 @@
         <button class="mi" data-act="dist-h">↹ أفقي متساوٍ</button>
         <button class="mi" data-act="dist-v">↨ رأسي متساوٍ</button>
         <div class="mi-sep"></div>
+        <div class="mi-label">العمليات المنطقية (شكلان فأكثر)</div>
+        <button class="mi" data-act="bool-union">∪ توحيد</button>
+        <button class="mi" data-act="bool-subtract">∖ طرح الأمامي</button>
+        <button class="mi" data-act="bool-intersect">∩ تقاطع</button>
+        <button class="mi" data-act="bool-xor">⊕ استبعاد التداخل</button>
+        <button class="mi" data-act="bool-break">⊟ تفكيك المركّب</button>
+        <div class="mi-sep"></div>
         <div class="mi-label">ترتيب القطع</div>
         <button class="mi" data-act="order-front">⤒ القطع أخيراً (للمقدمة)</button>
         <button class="mi" data-act="order-forward">↑ تأخير خطوة</button>
@@ -1478,6 +1485,7 @@
 <script src="/shared/PocketGenerator.js"></script>
 <script src="/shared/ToolpathGenerator.js"></script>
 <script src="/shared/PathSort.js"></script>
+<script src="/shared/PolyBoolean.js"></script>
 <script src="/shared/GCodeGenerator.js"></script>
 <script src="js/svg-parser.js"></script>
 <script src="js/image-tracer.js"></script>
@@ -1486,6 +1494,7 @@
 <script src="js/tools-pro.js"></script>
 <script src="js/tools-arrange.js"></script>
 <script src="js/tools-cnc.js"></script>
+<script src="js/tools-boolean.js"></script>
 <script src="js/tools-transform.js"></script>
 <script src="js/tools-effects.js"></script>
 <script src="js/menu-bar.js"></script>
