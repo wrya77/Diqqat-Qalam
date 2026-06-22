@@ -856,36 +856,60 @@ class DiqqatQalamApp {
     add('عمق الطبقات', cfg.passDepth <= cfg.totalDepth,
       `${cfg.totalDepth}mm على ${Math.max(1, Math.ceil(cfg.totalDepth / cfg.passDepth))} طبقة × ${cfg.passDepth}mm`);
 
-    // ولّد (إن لزم) ثم مرره على المدقق بحدود الآلة
-    let gcode = this.gcode;
-    if (!gcode && shapes.length) {
-      try { gcode = new GCodeGenerator(cfg).generate(shapes).gcode; } catch (e) {}
-    }
-    if (gcode) {
-      try {
-        const res = await fetch('/api/validate-gcode', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcode, machineConfig: { travelX: cfg.travelX, travelY: cfg.travelY, travelZ: cfg.travelZ } }),
-        });
-        const v = await res.json();
-        add('مدقق G-Code', (v.errors || []).length === 0,
-          `${(v.errors || []).length} خطأ · ${(v.warnings || []).length} تحذير`);
-        (v.errors || []).slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
-        (v.warnings || []).slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
-      } catch (e) { add('مدقق G-Code', null, 'تعذر الوصول للخادم — الفحص محلي فقط'); }
-    }
-
-    const list = document.getElementById('preflight-list');
-    list.innerHTML = checks.map(c => {
+    // ── العرض ──
+    // افتح الحوار فوراً بالفحوص الفورية كي لا تبدو الواجهة مجمّدة أثناء التوليد/التدقيق
+    const list    = document.getElementById('preflight-list');
+    const verdict = document.getElementById('preflight-verdict');
+    const rowHtml = (c) => {
       const icon = c.pass === true ? '✅' : c.pass === false ? '❌' : '⚠️';
       const cls  = c.pass === true ? 'good' : c.pass === false ? 'bad' : 'warn';
       return `<div class="pf-row ${cls}"><span class="pf-i">${icon}</span><b>${esc(c.name)}</b><span class="pf-d">${esc(c.detail || '')}</span></div>`;
-    }).join('');
-    const allGood = checks.every(c => c.pass !== false);
-    const verdict = document.getElementById('preflight-verdict');
-    verdict.textContent = allGood ? '✅ جاهز للتشغيل على الآلة' : '❌ عالج النقاط الحمراء قبل التشغيل';
-    verdict.className = 'pf-verdict ' + (allGood ? 'good' : 'bad');
+    };
+    const pendingRow = `<div class="pf-row warn"><span class="pf-i">⏳</span><b>مدقق G-Code</b><span class="pf-d">جارٍ فحص المسار على الخادم…</span></div>`;
+    const renderFinal = () => {
+      list.innerHTML = checks.map(rowHtml).join('');
+      const allGood = checks.every(c => c.pass !== false);
+      verdict.textContent = allGood ? '✅ جاهز للتشغيل على الآلة' : '❌ عالج النقاط الحمراء قبل التشغيل';
+      verdict.className = 'pf-verdict ' + (allGood ? 'good' : 'bad');
+    };
+
+    // سيُجرى فحص المسار على الخادم إن وُجد G-Code جاهز أو أمكن توليده
+    const willValidate = !!(this.gcode || shapes.length);
+    if (willValidate) {
+      list.innerHTML = checks.map(rowHtml).join('') + pendingRow;
+      verdict.textContent = '⏳ جارٍ فحص المسار…';
+      verdict.className = 'pf-verdict warn';
+    } else {
+      renderFinal();
+    }
     document.getElementById('dlg-preflight').showModal();
+
+    // ── العمل الثقيل بعد ظهور الحوار: ولّد G-Code (إن لزم) ثم مرّره على المدقق ──
+    if (willValidate) {
+      // دع المتصفح يرسم الحوار قبل التوليد المتزامن
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      let gcode = this.gcode;
+      if (!gcode && shapes.length) {
+        try { gcode = new GCodeGenerator(cfg).generate(shapes).gcode; } catch (e) {}
+      }
+      if (gcode) {
+        try {
+          const res = await fetch('/api/validate-gcode', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcode, machineConfig: { travelX: cfg.travelX, travelY: cfg.travelY, travelZ: cfg.travelZ } }),
+            signal: AbortSignal.timeout(15000), // لا تعلّق للأبد على بدء بارد للخادم
+          });
+          const v = await res.json();
+          add('مدقق G-Code', (v.errors || []).length === 0,
+            `${(v.errors || []).length} خطأ · ${(v.warnings || []).length} تحذير`);
+          (v.errors || []).slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
+          (v.warnings || []).slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
+        } catch (e) {
+          add('مدقق G-Code', null, 'تعذّر فحص المسار على الخادم — تم تخطّيه (الفحوص الأخرى سليمة)');
+        }
+      }
+      renderFinal();
+    }
   }
 
   /* ══ ملفات الآلات المحفوظة — بدّل بين آلاتك بنقرة ══ */
