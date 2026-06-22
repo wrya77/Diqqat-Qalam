@@ -248,6 +248,13 @@ class DiqqatQalamApp {
         ? `✅ تم التوليد — توفير ${sortInfo.saving} من التنقل`
         : '✅ تم توليد G-Code!','success');
 
+      // تدقيق المسار فور توليده (مُقيَّد، فوري) — يُخزَّن لإعادة استخدامه في فحص
+      // الجاهزية بلا توليد مكرَّر. ننبّه على الأخطاء فقط؛ التفاصيل في فحص الجاهزية.
+      const v = this._validateToolpath(config);
+      if (v && v.errors.length) {
+        this.toast(`⚠️ المسار: ${v.errors.length}${v.truncated ? '+' : ''} خطأ — راجع فحص الجاهزية`, 'warn');
+      }
+
       // If AI optimization & server available
       if (config.aiOptimize) {
         await this._generateWithAI(shapes, config);
@@ -257,6 +264,27 @@ class DiqqatQalamApp {
       this.controls.setStatus('خطأ','error');
     } finally {
       document.getElementById('btn-generate').disabled = false;
+    }
+  }
+
+  /* ══ تدقيق المسار — مُقيَّد (maxLines/maxIssues) كي يبقى فورياً مهما كبر البرنامج.
+     يُخزَّن النتيجة مع مرجع السلسلة المُدقَّقة؛ تغيُّر this.gcode في أي مكان يُبطل
+     الكاش تلقائياً عبر مقارنة المرجع (this._validatedGcode === this.gcode). ══ */
+  _validateToolpath(cfg) {
+    if (!this.gcode) { this.gcodeValidation = null; this._validatedGcode = ''; return null; }
+    if (this.gcodeValidation && this._validatedGcode === this.gcode) return this.gcodeValidation;
+    const Validator = (typeof DQ !== 'undefined' && DQ.GCodeValidator) ||
+                      (typeof GCodeValidator !== 'undefined' ? GCodeValidator : null);
+    if (!Validator) { this.gcodeValidation = null; this._validatedGcode = ''; return null; }
+    try {
+      const limits = { travelX: cfg.travelX, travelY: cfg.travelY, travelZ: cfg.travelZ };
+      const v = new Validator(limits).validate(this.gcode, { maxLines: 200000, maxIssues: 50 });
+      this.gcodeValidation = v;
+      this._validatedGcode = this.gcode;
+      return v;
+    } catch (e) {
+      this.gcodeValidation = null; this._validatedGcode = '';
+      return null;
     }
   }
 
@@ -856,8 +884,25 @@ class DiqqatQalamApp {
     add('عمق الطبقات', cfg.passDepth <= cfg.totalDepth,
       `${cfg.totalDepth}mm على ${Math.max(1, Math.ceil(cfg.totalDepth / cfg.passDepth))} طبقة × ${cfg.passDepth}mm`);
 
-    // ── العرض ──
-    // افتح الحوار فوراً بالفحوص الفورية كي لا تبدو الواجهة مجمّدة أثناء التوليد/التدقيق
+    // ── تدقيق المسار: لا يُولَّد برنامج هنا إطلاقاً ──
+    // فحص الجاهزية = فحوص هندسية فورية فقط. إن سبق توليد G-Code نعرض تدقيقه
+    // (مُقيَّد، فوري، ومخزَّن)؛ وإلا نُعلِم المستخدم أن المسار يُفحَص عند التوليد.
+    if (this.gcode) {
+      const v = this._validateToolpath(cfg);
+      if (v) {
+        const note = v.truncated ? ' (فُحص أول جزء من برنامج كبير)' : '';
+        add('مدقق G-Code', v.errors.length === 0,
+          `${v.errors.length}${v.truncated ? '+' : ''} خطأ · ${v.warnings.length}${v.truncated ? '+' : ''} تحذير${note}`);
+        v.errors.slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
+        v.warnings.slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
+      } else {
+        add('مدقق G-Code', null, 'تعذّر تدقيق المسار محلياً');
+      }
+    } else {
+      add('فحص المسار', null, 'سيُفحص المسار تلقائياً عند توليد البرنامج (زر «توليد»)');
+    }
+
+    // ── العرض ── كل الفحوص فورية الآن، فلا توليد متزامن ولا انتظار
     const list    = document.getElementById('preflight-list');
     const verdict = document.getElementById('preflight-verdict');
     const rowHtml = (c) => {
@@ -865,68 +910,11 @@ class DiqqatQalamApp {
       const cls  = c.pass === true ? 'good' : c.pass === false ? 'bad' : 'warn';
       return `<div class="pf-row ${cls}"><span class="pf-i">${icon}</span><b>${esc(c.name)}</b><span class="pf-d">${esc(c.detail || '')}</span></div>`;
     };
-    const pendingRow = `<div class="pf-row warn"><span class="pf-i">⏳</span><b>مدقق G-Code</b><span class="pf-d">جارٍ فحص المسار على الخادم…</span></div>`;
-    const renderFinal = () => {
-      list.innerHTML = checks.map(rowHtml).join('');
-      const allGood = checks.every(c => c.pass !== false);
-      verdict.textContent = allGood ? '✅ جاهز للتشغيل على الآلة' : '❌ عالج النقاط الحمراء قبل التشغيل';
-      verdict.className = 'pf-verdict ' + (allGood ? 'good' : 'bad');
-    };
-
-    // سيُجرى فحص المسار على الخادم إن وُجد G-Code جاهز أو أمكن توليده
-    const willValidate = !!(this.gcode || shapes.length);
-    if (willValidate) {
-      list.innerHTML = checks.map(rowHtml).join('') + pendingRow;
-      verdict.textContent = '⏳ جارٍ فحص المسار…';
-      verdict.className = 'pf-verdict warn';
-    } else {
-      renderFinal();
-    }
+    list.innerHTML = checks.map(rowHtml).join('');
+    const allGood = checks.every(c => c.pass !== false);
+    verdict.textContent = allGood ? '✅ جاهز للتشغيل على الآلة' : '❌ عالج النقاط الحمراء قبل التشغيل';
+    verdict.className = 'pf-verdict ' + (allGood ? 'good' : 'bad');
     document.getElementById('dlg-preflight').showModal();
-
-    // ── العمل الثقيل بعد ظهور الحوار: ولّد G-Code (إن لزم) ثم مرّره على المدقق ──
-    if (willValidate) {
-      // دع المتصفح يرسم الحوار قبل التوليد المتزامن
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      let gcode = this.gcode;
-      if (!gcode && shapes.length) {
-        try { gcode = new GCodeGenerator(cfg).generate(shapes).gcode; } catch (e) {}
-      }
-      if (gcode) {
-        const machineLimits = { travelX: cfg.travelX, travelY: cfg.travelY, travelZ: cfg.travelZ };
-        const Validator = (typeof DQ !== 'undefined' && DQ.GCodeValidator) ||
-                          (typeof GCodeValidator !== 'undefined' ? GCodeValidator : null);
-        if (Validator) {
-          // تدقيق محلي فوري في المتصفح — يلغي رحلة /api/validate-gcode، ومُقيَّد
-          // (maxLines/maxIssues) كي يبقى فورياً حتى لو كان البرنامج كبيراً.
-          try {
-            const v = new Validator(machineLimits).validate(gcode, { maxLines: 200000, maxIssues: 50 });
-            const note = v.truncated ? ' (فُحص أول جزء من برنامج كبير)' : '';
-            add('مدقق G-Code', v.errors.length === 0,
-              `${v.errors.length}${v.truncated ? '+' : ''} خطأ · ${v.warnings.length}${v.truncated ? '+' : ''} تحذير${note}`);
-            v.errors.slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
-            v.warnings.slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
-          } catch (e) { add('مدقق G-Code', null, 'تعذّر تدقيق المسار محلياً'); }
-        } else {
-          // ارتداد: الخادم فقط إن لم يتوفّر المدقّق المحلي
-          try {
-            const res = await fetch('/api/validate-gcode', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ gcode, machineConfig: machineLimits }),
-              signal: AbortSignal.timeout(15000),
-            });
-            const v = await res.json();
-            add('مدقق G-Code', (v.errors || []).length === 0,
-              `${(v.errors || []).length} خطأ · ${(v.warnings || []).length} تحذير`);
-            (v.errors || []).slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
-            (v.warnings || []).slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
-          } catch (e) {
-            add('مدقق G-Code', null, 'تعذّر فحص المسار على الخادم — تم تخطّيه (الفحوص الأخرى سليمة)');
-          }
-        }
-      }
-      renderFinal();
-    }
   }
 
   /* ══ ملفات الآلات المحفوظة — بدّل بين آلاتك بنقرة ══ */
