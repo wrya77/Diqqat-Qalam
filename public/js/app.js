@@ -897,12 +897,13 @@ class DiqqatQalamApp {
         const Validator = (typeof DQ !== 'undefined' && DQ.GCodeValidator) ||
                           (typeof GCodeValidator !== 'undefined' ? GCodeValidator : null);
         if (Validator) {
-          // تدقيق محلي فوري في المتصفح — يلغي رحلة /api/validate-gcode
-          // (كانت تستغرق ~25ث للملفات الكبيرة: تسلسل + رفع شبكي + بدء بارد للخادم)
+          // تدقيق محلي فوري في المتصفح — يلغي رحلة /api/validate-gcode، ومُقيَّد
+          // (maxLines/maxIssues) كي يبقى فورياً حتى لو كان البرنامج كبيراً.
           try {
-            const v = new Validator(machineLimits).validate(gcode);
+            const v = new Validator(machineLimits).validate(gcode, { maxLines: 200000, maxIssues: 50 });
+            const note = v.truncated ? ' (فُحص أول جزء من برنامج كبير)' : '';
             add('مدقق G-Code', v.errors.length === 0,
-              `${v.errors.length} خطأ · ${v.warnings.length} تحذير`);
+              `${v.errors.length}${v.truncated ? '+' : ''} خطأ · ${v.warnings.length}${v.truncated ? '+' : ''} تحذير${note}`);
             v.errors.slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
             v.warnings.slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
           } catch (e) { add('مدقق G-Code', null, 'تعذّر تدقيق المسار محلياً'); }

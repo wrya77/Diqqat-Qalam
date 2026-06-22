@@ -28,9 +28,19 @@ class GCodeValidator {
     };
   }
 
-  validate(gcode) {
+  validate(gcode, opts = {}) {
+    // حدود اختيارية لتقييد العمل على البرامج الضخمة (تُستخدم في فحص الجاهزية بالمتصفح).
+    // بلا خيارات (كما في الخادم) يبقى السلوك كاملاً دون قيود.
+    const maxLines  = opts.maxLines  || Infinity;
+    const maxIssues = opts.maxIssues || Infinity;
+
     const errors = [], warnings = [];
+    const pushErr  = (o) => { if (errors.length   < maxIssues) errors.push(o); };
+    const pushWarn = (o) => { if (warnings.length < maxIssues) warnings.push(o); };
+
     const lines = gcode.split('\n');
+    const scanN = Math.min(lines.length, maxLines);
+    let truncated = scanN < lines.length;
 
     let spindleOn = false;
     let hasF = false;
@@ -38,7 +48,7 @@ class GCodeValidator {
     let pos = { x: 0, y: 0, z: 0 };
     let modalG = null;
 
-    for (let i = 0; i < lines.length; i++) {
+    for (let i = 0; i < scanN; i++) {
       const raw  = lines[i];
       const ln   = i + 1;
       const line = raw.replace(/\(.*?\)/g, '').replace(/;.*$/, '').toUpperCase().trim();
@@ -71,36 +81,41 @@ class GCodeValidator {
       // G01/G02/G03 without F
       const activeG = g !== undefined ? g : modalG;
       if ((activeG === 1 || activeG === 2 || activeG === 3) && !hasF && lastF === 0) {
-        errors.push({ line: ln, msg: `G0${activeG} بدون تغذية F (السطر: ${raw.trim()})` });
+        pushErr({ line: ln, msg: `G0${activeG} بدون تغذية F (السطر: ${raw.trim()})` });
       }
 
       // Travel limit checks
       if (this.limits.x < Infinity && Math.abs(pos.x) > this.limits.x) {
-        warnings.push({ line: ln, msg: `X=${pos.x.toFixed(2)} يتجاوز الحد (${this.limits.x}mm)` });
+        pushWarn({ line: ln, msg: `X=${pos.x.toFixed(2)} يتجاوز الحد (${this.limits.x}mm)` });
       }
       if (this.limits.y < Infinity && Math.abs(pos.y) > this.limits.y) {
-        warnings.push({ line: ln, msg: `Y=${pos.y.toFixed(2)} يتجاوز الحد (${this.limits.y}mm)` });
+        pushWarn({ line: ln, msg: `Y=${pos.y.toFixed(2)} يتجاوز الحد (${this.limits.y}mm)` });
       }
       if (this.limits.z < Infinity && pos.z < -this.limits.z) {
-        warnings.push({ line: ln, msg: `Z=${pos.z.toFixed(2)} أعمق من حد Z (${this.limits.z}mm)` });
+        pushWarn({ line: ln, msg: `Z=${pos.z.toFixed(2)} أعمق من حد Z (${this.limits.z}mm)` });
       }
 
       // G01 without spindle on
       if ((activeG === 1 || activeG === 2 || activeG === 3) && !spindleOn) {
-        warnings.push({ line: ln, msg: `حركة قطع بدون تشغيل المغزل (M03/M04)` });
+        pushWarn({ line: ln, msg: `حركة قطع بدون تشغيل المغزل (M03/M04)` });
       }
+
+      // توقّف مبكر بمجرد امتلاء سقفَي المشاكل — لا داعي لمسح الباقي
+      if (errors.length >= maxIssues && warnings.length >= maxIssues) { truncated = true; break; }
     }
 
     // Check spindle state at end
     if (spindleOn) {
-      warnings.push({ line: lines.length, msg: 'المغزل لا يزال يعمل في نهاية البرنامج (M05 مفقود؟)' });
+      pushWarn({ line: lines.length, msg: 'المغزل لا يزال يعمل في نهاية البرنامج (M05 مفقود؟)' });
     }
 
+    const sfx = truncated ? '+' : '';
     return {
       valid:    errors.length === 0,
       errors,
       warnings,
-      summary:  `${errors.length} خطأ, ${warnings.length} تحذير`,
+      truncated,
+      summary:  `${errors.length}${sfx} خطأ, ${warnings.length}${sfx} تحذير`,
     };
   }
 }

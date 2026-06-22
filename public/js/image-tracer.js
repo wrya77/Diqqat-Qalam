@@ -235,8 +235,13 @@ class ImageTracer {
     // إحداثيات الصورة Y نازل بينما عالم CNC صاعد — اقلب رأسياً حول أعلى المحتوى
     let maxY = 0;
     for (const pts of contours) for (const p of pts) if (p.y > maxY) maxY = p.y;
-    return contours.map(pts => {
-      const simple = this._rdp(pts, this.simplify);
+
+    // سقف إجمالي النقاط: صورة عالية التفاصيل قد تنتج مئات آلاف النقاط فتولّد
+    // برنامج G-Code بحجم عشرات الميغابايتات — بطيء التوليد وغير قابل للتشغيل على
+    // معظم متحكّمات CNC. نُبسّط تكيّفياً (نرفع عتبة RDP) حتى ننزل تحت السقف.
+    const CAP = 40000;
+    const build = (eps) => contours.map(pts => {
+      const simple = this._rdp(pts, eps);
       const closed = simple.length > 3 &&
         Math.hypot(simple[0].x - simple[simple.length-1].x,
                    simple[0].y - simple[simple.length-1].y) < 3;
@@ -245,7 +250,18 @@ class ImageTracer {
         points: simple.map(p => ({ x: p.x * s, y: (maxY - p.y) * s })),
         closed,
       };
-    }).filter(s => s.points.length >= 2);
+    }).filter(sh => sh.points.length >= 2);
+
+    let eps = this.simplify;
+    let shapes = build(eps);
+    let total = shapes.reduce((n, sh) => n + sh.points.length, 0);
+    let guard = 0;
+    while (total > CAP && guard++ < 8) {
+      eps *= 1.8;                       // بسّط أكثر تدريجياً
+      shapes = build(eps);
+      total = shapes.reduce((n, sh) => n + sh.points.length, 0);
+    }
+    return shapes;
   }
 
   /* ── Ramer-Douglas-Peucker ── */

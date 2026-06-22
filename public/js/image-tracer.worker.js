@@ -86,8 +86,12 @@ function toShapes(contours, scaleMM, resizeRatio, simplify) {
   const s = scaleMM / resizeRatio;
   let maxY = 0;
   for (const pts of contours) for (const p of pts) if (p.y > maxY) maxY = p.y;
-  return contours.map(pts => {
-    const simple = rdp(pts, simplify);
+
+  // سقف إجمالي النقاط (مطابق لـ image-tracer.js): تبسيط تكيّفي يمنع برامج G-Code
+  // العملاقة غير القابلة للتشغيل ويُبقي التوليد/التدقيق سريعاً.
+  const CAP = 40000;
+  const build = (eps) => contours.map(pts => {
+    const simple = rdp(pts, eps);
     const closed = simple.length > 3 &&
       Math.hypot(simple[0].x - simple[simple.length - 1].x,
                  simple[0].y - simple[simple.length - 1].y) < 3;
@@ -97,6 +101,17 @@ function toShapes(contours, scaleMM, resizeRatio, simplify) {
       closed,
     };
   }).filter(sh => sh.points.length >= 2);
+
+  let eps = simplify;
+  let shapes = build(eps);
+  let total = shapes.reduce((n, sh) => n + sh.points.length, 0);
+  let guard = 0;
+  while (total > CAP && guard++ < 8) {
+    eps *= 1.8;
+    shapes = build(eps);
+    total = shapes.reduce((n, sh) => n + sh.points.length, 0);
+  }
+  return shapes;
 }
 
 /* ── Ramer-Douglas-Peucker ── */
