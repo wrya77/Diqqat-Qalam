@@ -852,7 +852,9 @@ class DiqqatQalamApp {
   async preflight() {
     const checks = [];
     const add = (name, pass, detail) => checks.push({ name, pass, detail });
-    const shapes = this.editor.getShapes();
+    // فحص الجاهزية يقرأ فقط (حدود/عدد/مقاسات) ولا يعدّل — قراءة بلا استنساخ عميق
+    // كي يستجيب الزر فوراً مهما كبر التصميم
+    const shapes = this.editor.peekShapes();
     const cfg = this.controls.getConfig();
     const g = (typeof DQ !== 'undefined') ? DQ.geometry : null;
 

@@ -894,7 +894,12 @@ class CanvasEditor {
     if(t!=='select'){ this.selectedIdx=-1; this._updateShapeToolbar(); }
   }
 
+  // نسخة عميقة آمنة للتعديل (للتوليد/الحفظ الذي قد يضبط reversed)
   getShapes() { return JSON.parse(JSON.stringify(this.shapes)); }
+
+  // قراءة فورية بلا استنساخ — للمستهلكين الذين يقرأون فقط (فحص الجاهزية).
+  // لا تعدّل المصفوفة المُعادة.
+  peekShapes() { return this.shapes || []; }
 
   addShapesFromSVG(shapes) {
     this._saveHistory();
