@@ -22,7 +22,7 @@ const REQUIRED_FILES = [
   'public/index.html','public/css/style.css',
   'public/manifest.webmanifest','public/sw.js','public/images/icon.svg',
   'public/js/app.js','public/js/canvas-editor.js','public/js/svg-parser.js',
-  'public/js/gcode-preview.js','public/js/simulator-3d.js','public/js/simulator-three.js',
+  'public/js/gcode-preview.js','public/js/simulator-2d.js','public/js/simulator-three.js',
   'public/js/file-importer.js','public/js/ui-controls.js','public/js/machine-control.js',
   'public/js/supabase-auth.js','public/js/payments.js','public/js/menu-bar.js',
   'public/js/tools-extra.js','public/js/tools-pro.js','public/js/tools-arrange.js',

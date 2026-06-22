@@ -1,5 +1,5 @@
 /**
- * simulator-3d.js — 2D Toolpath Simulator (rewritten)
+ * simulator-2d.js — 2D Toolpath Simulator
  * Auto-fit, pan/zoom, tool indicator, accurate arc drawing
  */
 class GCodeSimulator {

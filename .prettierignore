@@ -1,0 +1,18 @@
+# Dependencies & build output
+node_modules/
+dist/
+coverage/
+.vercel/
+
+# Third-party / minified / binary vendor assets
+public/vendor/
+**/*.min.js
+public/fonts/
+public/images/
+
+# Runtime data
+uploads/
+projects/
+exports/
+backups/
+data/

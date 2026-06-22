@@ -1,0 +1,22 @@
+Diqqat Qalam — دقة قلم
+Copyright (c) 2026 Diqqat Qalam. All rights reserved.
+
+This software and its source code are proprietary and confidential.
+
+No part of this repository — including but not limited to source code,
+assets, designs, and documentation — may be copied, modified, distributed,
+sublicensed, sold, or used to create derivative works, in whole or in part,
+without the prior written permission of the copyright holder.
+
+Unauthorized use, reproduction, or distribution is strictly prohibited and
+may result in civil and criminal penalties.
+
+Third-party components bundled in this repository remain under their own
+licenses, including:
+  - Three.js — MIT (public/vendor/three.min.js)
+  - HarfBuzz / hbjs — MIT (public/vendor/hb.wasm, public/vendor/hbjs.js)
+  - opentype.js — MIT (public/vendor/opentype.min.js)
+  - Bundled fonts — SIL Open Font License 1.1 (public/fonts/OFL.txt)
+See public/vendor/LICENSES.txt and public/fonts/OFL.txt for details.
+
+For licensing inquiries: wrya.design@gmail.com

@@ -42,27 +42,46 @@ ANTHROPIC_API_KEY=sk-ant-api03-xxxx
 
 ```
 diqqat-qalam/
-├── server.js          ← خادم Express + Socket.io
-├── public/            ← الواجهة الأمامية
-│   ├── index.html
-│   ├── css/style.css
+├── server.js          ← خادم Express (نقطة الدخول؛ دالة serverless على Vercel)
+├── public/            ← الواجهة الأمامية (صفحات متعددة)
+│   ├── index.html · landing.html · auth.html · checkout.html
+│   ├── calligraphy.html · feeds.html · quote.html
+│   ├── css/ · fonts/ · images/
+│   ├── vendor/        ← مكتبات مستضافة ذاتياً (three.min.js, hb.wasm, …)
 │   └── js/
 │       ├── app.js            ← المنسّق الرئيسي
 │       ├── canvas-editor.js  ← محرر الرسم
-│       ├── gcode-generator.js ← مولّد G-Code (متصفح)
 │       ├── svg-parser.js     ← محلل SVG
 │       ├── gcode-preview.js  ← عرض G-Code
-│       ├── simulator-3d.js   ← المحاكاة
+│       ├── simulator-2d.js   ← محاكاة المسار ثنائية الأبعاد (GCodeSimulator)
+│       ├── simulator-three.js← عرض ثلاثي الأبعاد (Toolpath3D / Three.js)
+│       ├── image-tracer.js(.worker.js) ← تتبّع الصور (+Web Worker)
 │       ├── file-importer.js  ← استيراد الملفات
 │       └── ui-controls.js    ← عناصر التحكم
-└── src/               ← منطق الخادم
-    ├── generators/    ← توليد G-Code
-    ├── parsers/       ← تحليل الملفات
-    ├── optimizers/    ← تحسين المسارات
-    ├── ai/            ← الذكاء الاصطناعي
-    ├── core/          ← المعالج والإعدادات
-    └── utils/         ← أدوات مساعدة
+├── shared/            ← وحدات متماثلة (خادم+متصفح) — المصدر الوحيد للحقيقة
+│   └── GCodeGenerator · ToolpathGenerator · MachineConfig · geometry …
+├── src/               ← منطق الخادم (ملفاته المطابقة لـshared/ مجرد جسور re-export)
+│   ├── generators/ · parsers/ · optimizers/ · exporters/
+│   ├── ai/ · core/ · payments/ · middleware/ · notify/ · utils/
+└── tests/             ← اختبارات jest
 ```
+
+> **shared/ مقابل src/:** المنطق المشترك يعيش مرة واحدة في `shared/`؛ ملفات `src/`
+> المقابلة مجرد `module.exports = require('../../shared/…')`. عدّل `shared/` فقط.
+
+## 🌐 المسارات الإضافية
+
+| المسار | الأداة |
+|--------|--------|
+| `/feeds` | حاسبة السرعات والتغذية |
+| `/quote` | مولّد عروض الأسعار |
+
+## ☁️ النشر
+
+- **Vercel = الإنتاج القانوني** (`vercel.json`): دمج `main` يَنشر تلقائياً.
+  `includeFiles` تشحن `public/**` و`shared/**` داخل الدالة، والكتابة تتمّ في `/tmp`.
+- **Railway / Procfile**: هدفان بديلان للاستضافة الذاتية الدائمة (غير مستخدمَين حالياً).
+- يتطلّب **Node ≥ 20** (انظر `engines` في `package.json`).
 
 ## 🔑 اختصارات لوحة المفاتيح
 
