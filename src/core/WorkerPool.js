@@ -23,11 +23,14 @@ function runInline(task) {
 
 class WorkerPool {
   constructor(size) {
-    this.size     = size || Math.max(1, Math.min(4, (os.cpus()?.length || 2) - 1));
+    // size <= 0 ⇒ تنفيذ داخل الخيط (inline) دون إنشاء خيوط — مناسب لـ serverless
+    // حيث لا فائدة من الخيوط (طلب واحد لكل عزلة) وتكلفة بدئها تُبطئ البدء البارد.
+    this.size     = size != null ? size : Math.max(1, Math.min(4, (os.cpus()?.length || 2) - 1));
     this.workers  = [];   // { worker, busy, current, dead }
     this.queue    = [];   // { task, resolve, reject }
     this.seq      = 0;
     this.disabled = false;
+    if (this.size <= 0) { this.disabled = true; return; }
     try {
       for (let i = 0; i < this.size; i++) this._spawn();
     } catch (e) {

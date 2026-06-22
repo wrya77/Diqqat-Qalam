@@ -6,8 +6,35 @@
 
 const https = require('https');
 const http  = require('http');
+const dns   = require('dns');
+const net   = require('net');
 const fs    = require('fs');
 const path  = require('path');
+
+// هل العنوان ضمن نطاقات خاصة/داخلية (SSRF)؟
+function isPrivateAddr(host) {
+  const h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (!h || h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal')) return true;
+  if (net.isIPv4(h)) {
+    const p = h.split('.').map(Number);
+    if (p[0] === 10) return true;                              // 10.0.0.0/8
+    if (p[0] === 127) return true;                             // loopback
+    if (p[0] === 0) return true;                               // 0.0.0.0/8
+    if (p[0] === 169 && p[1] === 254) return true;             // link-local + metadata
+    if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true; // 172.16.0.0/12
+    if (p[0] === 192 && p[1] === 168) return true;             // 192.168.0.0/16
+    if (p[0] === 100 && p[1] >= 64 && p[1] <= 127) return true;// CGNAT 100.64.0.0/10
+    return false;
+  }
+  if (net.isIPv6(h)) {
+    if (h === '::1' || h === '::') return true;                // loopback / unspecified
+    if (h.startsWith('fc') || h.startsWith('fd')) return true;// ULA fc00::/7
+    if (h.startsWith('fe80')) return true;                    // link-local
+    if (h.startsWith('::ffff:')) return isPrivateAddr(h.slice(7)); // IPv4-mapped
+    return false;
+  }
+  return false; // اسم نطاق — يُتحقق من عنوانه بعد الحل في _post
+}
 
 class WebhookManager {
   constructor(dataDir) {
@@ -102,12 +129,14 @@ class WebhookManager {
   }
 
   _validateUrl(url) {
+    let u;
     try {
-      const u = new URL(url);
-      if (!['http:', 'https:'].includes(u.protocol)) throw new Error('بروتوكول غير مدعوم');
+      u = new URL(url);
     } catch {
       throw new Error(`URL غير صالح: ${url}`);
     }
+    if (!['http:', 'https:'].includes(u.protocol)) throw new Error('بروتوكول غير مدعوم');
+    if (isPrivateAddr(u.hostname)) throw new Error('وجهة داخلية غير مسموحة');
   }
 
   _post(url, body, secret) {
@@ -121,6 +150,11 @@ class WebhookManager {
       };
       if (secret) headers['X-Webhook-Secret'] = secret;
 
+      // تحقق أن اسم النطاق لا يُحَلّ إلى عنوان داخلي (SSRF عبر DNS)
+      dns.lookup(parsed.hostname, { all: true }, (err, addrs) => {
+        if (err) return reject(err);
+        if (addrs.some(a => isPrivateAddr(a.address))) return reject(new Error('وجهة داخلية غير مسموحة'));
+
       const req = lib.request({ hostname: parsed.hostname, port: parsed.port, path: parsed.pathname + parsed.search, method: 'POST', headers }, res => {
         resolve(res.statusCode);
         res.resume();
@@ -129,6 +163,7 @@ class WebhookManager {
       req.on('error', reject);
       req.write(body);
       req.end();
+      });
     });
   }
 }

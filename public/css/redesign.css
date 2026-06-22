@@ -1,0 +1,95 @@
+/* ══════════════════════════════════════════════════════════════
+   redesign.css — تحسينات تصميم الواجهة (15 تصحيحاً من مراجعة التصميم)
+   يُحمَّل بعد style.css و welcome.css فيتجاوز قواعدهما عند اللزوم.
+   عربي RTL — لا يمسّ منطق الكانفاس/الـ G-Code ولا ترتيب أدوات الرسم.
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* نظام التصميم — مصدر واحد للّون المميّز (Fix #14) */
+  --accent:      #4f6ef7;   /* كان #2f81f7 — أزرق أبرد وأقل حدّة */
+  --accent-h:    #6b86ff;
+  --accent-soft: rgba(79, 110, 247, 0.15);
+
+  /* أسماء دلالية موحّدة (Fix #14) */
+  --color-success: var(--green);
+  --color-warning: var(--amber);
+  --color-danger:  var(--red);
+  --color-info:    var(--accent);
+
+  /* مقياس مسافات/أنصاف أقطار للعناصر الجديدة */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;  --sp-4: 16px;  --sp-6: 24px;
+  --r-sm: 4px;  --r-md: 8px;  --r-lg: 12px;
+  --min-touch: 44px;
+}
+
+/* ───── Fix #1: شريط الأدوات — حدّ أنعم وفواصل أوضح ───── */
+.toolbar { border-bottom-width: 1px; }
+.tbtn-div { height: 20px; background: var(--border2); opacity: .55; }
+
+/* ───── Fix #2: زر «توليد G-Code» — تمييز هادئ افتراضياً، ساطع عند الجاهزية ───── */
+#btn-generate.tbtn.primary {
+  background: rgba(63, 185, 80, 0.12);
+  color: var(--green-h);
+  border-color: rgba(63, 185, 80, 0.32);
+  font-weight: 600;
+}
+#btn-generate.tbtn.primary:hover {
+  background: rgba(63, 185, 80, 0.22);
+  color: var(--green-h);
+}
+/* الحالة الجاهزة: تظهر فقط عندما توجد أشكال (تضيف app نفسها صنف ready-glow) */
+#btn-generate.tbtn.primary.ready-glow {
+  background: var(--green);
+  color: #06120a;
+  border-color: transparent;
+  box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.22);
+}
+
+/* ───── Fix #3: التبويب النشط — تعبئة خفيفة لا مجرّد خط سفلي ───── */
+.otab.active { background: var(--accent-soft); }
+
+/* ───── Fix #4: بطاقات أدوات الشريط الجانبي — تراتبية + أيقونات مميّزة لكل أداة ───── */
+#dq-helper-tools .ai-tool-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 8px; margin-top: 6px;
+  text-decoration: none; border-radius: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  transition: background var(--trans), border-color var(--trans), transform var(--trans);
+  direction: rtl;
+}
+#dq-helper-tools .ai-tool-card:hover {
+  background: var(--bg4); border-color: var(--accent);
+  transform: translateX(-2px);
+}
+#dq-helper-tools .ai-tool-icon {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+}
+#dq-helper-tools .ai-tool-card[data-tool="feed-calc"]   .ai-tool-icon { background: rgba(210, 153, 34, 0.16); }
+#dq-helper-tools .ai-tool-card[data-tool="quote-gen"]   .ai-tool-icon { background: rgba(63, 185, 80, 0.16); }
+#dq-helper-tools .ai-tool-card[data-tool="arabic-font"] .ai-tool-icon { background: rgba(188, 140, 255, 0.16); }
+#dq-helper-tools .ai-tool-text  { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#dq-helper-tools .ai-tool-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+#dq-helper-tools .ai-tool-desc  { font-size: 10.5px; color: var(--text3); line-height: 1.4; }
+
+/* ───── Fix #7: تلميح موجز بدل تكرار بطاقات الأدوات في اللوحة الفارغة ───── */
+.canvas-empty .ce-hint {
+  margin-top: 14px; max-width: 320px;
+  font-size: 12px; color: var(--text3);
+  text-align: center; line-height: 1.7; pointer-events: none;
+}
+
+/* ───── Fix #9: الإحداثيات — أرقام باتجاه LTR دائماً + خط أحادي (موجود) ───── */
+.coord-display { direction: ltr; }
+
+/* ───── Fix #12: أزرار المحاكاة — منطقة ضغط أكبر وتغليف يمنع الفيضان ───── */
+.sim-ctrl { flex-wrap: wrap; gap: 6px; padding: 8px; }
+.sim-btn  { width: 38px; height: 34px; font-size: 14px; }
+
+/* ───── Fix #15: حالة تعطيل موحّدة (تبقى قابلة للمرور فيظهر التلميح) ───── */
+button:disabled,
+.tbtn:disabled,
+[data-disabled="true"] {
+  opacity: .4;
+  cursor: not-allowed;
+}

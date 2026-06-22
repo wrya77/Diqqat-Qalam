@@ -2,7 +2,9 @@
 const fs   = require('fs');
 const path = require('path');
 
-const PROJECTS_DIR = path.join(__dirname, '..', '..', 'projects');
+// يعتمد cwd (لا __dirname) كي يحترم انتقالنا إلى /tmp على بيئة serverless
+// للقراءة فقط؛ محلياً cwd هو جذر المشروع فالمسار مطابق للسابق.
+const PROJECTS_DIR = path.join(process.cwd(), 'projects');
 
 class ProjectManager {
   constructor() {
@@ -29,9 +31,22 @@ class ProjectManager {
     return { id, name: safe, file };
   }
 
+  // يبني مسار الملف بأمان — يمنع اجتياز المسار (../) خارج مجلد المشاريع
+  _fileFor(id) {
+    const clean = String(id == null ? '' : id);
+    if (!clean || /[\/\\]/.test(clean) || clean.includes('..')) {
+      throw new Error('معرّف مشروع غير صالح');
+    }
+    const file = path.resolve(PROJECTS_DIR, clean + '.cncp');
+    if (file !== path.join(path.resolve(PROJECTS_DIR), clean + '.cncp')) {
+      throw new Error('معرّف مشروع غير صالح');
+    }
+    return file;
+  }
+
   // تحميل مشروع
   load(id) {
-    const file = path.join(PROJECTS_DIR, id + '.cncp');
+    const file = this._fileFor(id);
     if (!fs.existsSync(file)) throw new Error('المشروع غير موجود: ' + id);
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   }
@@ -54,7 +69,7 @@ class ProjectManager {
 
   // حذف مشروع
   delete(id) {
-    const file = path.join(PROJECTS_DIR, id + '.cncp');
+    const file = this._fileFor(id);
     if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 }

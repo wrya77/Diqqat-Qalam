@@ -2,7 +2,10 @@
 const fs   = require('fs');
 const path = require('path');
 
-const TOOLS_FILE = path.join(__dirname, '..', '..', 'tools.json');
+// المسار قائم على cwd (قابل للكتابة) — على Vercel هو /tmp؛ __dirname يشير إلى
+// /var/task للقراءة فقط فيرمي EROFS عند أول حفظ. التخزين هنا احتياطي فقط
+// (الأدوات الافتراضية مدمجة، وأدوات المستخدم تُحفظ في Supabase عبر CloudStore).
+const TOOLS_FILE = path.join(process.cwd(), 'tools.json');
 
 // أدوات افتراضية مدمجة
 const DEFAULT_TOOLS = [
@@ -76,7 +79,12 @@ class ToolLibrary {
   }
 
   _save() {
-    fs.writeFileSync(TOOLS_FILE, JSON.stringify(this._tools, null, 2), 'utf8');
+    // نظام ملفات للقراءة فقط (serverless) يجب ألا يُسقط الطلب — الفشل غير قاتل
+    try {
+      fs.writeFileSync(TOOLS_FILE, JSON.stringify(this._tools, null, 2), 'utf8');
+    } catch (e) {
+      if (e && e.code !== 'EROFS') console.error('[ToolLibrary] save failed:', e.message);
+    }
   }
 
   getAll() {
