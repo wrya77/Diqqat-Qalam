@@ -893,19 +893,35 @@ class DiqqatQalamApp {
         try { gcode = new GCodeGenerator(cfg).generate(shapes).gcode; } catch (e) {}
       }
       if (gcode) {
-        try {
-          const res = await fetch('/api/validate-gcode', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcode, machineConfig: { travelX: cfg.travelX, travelY: cfg.travelY, travelZ: cfg.travelZ } }),
-            signal: AbortSignal.timeout(15000), // لا تعلّق للأبد على بدء بارد للخادم
-          });
-          const v = await res.json();
-          add('مدقق G-Code', (v.errors || []).length === 0,
-            `${(v.errors || []).length} خطأ · ${(v.warnings || []).length} تحذير`);
-          (v.errors || []).slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
-          (v.warnings || []).slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
-        } catch (e) {
-          add('مدقق G-Code', null, 'تعذّر فحص المسار على الخادم — تم تخطّيه (الفحوص الأخرى سليمة)');
+        const machineLimits = { travelX: cfg.travelX, travelY: cfg.travelY, travelZ: cfg.travelZ };
+        const Validator = (typeof DQ !== 'undefined' && DQ.GCodeValidator) ||
+                          (typeof GCodeValidator !== 'undefined' ? GCodeValidator : null);
+        if (Validator) {
+          // تدقيق محلي فوري في المتصفح — يلغي رحلة /api/validate-gcode
+          // (كانت تستغرق ~25ث للملفات الكبيرة: تسلسل + رفع شبكي + بدء بارد للخادم)
+          try {
+            const v = new Validator(machineLimits).validate(gcode);
+            add('مدقق G-Code', v.errors.length === 0,
+              `${v.errors.length} خطأ · ${v.warnings.length} تحذير`);
+            v.errors.slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
+            v.warnings.slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
+          } catch (e) { add('مدقق G-Code', null, 'تعذّر تدقيق المسار محلياً'); }
+        } else {
+          // ارتداد: الخادم فقط إن لم يتوفّر المدقّق المحلي
+          try {
+            const res = await fetch('/api/validate-gcode', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ gcode, machineConfig: machineLimits }),
+              signal: AbortSignal.timeout(15000),
+            });
+            const v = await res.json();
+            add('مدقق G-Code', (v.errors || []).length === 0,
+              `${(v.errors || []).length} خطأ · ${(v.warnings || []).length} تحذير`);
+            (v.errors || []).slice(0, 3).forEach(e2 => add('— خطأ', false, `سطر ${e2.line}: ${e2.msg}`));
+            (v.warnings || []).slice(0, 2).forEach(w2 => add('— تحذير', null, `سطر ${w2.line}: ${w2.msg}`));
+          } catch (e) {
+            add('مدقق G-Code', null, 'تعذّر فحص المسار على الخادم — تم تخطّيه (الفحوص الأخرى سليمة)');
+          }
         }
       }
       renderFinal();
