@@ -86,7 +86,6 @@ class DiqqatQalamApp {
     document.getElementById('btn-fit')?.addEventListener('click',       ()=>this.editor.fitToView());
 
     // فحص ما قبل التشغيل + ملفات الآلات + تحرير الكود
-    document.getElementById('btn-preflight')?.addEventListener('pointerdown', ()=>{ window.__pfDown = performance.now(); });
     document.getElementById('btn-preflight')?.addEventListener('click', ()=>this.preflight());
     document.getElementById('cls-preflight')?.addEventListener('click', ()=>document.getElementById('dlg-preflight')?.close());
     document.getElementById('pf-proceed')?.addEventListener('click',    ()=>{ document.getElementById('dlg-preflight')?.close(); this.generate(); });
@@ -851,7 +850,6 @@ class DiqqatQalamApp {
 
   /* ══ فحص ما قبل التشغيل — قائمة جاهزية بنقرة واحدة ══ */
   async preflight() {
-    const _t0 = performance.now();
     const checks = [];
     const add = (name, pass, detail) => checks.push({ name, pass, detail });
     // فحص الجاهزية يقرأ فقط (حدود/عدد/مقاسات) ولا يعدّل — قراءة بلا استنساخ عميق
@@ -859,12 +857,9 @@ class DiqqatQalamApp {
     const shapes = this.editor.peekShapes();
     const cfg = this.controls.getConfig();
     const g = (typeof DQ !== 'undefined') ? DQ.geometry : null;
-    let _totalPts = 0; for (const s of shapes) if (s && s.points) _totalPts += s.points.length;
-    const _tRead = performance.now();
 
     add('وجود تصميم', shapes.length > 0, shapes.length ? shapes.length + ' شكل جاهز' : 'اللوحة فارغة');
 
-    let _tBounds = _tRead, _tFilter = _tRead;
     if (shapes.length && g) {
       let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
       for (const s of shapes) {
@@ -872,7 +867,6 @@ class DiqqatQalamApp {
         minX = Math.min(minX, b.minX); maxX = Math.max(maxX, b.maxX);
         minY = Math.min(minY, b.minY); maxY = Math.max(maxY, b.maxY);
       }
-      _tBounds = performance.now();
       const w = maxX - minX, h = maxY - minY;
       if (cfg.travelX > 0 && cfg.travelY > 0) {
         add('ضمن حدود الطاولة', w <= cfg.travelX && h <= cfg.travelY,
@@ -885,7 +879,6 @@ class DiqqatQalamApp {
         const d = Math.min(b.maxX - b.minX, b.maxY - b.minY);
         return d > 0 && d < cfg.toolDiameter;
       }).length;
-      _tFilter = performance.now();
       add('مقاسات أكبر من الأداة', small === 0,
         small ? `${small} شكل أصغر من ⌀${cfg.toolDiameter}mm — سيختفي أو يتشوه` : 'كل المقاسات سليمة');
     }
@@ -896,7 +889,6 @@ class DiqqatQalamApp {
     // ── تدقيق المسار: لا يُولَّد برنامج هنا إطلاقاً ──
     // فحص الجاهزية = فحوص هندسية فورية فقط. إن سبق توليد G-Code نعرض تدقيقه
     // (مُقيَّد، فوري، ومخزَّن)؛ وإلا نُعلِم المستخدم أن المسار يُفحَص عند التوليد.
-    const _tBeforeVal = performance.now();
     if (this.gcode) {
       const v = this._validateToolpath(cfg);
       if (v) {
@@ -911,14 +903,6 @@ class DiqqatQalamApp {
     } else {
       add('فحص المسار', null, 'سيُفحص المسار تلقائياً عند توليد البرنامج (زر «توليد»)');
     }
-    const _tVal = performance.now();
-
-    // ── قياس تشخيصي مؤقت — يكشف أي مرحلة تستهلك الوقت ──
-    const _total = Math.round(_tVal - _t0);
-    const _tDispatch = (typeof window.__pfDown === 'number') ? Math.round(_t0 - window.__pfDown) : -1;
-    const _diag = `⏱ ${_total}ms · نقر→معالج ${_tDispatch}ms · أشكال ${shapes.length} · نقاط ${_totalPts} · حدود ${Math.round(_tBounds - _tRead)}ms · فلتر ${Math.round(_tFilter - _tBounds)}ms · تدقيق ${Math.round(_tVal - _tBeforeVal)}ms`;
-    console.log('[preflight-diag] ' + _diag);
-    add('⏱ تشخيص الأداء (مؤقت)', null, _diag);
 
     // ── العرض ── كل الفحوص فورية الآن، فلا توليد متزامن ولا انتظار
     const list    = document.getElementById('preflight-list');
@@ -933,13 +917,6 @@ class DiqqatQalamApp {
     verdict.textContent = allGood ? '✅ جاهز للتشغيل على الآلة' : '❌ عالج النقاط الحمراء قبل التشغيل';
     verdict.className = 'pf-verdict ' + (allGood ? 'good' : 'bad');
     document.getElementById('dlg-preflight').showModal();
-    console.log('[preflight-diag] showModal at +' + Math.round(performance.now() - _t0) + 'ms');
-    // قياس فجوة الرسم: من showModal حتى أول إطار فِعلي بعد ظهور النافذة
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const _paint = Math.round(performance.now() - _t0);
-      verdict.textContent += ' · رسم +' + _paint + 'ms';
-      console.log('[preflight-diag] painted at +' + _paint + 'ms');
-    }));
   }
 
   /* ══ ملفات الآلات المحفوظة — بدّل بين آلاتك بنقرة ══ */
