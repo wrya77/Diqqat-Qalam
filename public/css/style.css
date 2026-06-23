@@ -577,6 +577,7 @@ details.section select option { background: var(--bg2); }
   width: 100%;
   height: 100%;
   cursor: crosshair;
+  touch-action: none;   /* اللمس يصل لمحرّك الرسم بدل تمرير/تكبير المتصفح */
 }
 
 .canvas-footer {
@@ -1910,6 +1911,39 @@ details.section > select { margin: 8px 12px; width: calc(100% - 24px); }
     position: static; box-shadow: none; border: none; min-width: 0;
     background: transparent; padding: 2px 8px 4px 14px; max-height: none;
   }
+}
+
+/* ════════════ تحسينات واجهة الجوال (لمس + تخطيط) ════════════ */
+@media (max-width: 768px) {
+  /* الشريط العلوي: تمرير أفقي آمن فلا يُقتطع أي أمر، وتكثيف الأزرار الثانوية لأيقونات */
+  .toolbar { overflow-x: auto; overflow-y: hidden; gap: 3px; padding: 0 6px; -webkit-overflow-scrolling: touch; }
+  .toolbar::-webkit-scrollbar { height: 0; }
+  #btn-simulate, #btn-export, #btn-preflight { font-size: 0; padding: 4px 9px; }
+  #btn-simulate .ti, #btn-export .ti, #btn-preflight .ti { margin: 0; }
+  .status-pill { display: none; }
+
+  /* شريط الأدوات → شريط سفلي أفقي قابل للتمرير: كل الأدوات في متناول الإبهام */
+  .canvas-main { flex-direction: column-reverse !important; }
+  .tools-rail {
+    flex-direction: row !important;
+    width: 100% !important; height: 56px !important;
+    padding: 0 8px !important; gap: 2px !important;
+    overflow-x: auto !important; overflow-y: hidden !important;
+    border: none !important; border-top: 1px solid var(--border) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tools-rail::-webkit-scrollbar { height: 0; }
+  .tools-rail .tr-group-label { display: none !important; }
+  .tools-rail .tr-sep { width: 1px !important; height: 30px !important; margin: 0 6px !important; align-self: center; }
+  .tools-rail .rail-grip { display: none !important; }   /* لا سحب/إرساء للشريط على الجوال */
+  .tr-btn { width: 44px !important; height: 44px !important; flex: 0 0 auto; }   /* أهداف لمس مريحة */
+
+  /* الحوارات تملأ العرض دون فيض أفقي */
+  dialog, .modal { min-width: 0; width: 94vw; max-width: 94vw; }
+  .modal label { padding: 0 14px; }
+
+  /* الأدراج الجانبية قابلة للتمرير دائماً */
+  .settings-panel, .output-panel { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 }
 
 /* ════════════ تحسينات التصميم — دفعة 10 ════════════ */

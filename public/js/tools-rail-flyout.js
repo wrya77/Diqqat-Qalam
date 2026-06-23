@@ -114,7 +114,7 @@
       rail.appendChild(slot);
     });
 
-    document.addEventListener('mousedown', function () { closeAll(); });
+    document.addEventListener('pointerdown', function () { closeAll(); });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeAll();
     });

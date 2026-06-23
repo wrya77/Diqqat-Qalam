@@ -124,11 +124,13 @@ class MachineControl {
       el.addEventListener('click', () => this._jog(axis, dir * this.jogStep));
       // ضغط مستمر
       let interval = null;
-      el.addEventListener('mousedown', () => {
-        interval = setInterval(() => this._jog(axis, dir * this.jogStep), 150);
-      });
-      el.addEventListener('mouseup',   () => { clearInterval(interval); interval = null; this._sendCmd('\x85'); });
-      el.addEventListener('mouseleave', () => { if (interval) { clearInterval(interval); interval = null; this._sendCmd('\x85'); } });
+      const startHold = () => { clearInterval(interval); interval = setInterval(() => this._jog(axis, dir * this.jogStep), 150); };
+      const stopHold  = () => { if (interval) { clearInterval(interval); interval = null; this._sendCmd('\x85'); } };
+      // Pointer Events يغطّي الفأرة واللمس معاً (ضغط مستمر يعمل على الجوال)
+      el.addEventListener('pointerdown',   startHold);
+      el.addEventListener('pointerup',     stopHold);
+      el.addEventListener('pointercancel', stopHold);
+      el.addEventListener('pointerleave',  stopHold);
     });
 
     // Spindle overrides

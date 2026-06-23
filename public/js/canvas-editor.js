@@ -67,17 +67,16 @@ class CanvasEditor {
 
   _bindEvents() {
     const c = this.canvas;
-    c.addEventListener('mousedown',  e => this._onDown(e));
-    let moveThrottle = false;
-    c.addEventListener('mousemove',  e => {
-      if (moveThrottle) return;
-      moveThrottle = true;
-      requestAnimationFrame(() => { moveThrottle = false; this._onMove(e); });
-    });
-    c.addEventListener('mouseup',    e => this._onUp(e));
-    c.addEventListener('dblclick',   e => this._onDbl(e));
-    c.addEventListener('wheel',      e => this._onWheel(e), { passive:false });
-    c.addEventListener('contextmenu',e => { e.preventDefault(); this._cancelDraw(); });
+    // إدخال موحّد (فأرة + لمس + قلم) عبر Pointer Events — فيعمل الرسم على الجوال
+    this._pointers = new Map();
+    c.style.touchAction = 'none';   // امنع تمرير/تكبير المتصفح فيصل اللمس إلينا كاملاً
+    c.addEventListener('pointerdown',   e => this._onPointerDown(e));
+    c.addEventListener('pointermove',   e => this._onPointerMove(e));
+    c.addEventListener('pointerup',     e => this._onPointerUp(e));
+    c.addEventListener('pointercancel', e => this._onPointerUp(e));
+    c.addEventListener('dblclick',      e => this._onDbl(e));
+    c.addEventListener('wheel',         e => this._onWheel(e), { passive:false });
+    c.addEventListener('contextmenu',   e => { e.preventDefault(); this._cancelDraw(); });
 
     document.addEventListener('keydown', e => {
       const inInput = e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA' || e.target.isContentEditable;
@@ -140,7 +139,80 @@ class CanvasEditor {
     return this._snap(this._sToW(e.clientX-r.left, e.clientY-r.top));
   }
 
-  /* ────────── MOUSE EVENTS ────────── */
+  /* ────────── POINTER / TOUCH (موحّد للفأرة واللمس) ──────────
+     إصبع واحد → نفس منطق الفأرة (رسم/تحديد/تحريك).
+     إصبعان    → تكبير وتحريك بالقرص (pinch). */
+  _onPointerDown(e) {
+    this._pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
+
+    if (this._pointers.size === 2) {
+      this._endActiveDraw();                 // ألغِ أي رسم مفرد بدأه الإصبع الأول
+      const p = [...this._pointers.values()];
+      this._pinch = {
+        dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1,
+        mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2,
+        scale: this.scale, ox: this.offset.x, oy: this.offset.y,
+      };
+      this._pinchActive = true;
+      return;
+    }
+    if (this._pinchActive) return;           // أصابع إضافية أثناء القرص: تجاهل
+    this._onDown(e);
+  }
+
+  _onPointerMove(e) {
+    if (this._pointers.has(e.pointerId)) this._pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this._pinchActive) { if (this._pointers.size >= 2) this._pinchZoom(); return; }
+    // قيّد لإطار واحد كي يبقى الرسم سلساً مهما تدفّقت أحداث اللمس
+    this._moveEv = e;
+    if (this._moveRaf) return;
+    this._moveRaf = requestAnimationFrame(() => { this._moveRaf = 0; if (this._moveEv) this._onMove(this._moveEv); });
+  }
+
+  _onPointerUp(e) {
+    const wasPinch = this._pinchActive;
+    this._pointers.delete(e.pointerId);
+    try { this.canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    if (this._pointers.size === 0) this._pinchActive = false;
+    if (wasPinch) return;                    // لا تُنهِ رسماً عند رفع إصبع بعد القرص
+    this._onUp(e);
+    // نقرة مزدوجة باللمس = إنهاء البولي-لاين/الرسم الحر (بديل dblclick)
+    if (e.pointerType === 'touch') {
+      const now = Date.now();
+      if (this._lastTapT && now - this._lastTapT < 320 &&
+          Math.hypot(e.clientX - this._lastTapX, e.clientY - this._lastTapY) < 18) {
+        this._onDbl(e); this._lastTapT = 0;
+      } else { this._lastTapT = now; this._lastTapX = e.clientX; this._lastTapY = e.clientY; }
+    }
+  }
+
+  // تكبير/تحريك بإصبعين مع تثبيت نقطة منتصف الإصبعين على نفس موضعها في العالم
+  _pinchZoom() {
+    const p = [...this._pointers.values()];
+    const dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+    const r = this.canvas.getBoundingClientRect();
+    const newScale = Math.max(0.05, Math.min(50, this._pinch.scale * (dist / this._pinch.dist)));
+    const k = newScale / this._pinch.scale;
+    const smx = this._pinch.mx - r.left, smy = this._pinch.my - r.top;             // منتصف البداية
+    const cmx = (p[0].x + p[1].x) / 2 - r.left, cmy = (p[0].y + p[1].y) / 2 - r.top; // المنتصف الحالي
+    this.offset.x = cmx - k * (smx - this._pinch.ox);
+    this.offset.y = cmy - k * (smy - this._pinch.oy);
+    this.scale = newScale;
+    const el = document.getElementById('canvas-zoom');
+    if (el) el.textContent = Math.round(this.scale / 2 * 100) + '%';
+    this.render();
+  }
+
+  // عند بدء القرص: ألغِ أي رسم/سحب مفرد جارٍ دون إتلاف بولي-لاين قيد الإنشاء
+  _endActiveDraw() {
+    this._panStart = null;
+    if (this.tool === 'freehand') { this.isDrawing = false; this.currentPath = []; }
+    else if (this.tool !== 'polyline') { this.isDrawing = false; this.startPt = null; this.previewPt = null; }
+    this.render();
+  }
+
+  /* ────────── MOUSE EVENTS (منطق الإصبع/المؤشّر الواحد) ────────── */
   _onDown(e) {
     const pt = this._evPt(e);
 
