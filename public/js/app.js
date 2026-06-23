@@ -86,6 +86,7 @@ class DiqqatQalamApp {
     document.getElementById('btn-fit')?.addEventListener('click',       ()=>this.editor.fitToView());
 
     // فحص ما قبل التشغيل + ملفات الآلات + تحرير الكود
+    document.getElementById('btn-preflight')?.addEventListener('pointerdown', ()=>{ window.__pfDown = performance.now(); });
     document.getElementById('btn-preflight')?.addEventListener('click', ()=>this.preflight());
     document.getElementById('cls-preflight')?.addEventListener('click', ()=>document.getElementById('dlg-preflight')?.close());
     document.getElementById('pf-proceed')?.addEventListener('click',    ()=>{ document.getElementById('dlg-preflight')?.close(); this.generate(); });
@@ -914,7 +915,8 @@ class DiqqatQalamApp {
 
     // ── قياس تشخيصي مؤقت — يكشف أي مرحلة تستهلك الوقت ──
     const _total = Math.round(_tVal - _t0);
-    const _diag = `⏱ ${_total}ms · أشكال ${shapes.length} · نقاط ${_totalPts} · حدود ${Math.round(_tBounds - _tRead)}ms · فلتر ${Math.round(_tFilter - _tBounds)}ms · تدقيق ${Math.round(_tVal - _tBeforeVal)}ms · gcode ${this.gcode ? this.gcode.length : 0}`;
+    const _tDispatch = (typeof window.__pfDown === 'number') ? Math.round(_t0 - window.__pfDown) : -1;
+    const _diag = `⏱ ${_total}ms · نقر→معالج ${_tDispatch}ms · أشكال ${shapes.length} · نقاط ${_totalPts} · حدود ${Math.round(_tBounds - _tRead)}ms · فلتر ${Math.round(_tFilter - _tBounds)}ms · تدقيق ${Math.round(_tVal - _tBeforeVal)}ms`;
     console.log('[preflight-diag] ' + _diag);
     add('⏱ تشخيص الأداء (مؤقت)', null, _diag);
 
@@ -932,6 +934,12 @@ class DiqqatQalamApp {
     verdict.className = 'pf-verdict ' + (allGood ? 'good' : 'bad');
     document.getElementById('dlg-preflight').showModal();
     console.log('[preflight-diag] showModal at +' + Math.round(performance.now() - _t0) + 'ms');
+    // قياس فجوة الرسم: من showModal حتى أول إطار فِعلي بعد ظهور النافذة
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const _paint = Math.round(performance.now() - _t0);
+      verdict.textContent += ' · رسم +' + _paint + 'ms';
+      console.log('[preflight-diag] painted at +' + _paint + 'ms');
+    }));
   }
 
   /* ══ ملفات الآلات المحفوظة — بدّل بين آلاتك بنقرة ══ */
