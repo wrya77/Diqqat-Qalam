@@ -67,9 +67,11 @@ const PLAN_PRICES = {
 };
 
 class PaymentManager {
-  constructor(subscriptionManager, analytics) {
+  constructor(subscriptionManager, analytics, notifiers = {}) {
     this.subMgr    = subscriptionManager;
     this.analytics = analytics;
+    // إشعارات عند تأكيد الدفع (اختيارية): { telegram, sheets } — كلاهما لا يرمي
+    this.notify    = notifiers;
     this.dataFile  = path.join(process.cwd(), 'data', 'payments.json');
     this.providers = {
       fib:      new FIBProvider(),
@@ -236,10 +238,16 @@ class PaymentManager {
         const planName = price?.plan   || payment.plan.split('_')[0];
         const renewsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
         this.subMgr.setSubscription(payment.userId, planName, renewsAt);
-        this.analytics?.track('payment_completed', {
-          userId: payment.userId, plan: payment.plan,
-          method: payment.method, amountIQD: payment.amountIQD,
-        });
+        // اسم الحدث 'payment' هو ما يحتسبه Analytics إيراداً (كان 'payment_completed'
+        // فلا تُسجَّل الأرباح إطلاقاً). التتبّع لا يجوز أن يُفشل ترقية مدفوعة.
+        try {
+          this.analytics?.track('payment', {
+            amount: payment.amountIQD, currency: 'IQD',
+            userId: payment.userId, plan: payment.plan,
+            method: payment.method, paymentId: payment.id,
+          });
+        } catch (e) { console.error('[payments] analytics track failed:', e.message); }
+        this._notifyPaid(payment);
       }
       // حدّث الذاكرة المحلية إن وُجد الصف فيها
       const local = this._payments.find(p => p.id === payment.id);
@@ -254,6 +262,28 @@ class PaymentManager {
       }
     }
     return payment;
+  }
+
+  /**
+   * إشعارات تأكيد الدفع — تُطلق مرة واحدة عند الانتقال إلى paid (داخل reconcile).
+   * fire-and-forget: لا ننتظرها ولا يجوز أن تُفشل الاستجابة أو الترقية.
+   */
+  _notifyPaid(payment) {
+    const price = PLAN_PRICES[payment.plan];
+    if (this.notify.sheets?.configured) {
+      this.notify.sheets.logPayment(payment)
+        .catch(e => console.error('[payments] gsheet notify failed:', e.message));
+    }
+    if (this.notify.telegram?.configured) {
+      const amount = Number(payment.amountIQD || 0).toLocaleString('en-US');
+      this.notify.telegram.send(
+        `💰 <b>دفعة جديدة مؤكَّدة</b>\n` +
+        `الخطة: ${price?.name || payment.plan}\n` +
+        `المبلغ: ${amount} د.ع\n` +
+        `الطريقة: ${payment.method}\n` +
+        `<code>${payment.id}</code>`
+      ).catch(e => console.error('[payments] telegram notify failed:', e.message));
+    }
   }
 }
 

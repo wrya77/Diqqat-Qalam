@@ -14,6 +14,14 @@
  */
 
 class Telegram {
+  /**
+   * تهريب نص ديناميكي قبل حقنه في رسالة HTML — أسماء الأشغال/الأخطاء قد تحوي
+   * < أو & فيرفض Telegram الرسالة كلها (can't parse entities) بصمت.
+   */
+  static escape(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   constructor() {
     this.token  = process.env.TELEGRAM_BOT_TOKEN || '';
     this.chatId = process.env.TELEGRAM_CHAT_ID   || '';

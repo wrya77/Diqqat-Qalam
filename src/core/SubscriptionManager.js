@@ -174,7 +174,18 @@ class SubscriptionManager {
   }
 
   getSubscription(userId) {
-    return this.data[userId] || { plan: 'free', usage: {}, renewsAt: null };
+    const sub = this.data[userId];
+    if (!sub) return { plan: 'free', usage: {}, renewsAt: null };
+    // فرض الانتهاء: بعد renewsAt + مهلة سماح 3 أيام يُعامل المشترك كمجاني.
+    // بدون هذا الفحص «شهر واحد مدفوع = خطة مدى الحياة». لا نعدّل السجل المخزَّن —
+    // دفعة تجديد جديدة تستدعي setSubscription فتعيد الخطة فوراً.
+    if (sub.plan && sub.plan !== 'free' && sub.renewsAt) {
+      const expiresAt = new Date(sub.renewsAt).getTime() + 3 * 24 * 3600 * 1000;
+      if (Number.isFinite(expiresAt) && Date.now() > expiresAt) {
+        return { ...sub, plan: 'free', expired: true };
+      }
+    }
+    return sub;
   }
 
   setSubscription(userId, plan, renewsAt = null) {

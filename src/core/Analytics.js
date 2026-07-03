@@ -10,8 +10,10 @@ const path = require('path');
 class Analytics {
   constructor(dataDir) {
     this.dataFile = path.join(dataDir || path.join(process.cwd(), 'data'), 'analytics.json');
-    const dir = path.dirname(this.dataFile);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    try {
+      const dir = path.dirname(this.dataFile);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    } catch (e) { console.error('[analytics] mkdir failed:', e.message); }
     this.data = this._load();
   }
 
@@ -24,8 +26,14 @@ class Analytics {
   }
 
   _save() {
-    if (this.data.events.length > 5000) this.data.events = this.data.events.slice(-5000);
-    fs.writeFileSync(this.dataFile, JSON.stringify(this.data, null, 2));
+    // فشل الكتابة (نظام ملفات للقراءة فقط مثلاً) يجب ألا يُفشل track() —
+    // track() يُستدعى داخل مسار تأكيد الدفع وترقية الاشتراك
+    try {
+      if (this.data.events.length > 5000) this.data.events = this.data.events.slice(-5000);
+      fs.writeFileSync(this.dataFile, JSON.stringify(this.data, null, 2));
+    } catch (e) {
+      if (e && e.code !== 'EROFS') console.error('[analytics] save failed:', e.message);
+    }
   }
 
   track(eventType, payload = {}) {
@@ -55,9 +63,13 @@ class Analytics {
       case 'ai_called':      this.data.dailyStats[day].aiCalls++;   break;
       case 'error':          this.data.dailyStats[day].errors++;    break;
       case 'payment':
-        this.data.dailyStats[day].revenue += (payload.amount || 0);
-        this.data.totals.revenue += (payload.amount || 0);
+      case 'payment_completed': {
+        // يقبل الاسمين والحقلين — عدم التطابق سابقاً كان يعني أن الإيرادات لا تُسجَّل أبداً
+        const amount = Number(payload.amount ?? payload.amountIQD) || 0;
+        this.data.dailyStats[day].revenue += amount;
+        this.data.totals.revenue += amount;
         break;
+      }
     }
 
     this._save();

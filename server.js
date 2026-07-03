@@ -275,6 +275,10 @@ monitor.attach(cnc);
 const Telegram = require('./src/notify/Telegram');
 const telegram = new Telegram();
 
+// سجلّ الأرباح في Google Sheets — صف لكل دفعة مؤكَّدة (صامت بلا GSHEET_WEBHOOK_URL)
+const GoogleSheets = require('./src/notify/GoogleSheets');
+const gsheets = new GoogleSheets();
+
 // ── تنبيهات تشغيلية: أخطاء الخادم والانقطاعات → Telegram (+ Sentry اختياري) ──
 // يحلّ «السقوط الصامت»: يصل صاحب الموقع تنبيه فوري عند خطأ 500 أو رفض وعد غير معالَج.
 const Alerting = require('./src/core/alerting');
@@ -289,8 +293,8 @@ monitor.on('high-error-rate',  d => io.emit('monitor-error-rate', d));
 monitor.on('machine-idle',     d => io.emit('monitor-idle',     d));
 
 // نسخة تيليجرام من نفس الأحداث (صامتة إن لم يُضبط البوت)
-monitor.on('machine-alarm',  d => telegram.send(`🚨 <b>إنذار آلة</b>\n${d?.message || d?.code || 'تنبيه من الآلة'}`).catch(() => {}));
-monitor.on('critical-alarm', d => telegram.send(`🛑 <b>إنذار حرج</b>\n${d?.message || 'أوقف الآلة فوراً'}`).catch(() => {}));
+monitor.on('machine-alarm',  d => telegram.send(`🚨 <b>إنذار آلة</b>\n${Telegram.escape(d?.message || d?.code || 'تنبيه من الآلة')}`).catch(() => {}));
+monitor.on('critical-alarm', d => telegram.send(`🛑 <b>إنذار حرج</b>\n${Telegram.escape(d?.message || 'أوقف الآلة فوراً')}`).catch(() => {}));
 
 // Forward job queue events
 jobQueue.on('job-queued',    d => io.emit('queue-job-queued',   d));
@@ -299,12 +303,12 @@ jobQueue.on('job-progress',  d => io.emit('queue-job-progress', d));
 jobQueue.on('job-done',      async d => {
   io.emit('queue-job-done', d);
   await webhookMgr.fire('job_completed', d);
-  telegram.send(`✅ <b>اكتمل الشغل</b>\n${d?.name || d?.id || ''}`).catch(() => {});
+  telegram.send(`✅ <b>اكتمل الشغل</b>\n${Telegram.escape(d?.name || d?.id || '')}`).catch(() => {});
 });
 jobQueue.on('job-error',     async d => {
   io.emit('queue-job-error', d);
   await webhookMgr.fire('job_error', d);
-  telegram.send(`⚠️ <b>خطأ في الشغل</b>\n${d?.name || d?.id || ''}\n${d?.error || ''}`).catch(() => {});
+  telegram.send(`⚠️ <b>خطأ في الشغل</b>\n${Telegram.escape(d?.name || d?.id || '')}\n${Telegram.escape(d?.error || '')}`).catch(() => {});
 });
 jobQueue.on('queue-finished', () => io.emit('queue-finished'));
 
@@ -680,7 +684,11 @@ app.get('/api/plans',                     (req, res) => res.json({ plans: subMgr
 
 // ── إشعارات تيليجرام (#17) — إعداد واختبار (إداري) ───────────────────────────
 app.get('/api/notify/status', (req, res) =>
-  res.json({ hasToken: telegram.hasToken, configured: telegram.configured }));
+  res.json({
+    hasToken:   telegram.hasToken,
+    configured: telegram.configured,
+    gsheet:     { configured: gsheets.configured },
+  }));
 
 // اكتشاف chat_id بعد مراسلة البوت (إداري — مفتاح API)
 app.get('/api/notify/telegram/chat-id', requireApiKey, async (req, res) => {
@@ -697,6 +705,15 @@ app.post('/api/notify/test', requireApiKey, async (req, res) => {
   res.json({ success: r.ok, result: r });
 });
 
+// صف تجربة في جدول الأرباح — للتحقق من إعداد GSHEET_WEBHOOK_URL (إداري)
+app.post('/api/notify/gsheet/test', requireApiKey, async (req, res) => {
+  if (!gsheets.configured) {
+    return res.status(503).json({ error: 'سجلّ الأرباح غير مفعّل — اضبط GSHEET_WEBHOOK_URL (انظر docs/google-sheets-profits.md)' });
+  }
+  const r = await gsheets.test();
+  res.json({ success: r.ok, result: r });
+});
+
 // ── حاسبة السرعات والتغذية (#16) — نفس محرّك المتصفح المشترك ──────────────────
 const FeedsSpeeds = require('./shared/FeedsSpeeds');
 app.get('/api/feeds-speeds/materials', (req, res) => res.json({ materials: FeedsSpeeds.listMaterials() }));
@@ -707,7 +724,7 @@ app.post('/api/feeds-speeds', (req, res) => {
 
 // ── Payments (العراق: FIB + Visa/Mastercard) ──────────────────────────────────
 const PaymentManager = require('./src/payments/PaymentManager');
-const payMgr = new PaymentManager(subMgr, analytics);
+const payMgr = new PaymentManager(subMgr, analytics, { telegram, sheets: gsheets });
 
 const publicBaseUrl = (req) =>
   (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
