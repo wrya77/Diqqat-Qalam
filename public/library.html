@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مكتبة التصاميم — دقة قلم</title>
+  <link rel="icon" type="image/svg+xml" href="/images/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117; --bg2:#161b22; --bg3:#1c2128; --bg4:#21262d;
+  --border:#30363d; --border2:#3d444d;
+  --text:#e6edf3; --text2:#b1bac4; --text3:#8b949e;
+  --accent:#2f81f7; --accent-h:#58a6ff;
+  --green:#3fb950; --amber:#d29922; --red:#f85149;
+  --purple:#bc8cff; --cyan:#79c0ff;
+  --c-islamic:#58a6ff; --c-screens:#3fb950;
+  --c-frames:#bc8cff; --c-doors:#d29922; --c-arch:#79c0ff;
+  --radius:8px; --trans:.15s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Tajawal',-apple-system,sans-serif;font-size:14px}
+body{display:flex;flex-direction:column;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+a{color:var(--accent-h);text-decoration:none}
+
+/* ── HEADER ── */
+.lib-header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(13,17,23,.92);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:12px 24px;
+  display:flex;align-items:center;gap:16px;
+}
+.lib-logo{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:700;font-size:16px;white-space:nowrap}
+.lib-logo span{color:var(--cyan)}
+.lib-breadcrumb{color:var(--text3);font-size:13px;white-space:nowrap}
+.lib-breadcrumb b{color:var(--text2)}
+.lib-search{
+  flex:1;max-width:480px;position:relative;
+}
+.lib-search input{
+  width:100%;padding:9px 16px 9px 40px;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);border-radius:var(--radius);
+  font-size:14px;font-family:inherit;outline:none;
+  transition:border-color var(--trans);
+}
+.lib-search input:focus{border-color:var(--accent)}
+.lib-search input::placeholder{color:var(--text3)}
+.lib-search-icon{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  color:var(--text3);font-size:16px;pointer-events:none;
+}
+.hdr-btn{
+  display:flex;align-items:center;gap:6px;padding:8px 16px;
+  background:var(--accent);color:#fff;border:none;border-radius:var(--radius);
+  font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;
+  white-space:nowrap;transition:background var(--trans);
+}
+.hdr-btn:hover{background:#4191ff}
+.hdr-btn svg{width:15px;height:15px}
+
+/* ── FILTER BAR ── */
+.lib-filters{
+  padding:12px 24px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--bg);
+}
+.cat-pills{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.pill{
+  padding:5px 14px;border-radius:20px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all var(--trans);white-space:nowrap;
+}
+.pill:hover{border-color:var(--accent);color:var(--accent-h)}
+.pill.active{background:rgba(47,129,247,.15);border-color:var(--accent);color:var(--accent-h)}
+.pill.cat-islamic.active{background:rgba(88,166,255,.1);border-color:var(--c-islamic);color:var(--c-islamic)}
+.pill.cat-screens.active{background:rgba(63,185,80,.1);border-color:var(--c-screens);color:var(--c-screens)}
+.pill.cat-frames.active{background:rgba(188,140,255,.1);border-color:var(--c-frames);color:var(--c-frames)}
+.pill.cat-doors.active{background:rgba(210,153,34,.1);border-color:var(--c-doors);color:var(--c-doors)}
+.pill.cat-arch.active{background:rgba(121,192,255,.1);border-color:var(--c-arch);color:var(--c-arch)}
+.filter-right{display:flex;align-items:center;gap:10px}
+.sort-sel{
+  padding:6px 10px;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text2);border-radius:var(--radius);font-size:12px;font-family:inherit;
+  cursor:pointer;outline:none;
+}
+.free-toggle{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:20px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;
+  transition:all var(--trans);white-space:nowrap;user-select:none;
+}
+.free-toggle:hover{border-color:var(--green);color:var(--green)}
+.free-toggle.on{background:rgba(63,185,80,.1);border-color:var(--green);color:var(--green)}
+.count-badge{color:var(--text3);font-size:12px;white-space:nowrap}
+
+/* ── LAYOUT ── */
+.lib-body{display:flex;flex:1;overflow:hidden}
+.lib-main{flex:1;overflow-y:auto;padding:20px 24px;min-width:0}
+
+/* ── GRID ── */
+.lib-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:16px;
+}
+.lib-empty{
+  grid-column:1/-1;text-align:center;padding:80px 20px;
+  color:var(--text3);
+}
+.lib-empty span{font-size:48px;display:block;margin-bottom:12px}
+
+/* ── CARD ── */
+.lib-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+  transition:border-color var(--trans),transform var(--trans),box-shadow var(--trans);
+  cursor:pointer;
+  display:flex;flex-direction:column;
+}
+.lib-card:hover{
+  border-color:var(--border2);transform:translateY(-2px);
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.card-preview{
+  aspect-ratio:1/1;background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;position:relative;overflow:hidden;
+}
+.card-preview svg{
+  width:100%;height:100%;
+  transition:transform .3s ease;
+}
+.lib-card:hover .card-preview svg{transform:scale(1.06)}
+.card-overlay{
+  position:absolute;inset:0;
+  background:rgba(13,17,23,.75);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  opacity:0;transition:opacity var(--trans);
+  backdrop-filter:blur(2px);
+}
+.lib-card:hover .card-overlay{opacity:1}
+.cov-btn{
+  padding:7px 14px;border-radius:var(--radius);border:none;
+  font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;
+  transition:transform .1s;
+}
+.cov-btn:active{transform:scale(.96)}
+.cov-btn-secondary{background:var(--bg4);color:var(--text2)}
+.cov-btn-primary{background:var(--accent);color:#fff}
+.cov-btn-primary:hover{background:#4191ff}
+.card-info{padding:12px}
+.card-name{font-weight:700;font-size:13px;margin-bottom:6px;color:var(--text);line-height:1.4}
+.card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cat-chip{
+  padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;
+}
+.cat-chip.cat-islamic{background:rgba(88,166,255,.12);color:var(--c-islamic);border:1px solid rgba(88,166,255,.2)}
+.cat-chip.cat-screens{background:rgba(63,185,80,.12);color:var(--c-screens);border:1px solid rgba(63,185,80,.2)}
+.cat-chip.cat-frames{background:rgba(188,140,255,.12);color:var(--c-frames);border:1px solid rgba(188,140,255,.2)}
+.cat-chip.cat-doors{background:rgba(210,153,34,.12);color:var(--c-doors);border:1px solid rgba(210,153,34,.2)}
+.cat-chip.cat-arch{background:rgba(121,192,255,.12);color:var(--c-arch);border:1px solid rgba(121,192,255,.2)}
+.free-chip{
+  padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;
+  background:rgba(63,185,80,.1);color:var(--green);border:1px solid rgba(63,185,80,.2);
+}
+.pro-chip{
+  padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;
+  background:rgba(210,153,34,.1);color:var(--amber);border:1px solid rgba(210,153,34,.2);
+}
+.card-dims{font-size:11px;color:var(--text3);margin-top:4px}
+.complexity{display:flex;gap:3px;margin-top:4px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--border2)}
+.dot.on{background:var(--accent)}
+
+/* ── MODAL ── */
+dialog{
+  background:var(--bg2);color:var(--text);border:1px solid var(--border2);
+  border-radius:14px;padding:0;max-width:900px;width:90vw;
+  max-height:90vh;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.7);
+}
+dialog::backdrop{background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+.modal-inner{display:flex;height:100%;max-height:88vh;overflow:hidden}
+.modal-preview{
+  flex:0 0 55%;background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;
+  padding:32px;border-left:1px solid var(--border);
+  position:relative;
+}
+.modal-preview svg{width:100%;height:100%;max-height:420px}
+.modal-svg-dims{
+  position:absolute;bottom:12px;left:12px;
+  font-size:11px;color:var(--text3);background:rgba(13,17,23,.8);
+  padding:3px 8px;border-radius:4px;
+}
+.modal-info{
+  flex:1;overflow-y:auto;padding:28px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.modal-title{font-size:20px;font-weight:900;line-height:1.3}
+.modal-cat-row{display:flex;align-items:center;gap:8px}
+.modal-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{
+  padding:3px 10px;background:var(--bg4);color:var(--text3);
+  border-radius:10px;font-size:11px;border:1px solid var(--border);
+}
+.modal-sep{height:1px;background:var(--border);margin:4px 0}
+.modal-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.modal-dims{display:flex;gap:10px;align-items:flex-end}
+.dim-field{flex:1}
+.dim-field label{font-size:11px;color:var(--text3);display:block;margin-bottom:5px}
+.dim-field input{
+  width:100%;padding:8px 10px;background:var(--bg3);
+  border:1px solid var(--border2);color:var(--text);
+  border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;
+  transition:border-color var(--trans);
+}
+.dim-field input:focus{border-color:var(--accent)}
+.dim-unit{font-size:11px;color:var(--text3);padding-bottom:10px;white-space:nowrap}
+.modal-complexity{display:flex;align-items:center;gap:8px}
+.cplx-dots{display:flex;gap:4px}
+.cplx-dot{width:10px;height:10px;border-radius:50%;background:var(--border2)}
+.cplx-dot.on{background:var(--amber)}
+.cplx-label{font-size:12px;color:var(--text3)}
+.modal-actions{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.btn-dl{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px;border:1px solid var(--border2);border-radius:var(--radius);
+  background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:all var(--trans);
+}
+.btn-dl:hover{border-color:var(--accent);color:var(--accent-h)}
+.btn-open{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px;border:none;border-radius:var(--radius);
+  background:var(--accent);color:#fff;font-size:14px;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:background var(--trans);
+}
+.btn-open:hover{background:#4191ff}
+.modal-close{
+  position:absolute;top:12px;left:12px;
+  background:var(--bg4);border:1px solid var(--border);color:var(--text2);
+  width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--trans);z-index:10;
+}
+.modal-close:hover{background:var(--bg3);color:var(--text)}
+.modal-note{font-size:11px;color:var(--text3);text-align:center;padding:4px}
+
+/* ── CAT COLOR STROKES ── */
+.color-islamic{color:var(--c-islamic)}
+.color-screens{color:var(--c-screens)}
+.color-frames{color:var(--c-frames)}
+.color-doors{color:var(--c-doors)}
+.color-arch{color:var(--c-arch)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .lib-header{padding:10px 14px;gap:10px}
+  .lib-breadcrumb{display:none}
+  .lib-filters{padding:10px 14px}
+  .lib-main{padding:14px}
+  dialog{overflow-y:auto;max-height:95vh}
+  .modal-inner{flex-direction:column;height:auto;max-height:none;overflow:visible}
+  .modal-preview{flex:none;height:220px;border-left:none;border-bottom:1px solid var(--border)}
+  .modal-info{overflow-y:visible;max-height:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="lib-header">
+  <a href="/" class="lib-logo" title="دقة قلم">
+    <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#388bfd"/><stop offset="1" stop-color="#1f6feb"/>
+      </linearGradient></defs>
+      <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#lg)"/>
+      <path d="M32 12L43 30L32 50L21 30Z" fill="#fff"/>
+      <path d="M32 12L43 30L32 35L21 30Z" fill="#cfe3ff"/>
+      <circle cx="32" cy="50" r="3" fill="#5bf2b8"/>
+    </svg>
+    دقة <span>قلم</span>
+  </a>
+  <span class="lib-breadcrumb">← <b>مكتبة التصاميم</b></span>
+
+  <div class="lib-search">
+    <span class="lib-search-icon">🔍</span>
+    <input type="text" id="search-input" placeholder="ابحث باسم التصميم أو الوسم…" autocomplete="off">
+  </div>
+
+  <button class="hdr-btn" onclick="window.location='/app'">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+      <rect x="2" y="2" width="12" height="12" rx="2"/>
+      <path d="M8 5v6M5 8h6"/>
+    </svg>
+    فتح المحرر
+  </button>
+</header>
+
+<!-- ═══ FILTER BAR ═══ -->
+<div class="lib-filters">
+  <div class="cat-pills" id="cat-pills">
+    <button class="pill active" data-cat="all">الكل</button>
+    <button class="pill cat-islamic" data-cat="islamic">زخارف إسلامية</button>
+    <button class="pill cat-screens" data-cat="screens">شبابيك وشراشف</button>
+    <button class="pill cat-frames"  data-cat="frames">إطارات وحدود</button>
+    <button class="pill cat-doors"   data-cat="doors">أبواب وبوابات</button>
+    <button class="pill cat-arch"    data-cat="arch">معماري</button>
+  </div>
+  <div class="filter-right">
+    <select class="sort-sel" id="sort-sel">
+      <option value="default">الترتيب الافتراضي</option>
+      <option value="name">أبجدياً</option>
+      <option value="complexity-asc">الأبسط أولاً</option>
+      <option value="complexity-desc">الأكثر تعقيداً</option>
+    </select>
+    <button class="free-toggle" id="free-toggle">🆓 مجاني فقط</button>
+    <span class="count-badge" id="count-badge">15 تصميم</span>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="lib-body">
+  <main class="lib-main">
+    <div class="lib-grid" id="lib-grid"></div>
+  </main>
+</div>
+
+<!-- ═══ PREVIEW MODAL ═══ -->
+<dialog id="dlg-preview">
+  <div class="modal-inner">
+    <div class="modal-preview" id="modal-svg-area">
+      <button class="modal-close" onclick="document.getElementById('dlg-preview').close()">✕</button>
+      <div id="modal-svg-content"></div>
+      <div class="modal-svg-dims" id="modal-svg-dims"></div>
+    </div>
+    <div class="modal-info">
+      <div class="modal-title" id="modal-name"></div>
+      <div class="modal-cat-row">
+        <span class="cat-chip" id="modal-cat-chip"></span>
+        <span id="modal-free-chip"></span>
+      </div>
+      <div class="modal-tags" id="modal-tags"></div>
+
+      <div class="modal-sep"></div>
+
+      <div>
+        <div class="modal-label">أبعاد الإخراج</div>
+        <div class="modal-dims">
+          <div class="dim-field">
+            <label>العرض</label>
+            <input type="number" id="dim-w" min="10" max="9999" value="500">
+          </div>
+          <div class="dim-field">
+            <label>الارتفاع</label>
+            <input type="number" id="dim-h" min="10" max="9999" value="500">
+          </div>
+          <span class="dim-unit">مم</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="modal-label">مستوى التعقيد</div>
+        <div class="modal-complexity">
+          <div class="cplx-dots" id="modal-complexity"></div>
+          <span class="cplx-label" id="cplx-label"></span>
+        </div>
+      </div>
+
+      <div class="modal-sep"></div>
+
+      <div class="modal-actions">
+        <button class="btn-dl" id="btn-download-svg">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M8 2v8M5 8l3 3 3-3M2 12v2h12v-2"/>
+          </svg>
+          تحميل SVG
+        </button>
+        <button class="btn-open" id="btn-open-editor">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="2" y="2" width="12" height="12" rx="2"/>
+            <path d="M8 5v6M5 8h6"/>
+          </svg>
+          افتح في المحرر ←
+        </button>
+        <p class="modal-note" id="modal-note"></p>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+
+/* ────────────────────────────────────────────
+   مولّد الأنماط الهندسية (يعمل في الخادم والمتصفح)
+──────────────────────────────────────────────*/
+function starPath(cx,cy,rO,rI,n){
+  let d='';
+  for(let i=0;i<n*2;i++){
+    const a=(i*Math.PI/n)-Math.PI/2;
+    const r=i%2===0?rO:rI;
+    d+=(i===0?'M':'L')+(cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1);
+  }
+  return d+'Z';
+}
+
+function polyPath(cx,cy,r,n,startDeg=-90){
+  let d='';
+  for(let i=0;i<n;i++){
+    const a=(i*360/n+startDeg)*Math.PI/180;
+    d+=(i===0?'M':'L')+(cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1);
+  }
+  return d+'Z';
+}
+
+function hexGrid(W,H,r,gap){
+  // pointy-top hexagons tiling a WxH canvas
+  const hw=r*Math.sqrt(3);
+  const vStep=r*1.5;
+  let d='';
+  for(let row=0;row*vStep<H+r;row++){
+    for(let col=0;col*hw<W+hw;col++){
+      const cx=col*hw+(row%2)*(hw/2);
+      const cy=row*vStep;
+      d+=hexPath(cx,cy,r-gap)+' ';
+    }
+  }
+  return d.trim();
+}
+
+function hexPath(cx,cy,r){
+  let d='';
+  for(let i=0;i<6;i++){
+    const a=(i*60+30)*Math.PI/180;
+    d+=(i===0?'M':'L')+(cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1);
+  }
+  return d+'Z';
+}
+
+function diamondGrid(W,H,step){
+  let d='';
+  for(let x=-step;x<W+step;x+=step){
+    for(let y=-step;y<H+step;y+=step){
+      const hs=step/2;
+      d+=`M${x},${y-hs} L${x+hs},${y} L${x},${y+hs} L${x-hs},${y} Z `;
+    }
+  }
+  return d.trim();
+}
+
+function concentricCircles(cx,cy,minR,maxR,count){
+  let d='';
+  const step=(maxR-minR)/(count-1);
+  for(let i=0;i<count;i++){
+    const r=minR+i*step;
+    d+=`M${(cx+r).toFixed(1)},${cy} A${r.toFixed(1)},${r.toFixed(1)} 0 1,0 ${(cx-r).toFixed(1)},${cy} A${r.toFixed(1)},${r.toFixed(1)} 0 1,0 ${(cx+r).toFixed(1)},${cy} `;
+  }
+  return d.trim();
+}
+
+/* ────────────────────────────────────────────
+   تعريف التصاميم (15 نمط)
+──────────────────────────────────────────────*/
+const DESIGNS=(()=>{
+  const s8=starPath(200,200,130,55,8);
+  const s12=starPath(200,200,140,62,12);
+  const s6=starPath(200,200,130,65,6);
+  const s5=starPath(200,200,90,45,5);
+  const hex6=hexGrid(400,400,38,4);
+  const dia=diamondGrid(400,400,52);
+  const s8b=starPath(200,200,80,38,8);
+  const s6b=starPath(200,200,65,32,6);
+
+  // مسار قوس للنافذة
+  const archWindow=`
+    M60,360 L60,180 Q60,80 200,80 Q340,80 340,180 L340,360 Z
+    M100,350 L100,185 Q100,120 200,120 Q300,120 300,185 L300,350
+    M200,120 L200,80
+    M130,210 Q130,160 200,160 Q270,160 270,210 L270,260 L130,260 Z
+  `;
+
+  // إطار مزدوج مع زوايا
+  const dblFrame=`
+    M10,10 L390,10 L390,390 L10,390 Z
+    M30,30 L370,30 L370,370 L30,370 Z
+    ${polyPath(40,40,22,4,45)} ${polyPath(360,40,22,4,45)} ${polyPath(40,360,22,4,45)} ${polyPath(360,360,22,4,45)}
+    M200,10 L200,30 M200,370 L200,390 M10,200 L30,200 M370,200 L390,200
+  `;
+
+  // باب إسلامي
+  const door=`
+    M70,400 L70,80 Q70,30 200,20 Q330,30 330,80 L330,400
+    M100,390 L100,85 Q100,55 200,48 Q300,55 300,85 L300,390
+    ${starPath(200,140,50,25,8)}
+    M130,200 L270,200 L270,340 L130,340 Z
+    M130,200 L200,200 L200,340
+    ${polyPath(165,270,30,4,45)}
+    ${polyPath(235,270,30,4,45)}
+  `;
+
+  // شبكة مشربية دائرية
+  const meshCircle=`
+    ${concentricCircles(200,200,25,165,6)}
+    M200,35 L200,365 M35,200 L365,200
+    M76,76 L324,324 M324,76 L76,324
+  `;
+
+  // نقشة هندسية مركّبة
+  const composite=`
+    ${s12}
+    ${starPath(200,200,62,32,12)}
+    ${polyPath(200,200,62,6,-90)}
+    <circle cx="200" cy="200" r="22"/>
+  `;
+  // ملاحظة: <circle> لن يُضمَّن في d — يُضاف كعنصر منفصل
+
+  // إطار عثماني
+  const ottoman=`
+    M20,20 L380,20 L380,380 L20,380 Z
+    M45,45 L355,45 L355,355 L45,355 Z
+    ${polyPath(55,55,22,4,45)}
+    ${polyPath(345,55,22,4,45)}
+    ${polyPath(55,345,22,4,45)}
+    ${polyPath(345,345,22,4,45)}
+    ${starPath(200,200,120,60,8)}
+    ${starPath(200,200,50,28,8)}
+  `;
+
+  // بوابة مزدوجة
+  const gate=`
+    M20,400 L20,60 Q20,20 110,20 L110,400
+    M380,400 L380,60 Q380,20 290,20 L290,400
+    M50,390 L50,65 Q50,45 110,45
+    M350,390 L350,65 Q350,45 290,45
+    ${starPath(80,160,35,16,8)}
+    ${starPath(320,160,35,16,8)}
+    ${polyPath(80,280,35,4,45)}
+    ${polyPath(320,280,35,4,45)}
+  `;
+
+  // حدود زخرفية (شريط)
+  const border=`
+    M10,10 L390,10 L390,390 L10,390 Z
+    M25,25 L375,25 L375,375 L25,375 Z
+    ${starPath(60,60,25,12,8)} ${starPath(200,60,25,12,8)} ${starPath(340,60,25,12,8)}
+    ${starPath(60,200,25,12,8)} ${starPath(200,200,35,16,8)} ${starPath(340,200,25,12,8)}
+    ${starPath(60,340,25,12,8)} ${starPath(200,340,25,12,8)} ${starPath(340,340,25,12,8)}
+  `;
+
+  // شبكة مربعة متداخلة
+  const interlace=`
+    ${polyPath(200,200,160,4,-45)}
+    ${polyPath(200,200,160,4,0)}
+    ${polyPath(200,200,110,4,-45)}
+    ${polyPath(200,200,110,4,0)}
+    ${polyPath(200,200,60,4,-45)}
+    ${polyPath(200,200,60,4,0)}
+    <circle cx="200" cy="200" r="25"/>
+  `;
+
+  // دائرة أندلسية
+  const andalus=`
+    <circle cx="200" cy="200" r="170"/>
+    <circle cx="200" cy="200" r="135"/>
+    ${starPath(200,200,135,70,16)}
+    ${starPath(200,200,65,35,8)}
+    <circle cx="200" cy="200" r="30"/>
+  `;
+
+  // نجمة سداسية مكررة (3×3)
+  const s6repeat=`
+    ${starPath(100,100,55,28,6)} ${starPath(200,100,55,28,6)} ${starPath(300,100,55,28,6)}
+    ${starPath(100,200,55,28,6)} ${starPath(200,200,55,28,6)} ${starPath(300,200,55,28,6)}
+    ${starPath(100,300,55,28,6)} ${starPath(200,300,55,28,6)} ${starPath(300,300,55,28,6)}
+    M10,10 L390,10 L390,390 L10,390 Z
+  `;
+
+  return [
+    {
+      id:'dq001',name:'نجمة إسلامية ثمانية',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['نجمة','ثمانية','هندسي','كلاسيكي'],w:500,h:500,complexity:2,free:true,
+      paths:[
+        {tag:'rect',attrs:'x="10" y="10" width="380" height="380"'},
+        {tag:'path',d:s8},
+        {tag:'circle',attrs:'cx="200" cy="200" r="48"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="18"'},
+      ]
+    },
+    {
+      id:'dq002',name:'شبكة مشربية سداسية',cat:'screens',catLabel:'شبابيك وشراشف',
+      tags:['مشربية','شبكة','سداسي','شباك'],w:600,h:600,complexity:2,free:true,
+      paths:[
+        {tag:'rect',attrs:'x="5" y="5" width="390" height="390" rx="8"'},
+        {tag:'path',d:hex6},
+      ]
+    },
+    {
+      id:'dq003',name:'وردة إسلامية اثنا عشر',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['وردة','اثنا عشر','هندسي','دقيق'],w:500,h:500,complexity:3,free:true,
+      paths:[
+        {tag:'rect',attrs:'x="10" y="10" width="380" height="380"'},
+        {tag:'path',d:s12},
+        {tag:'path',d:starPath(200,200,65,35,12)},
+        {tag:'circle',attrs:'cx="200" cy="200" r="28"'},
+      ]
+    },
+    {
+      id:'dq004',name:'نافذة مقوسة مزدوجة',cat:'arch',catLabel:'معماري',
+      tags:['نافذة','قوس','معماري','مزدوج'],w:400,h:600,complexity:2,free:true,
+      paths:[
+        {tag:'path',d:'M60,360 L60,180 Q60,80 200,80 Q340,80 340,180 L340,360 Z'},
+        {tag:'path',d:'M100,350 L100,185 Q100,120 200,120 Q300,120 300,185 L300,350'},
+        {tag:'path',d:'M130,200 Q130,155 200,155 Q270,155 270,200 L270,260 L130,260 Z'},
+        {tag:'path',d:starPath(200,300,45,22,8)},
+      ]
+    },
+    {
+      id:'dq005',name:'إطار مزخرف بزوايا',cat:'frames',catLabel:'إطارات وحدود',
+      tags:['إطار','زوايا','حدود','ديكور'],w:600,h:600,complexity:1,free:true,
+      paths:[
+        {tag:'path',d:'M10,10 L390,10 L390,390 L10,390 Z'},
+        {tag:'path',d:'M30,30 L370,30 L370,370 L30,370 Z'},
+        {tag:'path',d:'M50,50 L350,50 L350,350 L50,350 Z'},
+        {tag:'path',d:polyPath(40,40,22,4,45)},
+        {tag:'path',d:polyPath(360,40,22,4,45)},
+        {tag:'path',d:polyPath(40,360,22,4,45)},
+        {tag:'path',d:polyPath(360,360,22,4,45)},
+        {tag:'path',d:'M200,10 L200,30 M200,370 L200,390 M10,200 L30,200 M370,200 L390,200'},
+      ]
+    },
+    {
+      id:'dq006',name:'باب إسلامي تقليدي',cat:'doors',catLabel:'أبواب وبوابات',
+      tags:['باب','إسلامي','تقليدي','هندسي'],w:400,h:700,complexity:3,free:false,
+      paths:[
+        {tag:'path',d:'M60,400 L60,90 Q60,30 200,20 Q340,30 340,90 L340,400'},
+        {tag:'path',d:'M95,390 L95,95 Q95,55 200,48 Q305,55 305,95 L305,390'},
+        {tag:'path',d:starPath(200,140,55,28,8)},
+        {tag:'path',d:'M95,220 L305,220 L305,370 L95,370 Z'},
+        {tag:'path',d:'M95,220 L200,220 L200,370'},
+        {tag:'path',d:polyPath(155,295,38,4,45)},
+        {tag:'path',d:polyPath(245,295,38,4,45)},
+      ]
+    },
+    {
+      id:'dq007',name:'شبكة معينية',cat:'screens',catLabel:'شبابيك وشراشف',
+      tags:['معين','شبكة','شباك','هندسي'],w:500,h:500,complexity:1,free:true,
+      paths:[
+        {tag:'rect',attrs:'x="5" y="5" width="390" height="390" rx="6"'},
+        {tag:'path',d:diamondGrid(390,390,48)},
+      ]
+    },
+    {
+      id:'dq008',name:'نجمة سداسية 3×3',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['نجمة','سداسية','مكرر','بلاط'],w:600,h:600,complexity:2,free:true,
+      paths:[
+        {tag:'path',d:s6repeat},
+      ]
+    },
+    {
+      id:'dq009',name:'دائرة أندلسية',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['دائرة','أندلسي','زهري','دقيق'],w:500,h:500,complexity:3,free:false,
+      paths:[
+        {tag:'circle',attrs:'cx="200" cy="200" r="170"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="135"'},
+        {tag:'path',d:starPath(200,200,135,72,16)},
+        {tag:'path',d:starPath(200,200,65,35,8)},
+        {tag:'circle',attrs:'cx="200" cy="200" r="28"'},
+      ]
+    },
+    {
+      id:'dq010',name:'شبكة مشربية دائرية',cat:'screens',catLabel:'شبابيك وشراشف',
+      tags:['مشربية','دائري','شبكة','خطوط'],w:500,h:500,complexity:2,free:true,
+      paths:[
+        {tag:'rect',attrs:'x="8" y="8" width="384" height="384" rx="10"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="155"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="120"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="85"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="50"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="20"'},
+        {tag:'path',d:'M200,45 L200,355 M45,200 L355,200 M91,91 L309,309 M309,91 L91,309'},
+      ]
+    },
+    {
+      id:'dq011',name:'مربعات متداخلة',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['مربع','متداخل','هندسي','بسيط'],w:400,h:400,complexity:2,free:true,
+      paths:[
+        {tag:'path',d:polyPath(200,200,180,4,-45)},
+        {tag:'path',d:polyPath(200,200,180,4,0)},
+        {tag:'path',d:polyPath(200,200,130,4,-45)},
+        {tag:'path',d:polyPath(200,200,130,4,0)},
+        {tag:'path',d:polyPath(200,200,80,4,-45)},
+        {tag:'path',d:polyPath(200,200,80,4,0)},
+        {tag:'circle',attrs:'cx="200" cy="200" r="28"'},
+      ]
+    },
+    {
+      id:'dq012',name:'إطار عثماني',cat:'frames',catLabel:'إطارات وحدود',
+      tags:['إطار','عثماني','نجمة','كلاسيكي'],w:600,h:600,complexity:2,free:true,
+      paths:[
+        {tag:'path',d:'M15,15 L385,15 L385,385 L15,385 Z'},
+        {tag:'path',d:'M40,40 L360,40 L360,360 L40,360 Z'},
+        {tag:'path',d:polyPath(55,55,22,4,45)},
+        {tag:'path',d:polyPath(345,55,22,4,45)},
+        {tag:'path',d:polyPath(55,345,22,4,45)},
+        {tag:'path',d:polyPath(345,345,22,4,45)},
+        {tag:'path',d:s8b},
+        {tag:'path',d:starPath(200,200,55,28,8)},
+      ]
+    },
+    {
+      id:'dq013',name:'بوابة حديقة مزدوجة',cat:'doors',catLabel:'أبواب وبوابات',
+      tags:['بوابة','مزدوج','حديقة','قوس'],w:700,h:500,complexity:3,free:false,
+      paths:[
+        {tag:'path',d:'M15,400 L15,80 Q15,20 100,15 L100,400'},
+        {tag:'path',d:'M385,400 L385,80 Q385,20 300,15 L300,400'},
+        {tag:'path',d:'M100,400 L100,90 Q100,45 200,40 Q300,45 300,90 L300,400'},
+        {tag:'path',d:'M130,390 L130,92 Q130,65 200,60 Q270,65 270,92 L270,390'},
+        {tag:'path',d:starPath(57,180,32,16,8)},
+        {tag:'path',d:starPath(343,180,32,16,8)},
+        {tag:'path',d:starPath(200,200,50,26,8)},
+        {tag:'path',d:polyPath(57,310,32,4,45)},
+        {tag:'path',d:polyPath(343,310,32,4,45)},
+        {tag:'path',d:polyPath(200,330,42,4,45)},
+      ]
+    },
+    {
+      id:'dq014',name:'لوحة هندسية مركّبة',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['هندسي','مركّب','دقيق','فني'],w:600,h:600,complexity:3,free:false,
+      paths:[
+        {tag:'rect',attrs:'x="8" y="8" width="384" height="384"'},
+        {tag:'path',d:s12},
+        {tag:'path',d:starPath(200,200,62,32,12)},
+        {tag:'path',d:polyPath(200,200,62,6)},
+        {tag:'circle',attrs:'cx="200" cy="200" r="22"'},
+        {tag:'circle',attrs:'cx="200" cy="200" r="8"'},
+        {tag:'path',d:polyPath(40,40,20,4,45)},
+        {tag:'path',d:polyPath(360,40,20,4,45)},
+        {tag:'path',d:polyPath(40,360,20,4,45)},
+        {tag:'path',d:polyPath(360,360,20,4,45)},
+      ]
+    },
+    {
+      id:'dq015',name:'شبكة نجمية خماسية',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['خماسية','نجمة','شبكة','نادر'],w:500,h:500,complexity:3,free:false,
+      paths:[
+        {tag:'rect',attrs:'x="10" y="10" width="380" height="380"'},
+        {tag:'path',d:s5},
+        {tag:'path',d:starPath(200,200,60,32,5,-90)},
+        {tag:'path',d:polyPath(200,200,92,5,-90)},
+        {tag:'circle',attrs:'cx="200" cy="200" r="20"'},
+        {tag:'path',d:starPath(80,80,38,18,5,-90)},
+        {tag:'path',d:starPath(320,80,38,18,5,-90)},
+        {tag:'path',d:starPath(80,320,38,18,5,-90)},
+        {tag:'path',d:starPath(320,320,38,18,5,-90)},
+        {tag:'path',d:starPath(200,50,22,10,5,-90)},
+        {tag:'path',d:starPath(200,350,22,10,5,-90)},
+        {tag:'path',d:starPath(50,200,22,10,5,-90)},
+        {tag:'path',d:starPath(350,200,22,10,5,-90)},
+      ]
+    },
+  ];
+})();
+
+/* ────────────────────────────────────────────
+   بناء SVG من عناصر التصميم
+──────────────────────────────────────────────*/
+function buildSVG(design, forExport=false, wMm=null, hMm=null){
+  const W=wMm||design.w, H=hMm||design.h;
+  const sizeAttr=forExport?`width="${W}" height="${H}"`:``;
+  let inner='';
+  const baseAttrs='fill="none" stroke="currentColor"';
+  design.paths.forEach(p=>{
+    if(p.tag==='rect'){
+      inner+=`<rect ${baseAttrs} stroke-width="5" ${p.attrs||''}/>`;
+    } else if(p.tag==='circle'){
+      inner+=`<circle ${baseAttrs} stroke-width="4" ${p.attrs||''}/>`;
+    } else if(p.tag==='path'&&p.d){
+      inner+=`<path ${baseAttrs} stroke-width="4" d="${p.d}"/>`;
+    }
+  });
+  return `<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" ${sizeAttr}>${inner}</svg>`;
+}
+
+/* ────────────────────────────────────────────
+   حالة الصفحة
+──────────────────────────────────────────────*/
+let activeCat='all';
+let freeOnly=false;
+let sortMode='default';
+let searchQuery='';
+let currentDesign=null;
+
+/* ────────────────────────────────────────────
+   تصفية وعرض
+──────────────────────────────────────────────*/
+function catColor(cat){
+  return {islamic:'color-islamic',screens:'color-screens',frames:'color-frames',doors:'color-doors',arch:'color-arch'}[cat]||'';
+}
+
+function complexLabel(n){return['','بسيط','متوسط','متقدم'][n]||'';}
+
+function renderCard(d){
+  const svg=buildSVG(d);
+  const colorCls=catColor(d.cat);
+  const dots=[1,2,3].map(i=>`<span class="dot${i<=d.complexity?' on':''}"></span>`).join('');
+  return `
+  <div class="lib-card" data-id="${d.id}" onclick="openModal('${d.id}')">
+    <div class="card-preview ${colorCls}">
+      ${svg}
+      <div class="card-overlay">
+        <button class="cov-btn cov-btn-secondary" onclick="event.stopPropagation();openModal('${d.id}')">معاينة</button>
+        <button class="cov-btn cov-btn-primary" onclick="event.stopPropagation();openInEditor('${d.id}')">افتح ←</button>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-name">${d.name}</div>
+      <div class="card-meta">
+        <span class="cat-chip cat-${d.cat}">${d.catLabel}</span>
+        <span class="${d.free?'free-chip':'pro-chip'}">${d.free?'مجاني':'Pro'}</span>
+      </div>
+      <div class="card-dims">${d.w}×${d.h} مم</div>
+      <div class="complexity">${dots}</div>
+    </div>
+  </div>`;
+}
+
+function filterDesigns(){
+  return DESIGNS.filter(d=>{
+    if(activeCat!=='all'&&d.cat!==activeCat) return false;
+    if(freeOnly&&!d.free) return false;
+    if(searchQuery){
+      const q=searchQuery.toLowerCase();
+      const haystack=(d.name+' '+d.tags.join(' ')).toLowerCase();
+      if(!haystack.includes(q)) return false;
+    }
+    return true;
+  }).sort((a,b)=>{
+    if(sortMode==='name') return a.name.localeCompare(b.name,'ar');
+    if(sortMode==='complexity-asc') return a.complexity-b.complexity;
+    if(sortMode==='complexity-desc') return b.complexity-a.complexity;
+    return 0;
+  });
+}
+
+function render(){
+  const results=filterDesigns();
+  const grid=document.getElementById('lib-grid');
+  document.getElementById('count-badge').textContent=results.length+' تصميم';
+  if(!results.length){
+    grid.innerHTML='<div class="lib-empty"><span>🔍</span>لا توجد تصاميم تطابق البحث</div>';
+    return;
+  }
+  grid.innerHTML=results.map(renderCard).join('');
+}
+
+/* ────────────────────────────────────────────
+   المودال
+──────────────────────────────────────────────*/
+function openModal(id){
+  const d=DESIGNS.find(x=>x.id===id);
+  if(!d) return;
+  currentDesign=d;
+
+  // SVG كبير
+  const svgEl=buildSVG(d);
+  const colorCls=catColor(d.cat);
+  document.getElementById('modal-svg-content').className=colorCls;
+  document.getElementById('modal-svg-content').innerHTML=svgEl;
+  document.getElementById('modal-svg-dims').textContent=`400 × 400 (viewBox)`;
+
+  // معلومات
+  document.getElementById('modal-name').textContent=d.name;
+  const catChip=document.getElementById('modal-cat-chip');
+  catChip.textContent=d.catLabel;
+  catChip.className=`cat-chip cat-${d.cat}`;
+  document.getElementById('modal-free-chip').innerHTML=
+    d.free?'<span class="free-chip">مجاني</span>':'<span class="pro-chip">Pro</span>';
+
+  // وسوم
+  document.getElementById('modal-tags').innerHTML=d.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+
+  // أبعاد
+  document.getElementById('dim-w').value=d.w;
+  document.getElementById('dim-h').value=d.h;
+
+  // تعقيد
+  const dots=[1,2,3].map(i=>`<span class="cplx-dot${i<=d.complexity?' on':''}"></span>`).join('');
+  document.getElementById('modal-complexity').innerHTML=dots;
+  document.getElementById('cplx-label').textContent=complexLabel(d.complexity);
+
+  // ملاحظة
+  document.getElementById('modal-note').textContent=
+    d.free?'✅ هذا التصميم مجاني — لا يلزم اشتراك':'⭐ يتطلب اشتراك Pro';
+
+  document.getElementById('dlg-preview').showModal();
+}
+
+/* ────────────────────────────────────────────
+   فتح في المحرر
+──────────────────────────────────────────────*/
+function openInEditor(id){
+  const d=DESIGNS.find(x=>x.id===id)||currentDesign;
+  if(!d) return;
+  const wMm=parseInt(document.getElementById('dim-w')?.value)||d.w;
+  const hMm=parseInt(document.getElementById('dim-h')?.value)||d.h;
+  const svgText=buildSVG(d,true,wMm,hMm);
+  try{
+    sessionStorage.setItem('dq_library_import',JSON.stringify({name:d.name,svgText,w:wMm,h:hMm}));
+  } catch(e){
+    console.warn('sessionStorage unavailable, proceeding without it');
+  }
+  document.getElementById('dlg-preview')?.close();
+  window.location='/app';
+}
+
+function downloadSVG(){
+  if(!currentDesign) return;
+  const wMm=parseInt(document.getElementById('dim-w')?.value)||currentDesign.w;
+  const hMm=parseInt(document.getElementById('dim-h')?.value)||currentDesign.h;
+  const svgText=buildSVG(currentDesign,true,wMm,hMm);
+  const blob=new Blob([svgText],{type:'image/svg+xml'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=currentDesign.name.replace(/\s+/g,'-')+'.svg';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+/* ────────────────────────────────────────────
+   ربط الأحداث
+──────────────────────────────────────────────*/
+document.addEventListener('DOMContentLoaded',()=>{
+  render();
+
+  // فلتر الفئات
+  document.getElementById('cat-pills').addEventListener('click',e=>{
+    const pill=e.target.closest('.pill');
+    if(!pill) return;
+    document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active');
+    activeCat=pill.dataset.cat;
+    render();
+  });
+
+  // ترتيب
+  document.getElementById('sort-sel').addEventListener('change',e=>{
+    sortMode=e.target.value; render();
+  });
+
+  // مجاني فقط
+  document.getElementById('free-toggle').addEventListener('click',function(){
+    freeOnly=!freeOnly;
+    this.classList.toggle('on',freeOnly);
+    render();
+  });
+
+  // بحث
+  let searchTimer;
+  document.getElementById('search-input').addEventListener('input',e=>{
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(()=>{ searchQuery=e.target.value.trim(); render(); },200);
+  });
+
+  // أزرار المودال
+  document.getElementById('btn-open-editor').addEventListener('click',()=>openInEditor(currentDesign?.id));
+  document.getElementById('btn-download-svg').addEventListener('click',downloadSVG);
+
+  // إغلاق المودال بالنقر خارجه
+  document.getElementById('dlg-preview').addEventListener('click',function(e){
+    if(e.target===this) this.close();
+  });
+});
+</script>
+</body>
+</html>

@@ -357,6 +357,17 @@ class CanvasEditor {
       case 'polyline': for(let i=1;i<s.points.length;i++){
         if(this._ptLineDist(pt,s.points[i-1],s.points[i])<tol) return true;
       } return false;
+      case 'compound': {
+        if(!s.contours) return false;
+        for(const ring of s.contours){
+          if(!ring||ring.length<2) continue;
+          for(let i=0;i<ring.length;i++){
+            const n=ring[(i+1)%ring.length];
+            if(this._ptLineDist(pt,ring[i],n)<tol) return true;
+          }
+        }
+        return false;
+      }
       default: return false;
     }
   }
@@ -371,6 +382,7 @@ class CanvasEditor {
       case 'polygon':  return {x:s.cx,y:s.cy};
       case 'slot':     return {x:s.cx1,y:s.cy1};
       case 'polyline': return s.points[0]||{x:0,y:0};
+      case 'compound': return (s.contours&&s.contours[0]&&s.contours[0][0])||{x:0,y:0};
       default:         return {x:0,y:0};
     }
   }
@@ -394,6 +406,9 @@ class CanvasEditor {
         break;
       case 'slot':     s.cx1+=dx;s.cy1+=dy;s.cx2+=dx;s.cy2+=dy; break;
       case 'polyline': s.points=s.points.map(p=>({...p,x:p.x+dx,y:p.y+dy})); break;
+      case 'compound':
+        if(s.contours) s.contours=s.contours.map(r=>r.map(p=>({x:p.x+dx,y:p.y+dy})));
+        break;
     }
   }
 
@@ -480,6 +495,9 @@ class CanvasEditor {
         s.cx2=mx(s.cx2); s.cy2=my(s.cy2); break;
       case 'polyline':
         s.points=s.points.map(p=>({...p,x:mx(p.x),y:my(p.y)})); break;
+      case 'compound':
+        if(s.contours) s.contours=s.contours.map(r=>r.map(p=>({x:mx(p.x),y:my(p.y)})));
+        break;
     }
   }
 
@@ -528,6 +546,9 @@ class CanvasEditor {
       case 'polyline': {
         s.points=s.points.map(p=>{const r=rot(p.x,p.y);return{...p,x:r.x,y:r.y};}); break;
       }
+      case 'compound':
+        if(s.contours) s.contours=s.contours.map(r=>r.map(p=>{const rp=rot(p.x,p.y);return{x:rp.x,y:rp.y};}));
+        break;
     }
   }
 
@@ -574,6 +595,9 @@ class CanvasEditor {
       case 'polyline': {
         s.points=s.points.map(p=>{const sp=sc(p.x,p.y);return{...p,x:sp.x,y:sp.y};}); break;
       }
+      case 'compound':
+        if(s.contours) s.contours=s.contours.map(r=>r.map(p=>{const sp=sc(p.x,p.y);return{x:sp.x,y:sp.y};}));
+        break;
     }
   }
 
@@ -776,6 +800,16 @@ class CanvasEditor {
         s.points.forEach(p=>{ const ps=this._wToS(p.x,p.y); ctx.lineTo(ps.x,ps.y); });
         if(s.closed) ctx.closePath(); break;
       }
+      case 'compound': {
+        if(!s.contours) break;
+        for(const ring of s.contours){
+          if(!ring||ring.length<2) continue;
+          const r0=this._wToS(ring[0].x,ring[0].y); ctx.moveTo(r0.x,r0.y);
+          for(let i=1;i<ring.length;i++){ const p=this._wToS(ring[i].x,ring[i].y); ctx.lineTo(p.x,p.y); }
+          ctx.closePath();
+        }
+        break;
+      }
     }
     ctx.stroke();
     this._drawDimLabel(s);
@@ -878,6 +912,7 @@ class CanvasEditor {
       case 'polygon': { if(!s.points||s.points.length<3) return 0; let l=0; for(let i=0;i<s.points.length;i++){const n=s.points[(i+1)%s.points.length];l+=Math.hypot(n.x-s.points[i].x,n.y-s.points[i].y);} return l; }
       case 'slot': { const d=Math.hypot(s.cx2-s.cx1,s.cy2-s.cy1); return 2*d+2*Math.PI*(s.r||0); }
       case 'polyline': { let l=0; for(let i=1;i<s.points.length;i++) l+=Math.hypot(s.points[i].x-s.points[i-1].x,s.points[i].y-s.points[i-1].y); return l; }
+      case 'compound': { let l=0; for(const r of (s.contours||[])){ for(let i=0;i<r.length;i++){ const n=r[(i+1)%r.length]; l+=Math.hypot(n.x-r[i].x,n.y-r[i].y); } } return l; }
       default: return 0;
     }
   }
@@ -928,6 +963,11 @@ class CanvasEditor {
       case 'polygon':  return {minX:s.cx-(s.r||0),maxX:s.cx+(s.r||0),minY:s.cy-(s.r||0),maxY:s.cy+(s.r||0)};
       case 'slot':     return {minX:Math.min(s.cx1,s.cx2)-(s.r||0),maxX:Math.max(s.cx1,s.cx2)+(s.r||0),minY:Math.min(s.cy1,s.cy2)-(s.r||0),maxY:Math.max(s.cy1,s.cy2)+(s.r||0)};
       case 'polyline': { const xs=s.points.map(p=>p.x),ys=s.points.map(p=>p.y); return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}; }
+      case 'compound': {
+        let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+        for(const r of (s.contours||[])) for(const p of r){ if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y; }
+        return isFinite(minX)?{minX,maxX,minY,maxY}:{minX:0,maxX:0,minY:0,maxY:0};
+      }
       default: return {minX:0,maxX:100,minY:0,maxY:100};
     }
   }

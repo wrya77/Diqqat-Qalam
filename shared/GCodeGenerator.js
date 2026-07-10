@@ -75,6 +75,9 @@ class GCodeGenerator {
       case 'polyline':
         if (s.points) s.points = s.points.map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
         break;
+      case 'compound':
+        if (s.contours) s.contours = s.contours.map(r => r.map(p => ({ x: p.x + dx, y: p.y + dy })));
+        break;
     }
     return s;
   }

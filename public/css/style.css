@@ -1979,4 +1979,98 @@ details.section > select { margin: 8px 12px; width: calc(100% - 24px); }
 
 /* 10) تمرير أنعم للوحات */
 .settings-panel, .output-panel, .pf-list, .preset-list { scroll-behavior: smooth; }
+
+/* ════════════════════════════════════════════════════════════
+   استوديو الأدوات + لمسة احترافية — دفعة 11
+   (كتلة مضافة في النهاية لتجاوز الأنماط بأمان ودون كسر التخطيط)
+   ════════════════════════════════════════════════════════════ */
+
+/* ── مجموعة أدوات الاستوديو في الشريط العلوي ── */
+.studio-tools{
+  display:flex; align-items:center; gap:2px;
+  margin:0 6px; padding:2px;
+  border-radius:9px;
+  background:linear-gradient(180deg, rgba(47,129,247,.12), rgba(47,129,247,.03));
+  border:1px solid var(--border);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+  flex-shrink:0;
+}
+.studio-btn{
+  display:flex; align-items:center; gap:6px;
+  height:28px; padding:0 11px;
+  text-decoration:none;
+  color:var(--text2);
+  font-family:inherit; font-size:12px; font-weight:500;
+  border-radius:7px; border:1px solid transparent;
+  white-space:nowrap;
+  transition:all var(--trans);
+}
+.studio-btn .ti{ width:15px; height:15px; transition:transform var(--trans); }
+.studio-btn:hover{
+  background:var(--bg2); color:var(--text);
+  border-color:var(--border2);
+  transform:translateY(-1px);
+}
+.studio-btn:active{ transform:translateY(0) scale(.98); }
+.studio-btn:hover .ti{ transform:scale(1.12) rotate(-3deg); }
+/* لون مميّز لكل أداة */
+.st-calli .ti{ color:var(--cyan); }
+.st-feeds .ti{ color:var(--amber); }
+.st-quote .ti{ color:var(--green-h); }
+.st-calli:hover{ box-shadow:0 5px 16px rgba(121,192,255,.20); }
+.st-feeds:hover{ box-shadow:0 5px 16px rgba(210,153,34,.20); }
+.st-quote:hover{ box-shadow:0 5px 16px rgba(63,185,80,.20); }
+/* استجابة: أيقونات فقط ثم إخفاء عند تولّي ☰ */
+@media (max-width:1180px){ .studio-btn span{ display:none; } .studio-btn{ padding:0 9px; } }
+@media (max-width:768px){ .studio-tools{ display:none; } }
+
+/* ── عمق احترافي للشريط العلوي ── */
+.toolbar{
+  background:linear-gradient(180deg, #121823 0%, #0d1117 100%);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 3px 14px rgba(0,0,0,.35);
+}
+
+/* ── زر التوليد: نداء فعل رئيسي بتدرّج ولمعان ── */
+.tbtn.primary{
+  background:linear-gradient(180deg, #46c95b, #2ea043);
+  border-color:#2ea043;
+  box-shadow:0 1px 0 rgba(255,255,255,.20) inset, 0 2px 9px rgba(63,185,80,.30);
+}
+.tbtn.primary:hover{
+  background:linear-gradient(180deg, #56d364, #36ad4a);
+  box-shadow:0 1px 0 rgba(255,255,255,.25) inset, 0 4px 14px rgba(63,185,80,.42);
+  transform:translateY(-1px);
+}
+.tbtn.primary:active{ transform:translateY(0); }
+
+/* ── ترقية: ظل ذهبي أدفأ ── */
+.upgrade-btn{ box-shadow:0 2px 9px rgba(210,153,34,.28); }
+.upgrade-btn:hover{ box-shadow:0 4px 14px rgba(210,153,34,.42); transform:translateY(-1px); }
+
+/* ── أزرار الشريط: حركة دقيقة عند المرور ── */
+.toolbar .tbtn:not(.icon-only){ transition:all var(--trans); }
+.toolbar .tbtn:not(.primary):not(.upgrade-btn):hover{ transform:translateY(-1px); }
+
+/* ── شارة الحالة: مظهر أنقى ── */
+.status-pill{ box-shadow:inset 0 1px 0 rgba(255,255,255,.03); }
+
+/* ── الشعار: تباين أعلى عند المرور ── */
+.logo:hover .logo-name{ color:var(--text); }
+
+/* ── أشرطة تمرير رفيعة أنيقة (لمسة احترافية) ── */
+.settings-panel, .output-panel, .menu-drop, .pf-list, .preset-list, .gc-pre{
+  scrollbar-width:thin; scrollbar-color:var(--border2) transparent;
+}
+.settings-panel::-webkit-scrollbar, .output-panel::-webkit-scrollbar,
+.menu-drop::-webkit-scrollbar, .pf-list::-webkit-scrollbar,
+.preset-list::-webkit-scrollbar, .gc-pre::-webkit-scrollbar{ width:9px; height:9px; }
+.settings-panel::-webkit-scrollbar-thumb, .output-panel::-webkit-scrollbar-thumb,
+.menu-drop::-webkit-scrollbar-thumb, .pf-list::-webkit-scrollbar-thumb,
+.preset-list::-webkit-scrollbar-thumb, .gc-pre::-webkit-scrollbar-thumb{
+  background:var(--border2); border-radius:6px; border:2px solid transparent; background-clip:content-box;
+}
+.settings-panel::-webkit-scrollbar-thumb:hover, .output-panel::-webkit-scrollbar-thumb:hover,
+.menu-drop::-webkit-scrollbar-thumb:hover, .gc-pre::-webkit-scrollbar-thumb:hover{ background:var(--text3); background-clip:content-box; }
+.settings-panel::-webkit-scrollbar-track, .output-panel::-webkit-scrollbar-track{ background:transparent; }
 .settings-panel::-webkit-scrollbar { width: 7px; }
