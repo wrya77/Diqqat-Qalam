@@ -120,35 +120,12 @@
     document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open'));
   }
 
-  /* حقن أدوات مساعدة في قائمة "أدوات" (يُبقي index.html بلا تعديل) */
-  function injectHelperTools() {
-    const upgrade = document.querySelector('.menu-drop .mi[data-act="tool-upgrade"]');
-    if (!upgrade || document.querySelector('.mi[data-act="tool-feeds"]')) return;
-    const frag = document.createDocumentFragment();
-    const label = document.createElement('div');
-    label.className = 'mi-label';
-    label.textContent = 'أدوات مساعدة';
-    frag.appendChild(label);
-    [['tool-feeds', '⚡ حاسبة السرعات والتغذية'],
-     ['tool-quote', '🧾 مولّد عروض الأسعار'],
-     ['tool-calligraphy', '✒ محرك الخط العربي']].forEach(([act, txt]) => {
-      const b = document.createElement('button');
-      b.className = 'mi';
-      b.dataset.act = act;
-      b.innerHTML = txt + ' <span class="mi-key">↗</span>';
-      frag.appendChild(b);
-    });
-    const sep = document.createElement('div');
-    sep.className = 'mi-sep';
-    frag.appendChild(sep);
-    upgrade.parentNode.insertBefore(frag, upgrade);
-  }
+  // ملاحظة: أدوات المساعدة (السرعات/الأسعار/الخط) لم تعد تُحقن في قائمة «أدوات» —
+  // مكانها الموحّد الوحيد هو قائمة «إضافات» بالشريط الرئيسي (ext-feeds/quote/calligraphy).
 
   function init() {
     const bar = document.getElementById('menubar');
     if (!bar) return;
-
-    injectHelperTools();
 
     bar.querySelectorAll('.menu > .menu-btn').forEach(btn => {
       btn.addEventListener('click', e => {
