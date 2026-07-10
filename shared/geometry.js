@@ -90,6 +90,14 @@ const geometry = {
         }
         return { minX: shape.x + minX, maxX: shape.x + maxX, minY: shape.y + minY, maxY: shape.y + maxY };
       }
+      case 'compound': {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const ring of (shape.contours || [])) for (const p of ring) {
+          if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+        }
+        return isFinite(minX) ? { minX, maxX, minY, maxY } : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+      }
       default:
         return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
     }
@@ -127,6 +135,10 @@ const geometry = {
         const st = shape.strokes && shape.strokes[0];
         return st && st.length ? { x: shape.x + st[0].x, y: shape.y + st[0].y } : { x: shape.x || 0, y: shape.y || 0 };
       }
+      case 'compound': {
+        const r = shape.contours && shape.contours[0];
+        return r && r.length ? { x: r[0].x, y: r[0].y } : { x: 0, y: 0 };
+      }
       default:
         return { x: 0, y: 0 };
     }
@@ -151,6 +163,11 @@ const geometry = {
         return st && st.length
           ? { x: shape.x + st[st.length - 1].x, y: shape.y + st[st.length - 1].y }
           : { x: shape.x || 0, y: shape.y || 0 };
+      }
+      case 'compound': {
+        // مسار مغلق: نقطة النهاية = نقطة البداية (أول مسار)
+        const r = shape.contours && shape.contours[0];
+        return r && r.length ? { x: r[0].x, y: r[0].y } : { x: 0, y: 0 };
       }
       default:
         return { x: 0, y: 0 };
@@ -190,6 +207,16 @@ const geometry = {
         for (const st of (shape.strokes || [])) {
           for (let i = 1; i < st.length; i++) {
             len += this.distance(st[i - 1].x, st[i - 1].y, st[i].x, st[i].y);
+          }
+        }
+        return len;
+      }
+      case 'compound': {
+        let len = 0;
+        for (const r of (shape.contours || [])) {
+          for (let i = 0; i < r.length; i++) {
+            const n = r[(i + 1) % r.length];
+            len += this.distance(r[i].x, r[i].y, n.x, n.y);
           }
         }
         return len;

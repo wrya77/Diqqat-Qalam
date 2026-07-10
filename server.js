@@ -323,6 +323,7 @@ app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', '
 app.get('/feeds',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'feeds.html')));
 app.get('/quote',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'quote.html')));
 app.get('/calligraphy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'calligraphy.html')));
+app.get('/library',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'library.html')));
 
 // ── Public config (Supabase public keys only) ─────────────────────────────────
 app.get('/api/config', (req, res) => {

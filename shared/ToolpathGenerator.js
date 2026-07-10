@@ -51,9 +51,26 @@ class ToolpathGenerator {
       case 'slot':     return this._genSlot(shape, depth);
       case 'polyline': return this._genPolyline(shape, depth);
       case 'text':     return this._genText(shape, depth);
+      case 'compound': return this._genCompound(shape, depth);
       default:
         return this.config.addComments ? [`; شكل غير مدعوم: ${shape.type}`] : [];
     }
+  }
+
+  // مسار مركّب (ناتج العمليات المنطقية): كل مسار مغلق يُقطع كحلقة مستقلّة.
+  // الثقوب (المسارات الداخلية) تُقطع كمسارات منفصلة — مناسب لقطع المحيط.
+  _genCompound(s, depth) {
+    if (!s.contours || !s.contours.length) return [];
+    const lines = [];
+    s.contours.forEach((ring, i) => {
+      if (!ring || ring.length < 3) return;
+      if (this.config.addComments) lines.push(`; مسار مركّب — حلقة ${i + 1}/${s.contours.length}`);
+      lines.push(...this._genPolyline({
+        type: 'polyline', points: ring, closed: true,
+        feedRate: s.feedRate, reversed: s.reversed, leadIn: s.leadIn, tabs: s.tabs,
+      }, depth));
+    });
+    return lines;
   }
 
   // نقش نص — strokes: مصفوفة ضربات، كل ضربة نقاط mm نسبية إلى (x,y)

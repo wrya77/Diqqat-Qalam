@@ -4,11 +4,12 @@
  * Behaviour:
  *   1. Shows a full-screen loading gate immediately.
  *   2. Fetches Supabase credentials from /api/config.
- *   3. If Supabase is not configured → redirect to /auth (setup required).
- *   4. Checks for an active session.
- *   5. If authenticated → remove gate, render user UI, let app proceed.
- *   6. If NOT authenticated → redirect to /auth immediately.
- *   7. Listens for SIGNED_OUT events → redirect to /auth.
+ *   3. Checks for an active session.
+ *   4. If authenticated → remove gate, render user UI, let app proceed.
+ *   5. If NOT authenticated → open the app in GUEST mode (full editor,
+ *      local-only autosave). Cloud-only actions (save/open cloud projects,
+ *      upgrade) prompt for login via requireLogin().
+ *   6. Listens for SIGNED_OUT → redirect to /auth; SIGNED_IN → upgrade UI.
  */
 
 const AuthManager = (() => {
@@ -18,6 +19,7 @@ const AuthManager = (() => {
   let _user    = null;
   let _ready   = false;
   let _token   = null;
+  let _guest   = false;
 
   /* ── Attach JWT to all same-origin /api requests automatically ── */
   const _origFetch = window.fetch.bind(window);
@@ -88,9 +90,41 @@ const AuthManager = (() => {
       pill.style.display = 'flex';
       document.getElementById('btn-signout')?.addEventListener('click', () => AuthManager.signOut());
     } else {
-      pill.innerHTML = `<a href="/auth" class="tbtn" style="font-size:11px">🔑 دخول</a>`;
+      pill.innerHTML = `
+        <span title="أنت تجرّب كضيف — عملك محفوظ على هذا الجهاز فقط" style="font-size:11px;color:var(--text3,#6b7280);white-space:nowrap">🎨 وضع التجربة</span>
+        <a href="/auth" class="tbtn primary" style="font-size:11px;white-space:nowrap">🔑 دخول</a>`;
       pill.style.display = 'flex';
     }
+  }
+
+  /* ── Login prompt shown when a guest hits a cloud-only action ── */
+  function _loginPrompt(action) {
+    if (document.getElementById('_login-prompt')) return;
+    const safe = String(action || 'استخدام هذه الميزة').replace(/[<>&"']/g, '');
+    const wrap = document.createElement('div');
+    wrap.id = '_login-prompt';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(4,6,12,.62);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
+    wrap.innerHTML = `
+      <div style="background:var(--panel,#0d1117);border:1px solid var(--border,#22262e);border-radius:16px;max-width:380px;width:100%;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center;font-family:inherit">
+        <div style="font-size:40px;margin-bottom:6px">🔑</div>
+        <h3 style="margin:0 0 8px;font-size:18px;color:var(--text,#e6edf3)">سجّل الدخول للمتابعة</h3>
+        <p style="margin:0 0 4px;font-size:13px;color:var(--text2,#9aa4b2);line-height:1.6">تحتاج حساباً مجانياً لـ<b style="color:var(--accent,#3b82f6)">${safe}</b>.</p>
+        <p style="margin:0 0 18px;font-size:12px;color:var(--text3,#6b7280)">✔ عملك الحالي محفوظ على هذا الجهاز ولن يضيع.</p>
+        <div style="display:flex;gap:10px">
+          <button id="_lp-cancel" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border,#22262e);background:transparent;color:var(--text2,#9aa4b2);cursor:pointer;font:inherit">لاحقاً</button>
+          <a href="/auth" style="flex:2;padding:11px;border-radius:10px;border:0;background:var(--accent,#3b82f6);color:#fff;cursor:pointer;font:inherit;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center">تسجيل الدخول</a>
+        </div>
+      </div>`;
+    wrap.addEventListener('click', e => { if (e.target === wrap) wrap.remove(); });
+    document.body.appendChild(wrap);
+    wrap.querySelector('#_lp-cancel').addEventListener('click', () => wrap.remove());
+  }
+
+  /* Returns true if the caller may proceed; false (and prompts) for a guest. */
+  function requireLogin(action) {
+    if (!_guest) return true;
+    _loginPrompt(action);
+    return false;
   }
 
   /* ── Main init ── */
@@ -136,25 +170,28 @@ const AuthManager = (() => {
       if (session) {
         _user  = session.user;
         _token = session.access_token;
+        _guest = false;
         _renderUserUI(_user);
-        _hideGate();
-        _ready = true;
       } else {
-        // لا جلسة → زائر غير مسجّل: لا تفتح التطبيق، أعِد التوجيه لصفحة الدخول
-        _redirectToAuth('app');
-        return null;
+        // لا جلسة → افتح التطبيق كـ"ضيف": المحرر يعمل كاملاً، الحفظ محلي فقط.
+        // الميزات السحابية (حفظ/فتح المشاريع، الترقية) تطلب الدخول عبر requireLogin().
+        _guest = true;
+        _renderUserUI(null);
       }
+      _hideGate();
+      _ready = true;
 
-      // Keep session fresh; redirect out on sign-out
+      // Keep session fresh; redirect out only on explicit sign-out
       _client.auth.onAuthStateChange((event, newSession) => {
-        if (event === 'SIGNED_OUT' || (!newSession && event !== 'INITIAL_SESSION')) {
-          _token = null;
+        if (event === 'SIGNED_OUT') {
+          _token = null; _user = null;
           window.location.replace('/auth');
           return;
         }
         if (event === 'SIGNED_IN' && newSession) {
           _user  = newSession.user;
           _token = newSession.access_token;
+          _guest = false;
           _renderUserUI(_user);
         }
         if (event === 'TOKEN_REFRESHED' && newSession) {
@@ -185,11 +222,12 @@ const AuthManager = (() => {
   function getClient()  { return _client; }
   function isReady()    { return _ready; }
   function isLoggedIn() { return !!_user; }
+  function isGuest()    { return _guest; }
   function getUserId()  { return _user?.id || null; }
   function getEmail()   { return _user?.email || null; }
   function getToken()   { return _token; }
 
-  return { init, signOut, getUser, getClient, isReady, isLoggedIn, getUserId, getEmail, getToken };
+  return { init, signOut, getUser, getClient, isReady, isLoggedIn, isGuest, requireLogin, getUserId, getEmail, getToken };
 })();
 
 // Inject gate immediately before DOM is ready (script runs synchronously)
