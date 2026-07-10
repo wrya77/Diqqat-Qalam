@@ -229,6 +229,25 @@
         <button class="mi" data-act="tool-upgrade">⭐ ترقية الاشتراك…</button>
       </div>
     </div>
+
+    <div class="menu">
+      <button class="menu-btn">إضافات</button>
+      <div class="menu-drop">
+        <div class="mi-label">أدوات مضمّنة</div>
+        <button class="mi" data-act="ext-feeds">⚡ حاسبة السرعات والتغذية</button>
+        <button class="mi" data-act="ext-quote">🧾 مولّد عروض الأسعار</button>
+        <button class="mi" data-act="ext-calligraphy">✒ محرك الخط العربي</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">إنتاجية CNC</div>
+        <button class="mi" data-act="ext-stats">📊 إحصاءات التصميم</button>
+        <button class="mi" data-act="ext-runtime">⏱ تقدير زمن التشغيل</button>
+        <button class="mi" data-act="ext-cost">💰 تقدير التكلفة السريع</button>
+        <button class="mi" data-act="ext-optimize">🔀 تحسين ترتيب القطع</button>
+        <button class="mi" data-act="ext-intersect">⚠ كشف تقاطعات المسارات</button>
+        <button class="mi" data-act="ext-units">📏 محوّل الوحدات</button>
+        <button class="mi" data-act="ext-preflight">✅ فحص الجاهزية قبل التشغيل…</button>
+      </div>
+    </div>
   </nav>
 
   <span style="flex:1"></span>
@@ -296,21 +315,21 @@
     <!-- أدوات مساعدة — ثابتة في الصفحة (لا تعتمد على أي سكربت) -->
     <details class="section" open id="dq-helper-tools">
       <summary class="sec-title">🧰 أدوات مساعدة</summary>
-      <a class="ai-tool-card" data-tool="feed-calc" href="/feeds" target="_blank" rel="noopener">
+      <a class="ai-tool-card" data-tool="feed-calc" href="/feeds" data-embed="/feeds" data-embed-title="حاسبة السرعات والتغذية" rel="noopener">
         <span class="ai-tool-icon">⚡</span>
         <span class="ai-tool-text">
           <span class="ai-tool-label">حاسبة السرعات والتغذية</span>
           <span class="ai-tool-desc">سرعات القطع والتغذية الآمنة</span>
         </span>
       </a>
-      <a class="ai-tool-card" data-tool="quote-gen" href="/quote" target="_blank" rel="noopener">
+      <a class="ai-tool-card" data-tool="quote-gen" href="/quote" data-embed="/quote" data-embed-title="مولّد عروض الأسعار" rel="noopener">
         <span class="ai-tool-icon">🧾</span>
         <span class="ai-tool-text">
           <span class="ai-tool-label">مولّد عروض الأسعار</span>
           <span class="ai-tool-desc">تسعير المشاريع وطباعة العرض</span>
         </span>
       </a>
-      <a class="ai-tool-card" data-tool="arabic-font" href="/calligraphy" target="_blank" rel="noopener">
+      <a class="ai-tool-card" data-tool="arabic-font" href="/calligraphy" data-embed="/calligraphy" data-embed-title="محرك الخط العربي" rel="noopener">
         <span class="ai-tool-icon">✒</span>
         <span class="ai-tool-text">
           <span class="ai-tool-label">محرك الخط العربي</span>
@@ -614,6 +633,25 @@
         </button>
         <button class="tr-btn" data-tool="freehand" title="رسم حر [F]">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 14 C5 11 8 17 11 13 S15 8 18 10"/></svg>
+        </button>
+
+        <!-- ── GROUP: تحرير العُقَد (نمط Illustrator) ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">عُقَد</div>
+        <button class="tr-btn" data-tool="node" title="تحرير العُقَد — اسحب نقاط الربط">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 15 C6 6 14 6 17 15"/><rect x="1.5" y="13.5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="15.5" y="13.5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="8.5" y="4.5" width="3" height="3" fill="var(--bg1)"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="node-add" title="إضافة نقطة ربط [+]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 15 C6 8 12 8 16 13"/><path d="M14 4v6M11 7h6"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="node-del" title="حذف نقطة ربط [−]">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 15 C6 8 12 8 16 13"/><path d="M11 7h6"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="node-conv" title="تحويل نقطة (زاوية ↔ ناعمة)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16 L3 8 L11 8"/><path d="M9 16 C9 11 14 8 17 8"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="zoom" title="تكبير [Z] — نقرة تكبير، Alt+نقرة تصغير">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4M6 8.5h5M8.5 6v5"/></svg>
         </button>
 
         <!-- ── GROUP 3: أشكال أساسية ── -->
@@ -1514,6 +1552,7 @@
 <script defer src="js/tools-dock.js"></script>
 <script defer src="js/ui-polish.js"></script>
 <script defer src="js/redesign.js"></script>
+<script defer src="js/extras.js"></script>
 <script defer src="js/payments.js"></script>
 <script defer src="js/app.js"></script>
 <script>

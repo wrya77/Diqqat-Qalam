@@ -113,6 +113,7 @@ class CanvasEditor {
       if (code==='KeyS') this.setTool('slot');
       if (code==='KeyP') this.setTool('polyline');
       if (code==='KeyF') this.setTool('freehand');
+      if (code==='KeyZ' && !e.ctrlKey && !e.metaKey) this.setTool('zoom');
     });
 
     document.getElementById('polygon-sides')?.addEventListener('change', e => {
@@ -149,6 +150,12 @@ class CanvasEditor {
       if (this.tool === 'hand') this.canvas.style.cursor = 'grabbing';
       return;
     }
+
+    // أداة التكبير: نقرة = تكبير، Alt+نقرة = تصغير — حول نقطة المؤشر
+    if (this.tool === 'zoom') { this._zoomAt(pt, e.altKey ? 1/1.3 : 1.3); return; }
+
+    // أدوات العُقَد (تحرير/إضافة/حذف/تحويل نقاط الربط)
+    if (this.tool && this.tool.indexOf('node') === 0) { this._nodeDown(pt); return; }
 
     if (this.tool === 'select') {
       this.selectedIdx = this._hitTest(pt);
@@ -194,6 +201,8 @@ class CanvasEditor {
     if (this._lastX !== cx) { const el=document.getElementById('cur-x'); if(el) el.textContent=cx; this._lastX=cx; }
     if (this._lastY !== cy) { const el=document.getElementById('cur-y'); if(el) el.textContent=cy; this._lastY=cy; }
 
+    if (this._nodeDrag && e.buttons===1) { this._nodeMoveTo(pt); return; }
+
     if (this.tool === 'select' && this.selectedIdx>=0 && e.buttons===1 && this.dragOffset) {
       this._moveShape(this.shapes[this.selectedIdx], pt.x-this.dragOffset.dx, pt.y-this.dragOffset.dy);
       this.render(); return;
@@ -218,6 +227,7 @@ class CanvasEditor {
       if (this.tool === 'hand') this.canvas.style.cursor = 'grab';
       return;
     }
+    if (this._nodeDrag) { this._nodeDrag = null; this._updateStatus?.(); return; }
     if (!this.isDrawing || !this.startPt) return;
     if (this.tool==='polyline' || this.tool==='freehand') return;
 
@@ -250,6 +260,121 @@ class CanvasEditor {
     const el = document.getElementById('canvas-zoom');
     if (el) el.textContent = Math.round(this.scale/2*100)+'%';
     this.render();
+  }
+
+  /* ────────── ZOOM TOOL ────────── */
+  _zoomAt(pt, f) {
+    const before = this._wToS(pt.x, pt.y);
+    this.scale = Math.max(0.05, Math.min(50, this.scale * f));
+    const after = this._wToS(pt.x, pt.y);
+    this.offset.x += before.x - after.x;
+    this.offset.y += before.y - after.y;
+    const el = document.getElementById('canvas-zoom');
+    if (el) el.textContent = Math.round(this.scale/2*100) + '%';
+    this.render();
+  }
+
+  /* ────────── NODE (ANCHOR) EDITING — أدوات على نمط Illustrator ────────── */
+  // مسار قابل للتحرير = يملك مصفوفة نقاط (بولي‌خط، مضلع، حر، مستورد SVG…)
+  _editablePts(s) { return (s && Array.isArray(s.points) && s.points.length >= 2) ? s.points : null; }
+
+  _pickEditable(pt) {
+    if (this.selectedIdx >= 0 && this._editablePts(this.shapes[this.selectedIdx])) return this.selectedIdx;
+    const i = this._hitTest(pt);
+    if (i >= 0 && this._editablePts(this.shapes[i])) { this.selectedIdx = i; this._updateShapeToolbar?.(); return i; }
+    return -1;
+  }
+
+  _hitAnchor(pts, pt) {
+    const tol = 9 / this.scale;
+    let best = -1, bd = tol;
+    for (let i = 0; i < pts.length; i++) {
+      const d = Math.hypot(pts[i].x - pt.x, pts[i].y - pt.y);
+      if (d <= bd) { bd = d; best = i; }
+    }
+    return best;
+  }
+
+  _distToSeg(p, a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y, L = dx*dx + dy*dy;
+    if (!L) return Math.hypot(p.x - a.x, p.y - a.y);
+    let t = ((p.x - a.x)*dx + (p.y - a.y)*dy) / L;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(p.x - (a.x + t*dx), p.y - (a.y + t*dy));
+  }
+
+  _nearestSeg(pts, pt, closed) {
+    const n = pts.length, m = closed ? n : n - 1;
+    let best = -1, bd = Infinity;
+    for (let i = 0; i < m; i++) {
+      const d = this._distToSeg(pt, pts[i], pts[(i+1) % n]);
+      if (d < bd) { bd = d; best = i; }
+    }
+    return (best >= 0 && bd <= 14 / this.scale) ? best : -1;
+  }
+
+  _nodeDown(pt) {
+    const idx = this._pickEditable(pt);
+    if (idx < 0) {
+      this.selectedIdx = this._hitTest(pt);
+      this._updateShapeToolbar?.(); this.render();
+      if (this.selectedIdx < 0 || !this._editablePts(this.shapes[this.selectedIdx]))
+        window.app?.toast?.('اختر مساراً قابلاً للتحرير (بولي‌خط / مضلع / مستورد)', 'info');
+      return;
+    }
+    const s = this.shapes[idx], pts = s.points;
+    const ai = this._hitAnchor(pts, pt);
+    const mode = this.tool === 'node-add' ? 'add'
+               : this.tool === 'node-del' ? 'del'
+               : this.tool === 'node-conv' ? 'conv' : 'move';
+
+    if (mode === 'del') {
+      if (ai >= 0 && pts.length > 2) { this._saveHistory(); pts.splice(ai, 1); this.render(); this._updateStatus?.(); }
+      else if (ai >= 0) window.app?.toast?.('لا يمكن الحذف — يلزم نقطتان على الأقل', 'warn');
+      return;
+    }
+    if (mode === 'conv') {
+      // تحويل الزاوية إلى نقطة أنعم بتقريبها من متوسط جارَيها
+      if (ai >= 0 && pts.length >= 3) {
+        this._saveHistory();
+        const a = pts[(ai - 1 + pts.length) % pts.length], b = pts[(ai + 1) % pts.length];
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        pts[ai] = { x: (pts[ai].x + mid.x) / 2, y: (pts[ai].y + mid.y) / 2 };
+        this.render();
+      }
+      return;
+    }
+    if (mode === 'add') {
+      const seg = this._nearestSeg(pts, pt, s.closed);
+      if (seg >= 0) { this._saveHistory(); pts.splice(seg + 1, 0, { x: pt.x, y: pt.y }); this.render(); this._updateStatus?.(); }
+      else window.app?.toast?.('اقترب أكثر من المسار لإضافة نقطة', 'info');
+      return;
+    }
+    // move
+    if (ai >= 0) { this._saveHistory(); this._nodeDrag = { idx, ai }; }
+  }
+
+  _nodeMoveTo(pt) {
+    const s = this.shapes[this._nodeDrag.idx];
+    if (!s || !s.points) return;
+    s.points[this._nodeDrag.ai] = { x: pt.x, y: pt.y };
+    this.render();
+  }
+
+  _drawNodes() {
+    if (!this.tool || this.tool.indexOf('node') !== 0) return;
+    const s = this.shapes[this.selectedIdx], pts = this._editablePts(s);
+    if (!pts) return;
+    const ctx = this.ctx;
+    ctx.save(); ctx.setLineDash([]);
+    for (let i = 0; i < pts.length; i++) {
+      const sp = this._wToS(pts[i].x, pts[i].y);
+      const active = this._nodeDrag && this._nodeDrag.ai === i;
+      ctx.fillStyle = active ? '#3fb950' : '#0d1117';
+      ctx.strokeStyle = '#3fb950'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.rect(sp.x - 4, sp.y - 4, 8, 8); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
   }
 
   /* ────────── SHAPE BUILDING ────────── */
@@ -706,6 +831,8 @@ class CanvasEditor {
       ctx.shadowBlur=0; ctx.shadowColor='transparent';
     });
 
+    this._drawNodes();
+
     if(this.isDrawing && this.startPt && this.previewPt){
       ctx.strokeStyle='#3fb950'; ctx.lineWidth=1.5; ctx.setLineDash([6,3]);
       this._drawPreview(this.startPt, this.previewPt);
@@ -921,12 +1048,15 @@ class CanvasEditor {
   setTool(t) {
     this.tool=t; this._cancelDraw();
     document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));
-    const cursors={select:'default',hand:'grab'};
+    const isNode = t && t.indexOf('node')===0;
+    const cursors={select:'default',hand:'grab',zoom:'zoom-in'};
     this.canvas.style.cursor=cursors[t]||'crosshair';
     const optPoly=document.getElementById('opt-polygon'),optSlot=document.getElementById('opt-slot');
     if(optPoly) optPoly.style.display=t==='polygon'?'flex':'none';
     if(optSlot) optSlot.style.display=t==='slot'   ?'flex':'none';
-    if(t!=='select'){ this.selectedIdx=-1; this._updateShapeToolbar(); }
+    // أدوات العُقَد تُحرّر الشكل المحدد — نُبقي التحديد كي تظهر نقاط الربط فوراً
+    if(t!=='select' && !isNode){ this.selectedIdx=-1; this._updateShapeToolbar(); }
+    this.render();
   }
 
   // نسخة عميقة آمنة للتعديل (للتوليد/الحفظ الذي قد يضبط reversed)

@@ -6,7 +6,7 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v39';
+const CACHE = 'diqqat-qalam-v40';
 
 const CORE_ASSETS = [
   '/app',
@@ -36,6 +36,7 @@ const CORE_ASSETS = [
   '/js/menu-bar.js',
   '/js/ui-polish.js',
   '/js/redesign.js',
+  '/js/extras.js',
   '/js/tools-rail-flyout.js',
   '/js/tools-dock.js',
   '/js/payments.js',
