@@ -1,14 +1,27 @@
 /**
- * image-tracer.js — تحويل الصور النقطية إلى مسارات CNC
- * خوارزمية: Contour Tracing + Ramer-Douglas-Peucker simplification
+ * image-tracer.js — تحويل الصور النقطية إلى مسارات CNC (محرك احترافي)
+ *
+ * الخوارزمية: Suzuki–Abe border following (نفس أساس OpenCV findContours)
+ *   • يستخرج كل الحدود الخارجية *و* الداخلية (الثقوب) — لا تختفي الأشكال المفرّغة
+ *     (حروف مثل O، ه، و، والحلقات والدوائر المُفرّغة تحتفظ بحدّها الداخلي)
+ *   • بلا تمويه مدمِّر — الخطوط الرفيعة (1–2 بكسل) تبقى محفوظة
+ *   • إزالة ضجيج غير مؤذية (نقاط معزولة فقط) بدل التآكل الشامل
+ *   • تبسيط Ramer–Douglas–Peucker ثم تنعيم Chaikin اختياري لمنحنيات ناعمة
+ *   • تبسيط تكيّفي يمنع برامج G-Code العملاقة غير القابلة للتشغيل
+ *
+ * يعمل على الخيط الرئيسي (trace) وداخل Web Worker (traceAsync) بنفس الجوهر
+ * (_traceFromData) — مصدر واحد للحقيقة عبر تصدير مزدوج (window + self) في النهاية.
  */
 class ImageTracer {
   constructor() {
     this.threshold = 128;
-    this.simplify  = 1.5;   // RDP epsilon (pixels)
+    this.simplify  = 1.5;   // RDP epsilon (بالبكسل)
     this.invert    = false;
-    this.minPts    = 4;     // حذف المسارات الأقصر من N نقطة
-    this.blur      = true;  // تمويه بسيط لتقليل الضجيج
+    this.smooth    = true;  // تنعيم منحنيات الإخراج (Chaikin)
+    this.minPts    = 3;     // أقل عدد نقاط لمسار صالح
+    this.minLen    = 6;     // أقل محيط (بالبكسل) — يحذف الشوائب الصغيرة فقط
+    this.MAX       = 1500;  // أقصى بُعد للمعالجة (تفاصيل أدق)
+    this.CAP       = 40000; // سقف إجمالي النقاط قبل التبسيط التكيّفي
   }
 
   /* ── رسم الخطوط الناتجة على canvas للمعاينة ── */
@@ -19,7 +32,6 @@ class ImageTracer {
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // حساب Bounding box
     let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
     for (const s of shapes) {
       for (const p of s.points) {
@@ -31,10 +43,11 @@ class ImageTracer {
     const sc=Math.min((canvas.width-pad*2)/dw,(canvas.height-pad*2)/dh);
     const ox=pad-minX*sc, oy=pad-minY*sc;
 
-    ctx.strokeStyle = '#3fb950';
-    ctx.lineWidth   = 1;
     for (const s of shapes) {
       if (!s.points.length) continue;
+      // الثقوب بلون مختلف قليلاً لتمييزها بصرياً في المعاينة
+      ctx.strokeStyle = s.hole ? '#58a6ff' : '#3fb950';
+      ctx.lineWidth   = 1;
       ctx.beginPath();
       ctx.moveTo(s.points[0].x*sc+ox, s.points[0].y*sc+oy);
       for (let i=1;i<s.points.length;i++) ctx.lineTo(s.points[i].x*sc+ox, s.points[i].y*sc+oy);
@@ -51,7 +64,7 @@ class ImageTracer {
     w = Math.round(w * r); h = Math.round(h * r);
     const off = document.createElement('canvas');
     off.width = w; off.height = h;
-    const ctx = off.getContext('2d');
+    const ctx = off.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(imgEl, 0, 0, w, h);
     const d = ctx.getImageData(0, 0, w, h).data;
 
@@ -78,32 +91,32 @@ class ImageTracer {
     return best;
   }
 
-  /* ── رسم الصورة المُصغّرة واستخراج بكسلاتها (يبقى على الخيط الرئيسي) ── */
+  /* ── رسم الصورة المُصغّرة واستخراج بكسلاتها (يبقى على الخيط الرئيسي — DOM) ── */
   _rasterize(imgEl) {
-    const MAX = 1000;
     let w = imgEl.naturalWidth  || imgEl.width;
     let h = imgEl.naturalHeight || imgEl.height;
-    const ratio = Math.min(MAX/w, MAX/h, 1);
+    const ratio = Math.min(this.MAX/w, this.MAX/h, 1);
     w = Math.round(w * ratio);
     h = Math.round(h * ratio);
 
     const off = document.createElement('canvas');
     off.width = w; off.height = h;
-    const ctx = off.getContext('2d');
+    const ctx = off.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(imgEl, 0, 0, w, h);
     return { data: ctx.getImageData(0, 0, w, h).data, w, h, ratio };
   }
 
-  /* ── جوهر التتبّع على بيانات بكسل خام — يُشارك بين الخيط الرئيسي والـ Worker ── */
-  _traceFromData(data, w, h, { threshold, simplify, invert, blur, scale, ratio } = {}) {
+  /* ── جوهر التتبّع على بيانات بكسل خام — يُشارَك بين الخيط الرئيسي والـ Worker ── */
+  _traceFromData(data, w, h, { threshold, simplify, invert, smooth, scale, ratio } = {}) {
     this.threshold = threshold ?? 128;
     this.simplify  = simplify  ?? 1.5;
     this.invert    = invert    ?? false;
-    this.blur      = blur      ?? true;
+    this.smooth    = smooth    ?? true;
 
-    const bin  = this._toBinary(data, w, h);
-    const cont = this._traceContours(bin, w, h);
-    return this._toShapes(cont, scale || 1, ratio || 1);
+    const bin = this._toBinary(data, w, h);
+    this._removeIsolated(bin, w, h);                 // إزالة نقاط الضجيج المعزولة فقط
+    const contours = this._findBorders(bin, w, h);   // Suzuki–Abe (خارجية + ثقوب)
+    return this._toShapes(contours, scale || 1, ratio || 1);
   }
 
   /* ── نقطة الدخول المتزامنة (احتياطية + توافق) ── */
@@ -111,7 +124,7 @@ class ImageTracer {
     const { data, w, h, ratio } = this._rasterize(imgEl);
     return this._traceFromData(data, w, h, {
       threshold: opts.threshold, simplify: opts.simplify,
-      invert: opts.invert, blur: opts.smooth,
+      invert: opts.invert, smooth: opts.smooth,
       scale: opts.scale || 1, ratio,
     });
   }
@@ -124,8 +137,7 @@ class ImageTracer {
       threshold: opts.threshold ?? 128,
       simplify:  opts.simplify  ?? 1.5,
       invert:    opts.invert    ?? false,
-      blur:      opts.smooth    ?? true,
-      minPts:    this.minPts,
+      smooth:    opts.smooth    ?? true,
       scale:     opts.scale || 1,
       ratio,
     };
@@ -151,7 +163,7 @@ class ImageTracer {
     });
   }
 
-  /* ── تحويل بيانات البيكسل إلى ثنائي ── */
+  /* ── تحويل بيانات البيكسل إلى ثنائي (بلا تآكل) ── */
   _toBinary(data, w, h) {
     const bin = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) {
@@ -162,109 +174,195 @@ class ImageTracer {
       if (this.invert) v ^= 1;
       bin[i] = v;
     }
-    if (this.blur) this._simpleBlur(bin, w, h);
     return bin;
   }
 
-  /* تمويه 3×3 لإزالة الضجيج */
-  _simpleBlur(bin, w, h) {
-    const tmp = new Uint8Array(w * h);
-    for (let y = 1; y < h-1; y++) {
-      for (let x = 1; x < w-1; x++) {
-        let sum = 0;
-        for (let dy = -1; dy <= 1; dy++)
-          for (let dx = -1; dx <= 1; dx++)
-            sum += bin[(y+dy)*w+(x+dx)];
-        tmp[y*w+x] = sum >= 5 ? 1 : 0;
+  /* إزالة النقاط المعزولة تماماً (0 جيران) — لا تمسّ الخطوط الرفيعة */
+  _removeIsolated(bin, w, h) {
+    const toClear = [];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!bin[y*w+x]) continue;
+        let n = 0;
+        for (let dy = -1; dy <= 1 && n === 0; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const nx = x+dx, ny = y+dy;
+            if (nx>=0 && nx<w && ny>=0 && ny<h && bin[ny*w+nx]) { n = 1; break; }
+          }
+        }
+        if (!n) toClear.push(y*w+x);
       }
     }
-    for (let i = 0; i < w*h; i++) bin[i] = tmp[i];
+    for (const i of toClear) bin[i] = 0;
   }
 
-  /* ── خوارزمية Square Tracing لاستخراج الحدود ── */
-  _traceContours(bin, w, h) {
-    const visited = new Uint8Array(w * h);
+  /* ══ Suzuki–Abe: تتبّع كل الحدود (خارجية + ثقوب داخلية) ══
+     يُعيد [{ pts:[{x,y}…], hole:bool }] — hole=true للحدود الداخلية (الثقوب). */
+  _findBorders(bin, w, h) {
+    const W = w + 2, H = h + 2;            // إطار صفري يلغي فحوص الحدود
+    const f = new Int32Array(W * H);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++)
+        if (bin[y*w+x]) f[(y+1)*W + (x+1)] = 1;
+
+    // جيران باتجاه عقارب الساعة: شرق، جنوب-شرق، جنوب، ... [dy, dx]
+    const cw = [[0,1],[1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1]];
+    // خريطة (dy,dx) → فهرس الاتجاه
+    const DIRMAP = new Int8Array(9);
+    DIRMAP[5]=0; DIRMAP[8]=1; DIRMAP[7]=2; DIRMAP[6]=3;
+    DIRMAP[3]=4; DIRMAP[0]=5; DIRMAP[1]=6; DIRMAP[2]=7;
+    const dirOf = (dy, dx) => DIRMAP[(dy+1)*3 + (dx+1)];
+
     const contours = [];
-    const get = (x, y) => x>=0 && x<w && y>=0 && y<h ? bin[y*w+x] : 0;
+    let NBD = 1;
+    const GMAX = W * H * 4;
 
-    // الاتجاهات: يمين، أسفل-يمين، أسفل، أسفل-يسار، يسار، أعلى-يسار، أعلى، أعلى-يمين
-    const DX = [1, 1, 0,-1,-1,-1, 0, 1];
-    const DY = [0, 1, 1, 1, 0,-1,-1,-1];
+    for (let i = 1; i <= h; i++) {
+      for (let j = 1; j <= w; j++) {
+        const p = i*W + j;
+        const fij = f[p];
+        if (fij === 0) continue;
 
-    for (let sy = 0; sy < h; sy++) {
-      for (let sx = 0; sx < w; sx++) {
-        if (!bin[sy*w+sx] || visited[sy*w+sx]) continue;
+        let i2, j2, isStart = false, isHole = false;
+        // بداية حدّ خارجي
+        if (fij === 1 && f[p-1] === 0) { NBD++; i2 = i; j2 = j-1; isStart = true; }
+        // بداية حدّ ثقب داخلي
+        else if (fij >= 1 && f[p+1] === 0) { NBD++; i2 = i; j2 = j+1; isStart = true; isHole = true; }
+        if (!isStart) continue;
 
-        // تحقق من أنها بكسل حدود
-        const isEdge = !get(sx-1,sy) || !get(sx+1,sy) || !get(sx,sy-1) || !get(sx,sy+1);
-        if (!isEdge) continue;
+        const flat = [];
 
-        const pts = [];
-        let x = sx, y = sy, dir = 0;
-        let steps = 0;
-        const MAX_STEPS = 50000;
-
-        do {
-          if (!visited[y*w+x]) { visited[y*w+x] = 1; pts.push(x, y); }
-          // استدر يساراً حتى تجد بكسل ممتلئ
-          const left = (dir + 6) & 7;
-          let found = false;
-          for (let t = 0; t < 8; t++) {
-            const d = (left + t) & 7;
-            const nx = x + DX[d], ny = y + DY[d];
-            if (get(nx, ny)) { x=nx; y=ny; dir=d; found=true; break; }
+        // 3.1 — بحث باتجاه عقارب الساعة عن أول بكسل ممتلئ حول (i,j)
+        let i1 = -1, j1 = -1;
+        {
+          const s = dirOf(i2 - i, j2 - j);
+          for (let k = 0; k < 8; k++) {
+            const d = (s + k) & 7;
+            const ny = i + cw[d][0], nx = j + cw[d][1];
+            if (f[ny*W + nx] !== 0) { i1 = ny; j1 = nx; break; }
           }
-          if (!found) break;
-          steps++;
-        } while ((x !== sx || y !== sy) && steps < MAX_STEPS);
+        }
+        if (i1 < 0) {                      // بكسل معزول (نظرياً — أُزيل مسبقاً)
+          f[p] = -NBD;
+          continue;
+        }
 
-        // حوّل البيانات الخام إلى [{x,y}]
-        const points = [];
-        for (let i = 0; i < pts.length; i += 2) points.push({ x: pts[i], y: pts[i+1] });
+        // 3.2 — تتبّع الحدّ
+        let i2b = i1, j2b = j1, i3 = i, j3 = j, guard = 0;
+        while (guard++ < GMAX) {
+          // 3.3 — بحث عكس عقارب الساعة من التالي لـ(i2b,j2b)
+          const s = dirOf(i2b - i3, j2b - j3);
+          let i4 = -1, j4 = -1, rightZero = false;
+          for (let k = 1; k <= 8; k++) {
+            const d = (s - k) & 7;
+            const dy = cw[d][0], dx = cw[d][1];
+            const ny = i3 + dy, nx = j3 + dx;
+            if (dy === 0 && dx === 1 && f[ny*W + nx] === 0) rightZero = true;
+            if (f[ny*W + nx] !== 0) { i4 = ny; j4 = nx; break; }
+          }
+          // 3.4 — وسم البكسل الحالي
+          const q = i3*W + j3;
+          if (rightZero) f[q] = -NBD;
+          else if (f[q] === 1) f[q] = NBD;
 
-        if (points.length >= this.minPts) contours.push(points);
+          flat.push(j3 - 1, i3 - 1);        // إحداثيات بلا الإطار
+
+          // 3.5 — شرط التوقّف (عودة لنقطة البداية بنفس الاتجاه)
+          if (i4 === i && j4 === j && i3 === i1 && j3 === j1) break;
+          i2b = i3; j2b = j3; i3 = i4; j3 = j4;
+        }
+
+        const a = [];
+        for (let k = 0; k < flat.length; k += 2) a.push({ x: flat[k], y: flat[k+1] });
+        contours.push({ pts: a, hole: isHole });
       }
     }
 
     return contours;
   }
 
-  /* ── تحويل الحدود إلى أشكال مع التبسيط والتحجيم ── */
+  /* ── تبسيط + تنعيم + تحجيم + قلب المحور (مع تبسيط تكيّفي ضد الملفات العملاقة) ── */
   _toShapes(contours, scaleMM, resizeRatio) {
-    const s = scaleMM / resizeRatio; // تصحيح تقليص الصورة
+    const s = scaleMM / resizeRatio;       // تصحيح تقليص الصورة
     // إحداثيات الصورة Y نازل بينما عالم CNC صاعد — اقلب رأسياً حول أعلى المحتوى
     let maxY = 0;
-    for (const pts of contours) for (const p of pts) if (p.y > maxY) maxY = p.y;
+    for (const c of contours) for (const p of c.pts) if (p.y > maxY) maxY = p.y;
 
-    // سقف إجمالي النقاط: صورة عالية التفاصيل قد تنتج مئات آلاف النقاط فتولّد
-    // برنامج G-Code بحجم عشرات الميغابايتات — بطيء التوليد وغير قابل للتشغيل على
-    // معظم متحكّمات CNC. نُبسّط تكيّفياً (نرفع عتبة RDP) حتى ننزل تحت السقف.
-    const CAP = 40000;
-    const build = (eps) => contours.map(pts => {
-      const simple = this._rdp(pts, eps);
-      const closed = simple.length > 3 &&
-        Math.hypot(simple[0].x - simple[simple.length-1].x,
-                   simple[0].y - simple[simple.length-1].y) < 3;
-      return {
-        type: 'polyline',
-        points: simple.map(p => ({ x: p.x * s, y: (maxY - p.y) * s })),
-        closed,
-      };
-    }).filter(sh => sh.points.length >= 2);
+    const build = (eps) => {
+      const out = [];
+      for (const c of contours) {
+        const raw = c.pts;
+        if (raw.length < this.minPts) continue;
+        if (this._perimeter(raw) < this.minLen) continue;   // حذف الشوائب الصغيرة فقط
+        let pts = this._rdpClosed(raw, eps);
+        if (pts.length < 2) continue;                       // نحتاج قطعة واحدة على الأقل
+        // نتيجة بنقطتين = خط رفيع انهار إلى محوره ⇒ مسار مفتوح (لا حلقة مغلقة)
+        const closed = pts.length >= 3;
+        if (this.smooth && closed) pts = this._chaikin(pts, true);
+        out.push({
+          type: 'polyline',
+          closed,
+          hole: c.hole,
+          points: pts.map(p => ({ x: p.x * s, y: (maxY - p.y) * s })),
+        });
+      }
+      return out;
+    };
 
+    // صورة عالية التفاصيل قد تنتج مئات آلاف النقاط ⇒ G-Code بحجم عشرات الميغابايتات
+    // (بطيء التوليد وغير قابل للتشغيل على معظم المتحكّمات). نُبسّط تكيّفياً حتى ننزل تحت السقف.
     let eps = this.simplify;
     let shapes = build(eps);
     let total = shapes.reduce((n, sh) => n + sh.points.length, 0);
     let guard = 0;
-    while (total > CAP && guard++ < 8) {
-      eps *= 1.8;                       // بسّط أكثر تدريجياً
+    while (total > this.CAP && guard++ < 8) {
+      eps *= 1.8;
       shapes = build(eps);
       total = shapes.reduce((n, sh) => n + sh.points.length, 0);
     }
     return shapes;
   }
 
-  /* ── Ramer-Douglas-Peucker ── */
+  _perimeter(pts) {
+    let d = 0;
+    for (let i = 1; i < pts.length; i++)
+      d += Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
+    return d;
+  }
+
+  /* ── تنعيم Chaikin (تمرير واحد، يحافظ على الإغلاق) ── */
+  _chaikin(points, closed) {
+    const n = points.length;
+    if (n < 3) return points;
+    const out = [];
+    const lim = closed ? n : n - 1;
+    for (let i = 0; i < lim; i++) {
+      const a = points[i], b = points[(i+1) % n];
+      out.push({ x: a.x*0.75 + b.x*0.25, y: a.y*0.75 + b.y*0.25 });
+      out.push({ x: a.x*0.25 + b.x*0.75, y: a.y*0.25 + b.y*0.75 });
+    }
+    if (!closed) { out.unshift(points[0]); out.push(points[n-1]); }
+    return out;
+  }
+
+  /* ── RDP لحلقة مغلقة: نقسمها عند أبعد نقطة عن البداية أولاً، وإلا فإن الصيغة
+        المفتوحة تنهار (البداية والنهاية متجاورتان) فتختفي الأشكال الرفيعة كليّاً. ── */
+  _rdpClosed(pts, eps) {
+    const n = pts.length;
+    if (n <= 3) return pts;
+    let far = 0, dmax = -1;
+    for (let i = 1; i < n; i++) {
+      const d = (pts[i].x - pts[0].x) ** 2 + (pts[i].y - pts[0].y) ** 2;
+      if (d > dmax) { dmax = d; far = i; }
+    }
+    const a = this._rdp(pts.slice(0, far + 1), eps);   // البداية → الأبعد
+    const b = this._rdp(pts.slice(far), eps);          // الأبعد → النهاية (≈ البداية)
+    // a ينتهي عند الأبعد، b يبدأ عنده (نتخطّاه) وينتهي قرب البداية (نتخطّاه) — يبقيها مغلقة
+    return [...a, ...b.slice(1, -1)];
+  }
+
+  /* ── Ramer–Douglas–Peucker (مسار مفتوح) ── */
   _rdp(pts, eps) {
     if (pts.length <= 2) return pts;
     let dmax = 0, idx = 0;
@@ -288,4 +386,7 @@ class ImageTracer {
   }
 }
 
-window.ImageTracer = ImageTracer;
+/* تصدير مزدوج — مصدر واحد للحقيقة: الخيط الرئيسي (window) والـ Worker (self عبر importScripts) */
+if (typeof window !== 'undefined') window.ImageTracer = ImageTracer;
+if (typeof self !== 'undefined')   self.ImageTracer = ImageTracer;
+if (typeof module !== 'undefined' && module.exports) module.exports = ImageTracer;
