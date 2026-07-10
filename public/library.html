@@ -139,7 +139,13 @@ a{color:var(--accent-h);text-decoration:none}
   width:100%;height:100%;
   transition:transform .3s ease;
 }
-.lib-card:hover .card-preview svg{transform:scale(1.06)}
+/* معاينة تصاميم الملفات (خط أسود على أبيض): لوحة بيضاء مستديرة الحواف */
+.card-preview .card-img{
+  max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;
+  background:#fff;border-radius:6px;transition:transform .3s ease;
+}
+.lib-card:hover .card-preview svg,
+.lib-card:hover .card-preview .card-img{transform:scale(1.06)}
 .card-overlay{
   position:absolute;inset:0;
   background:rgba(13,17,23,.75);
@@ -196,6 +202,10 @@ dialog::backdrop{background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
   position:relative;
 }
 .modal-preview svg{width:100%;height:100%;max-height:420px}
+.modal-preview .modal-img{
+  max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain;
+  background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.35);
+}
 .modal-svg-dims{
   position:absolute;bottom:12px;left:12px;
   font-size:11px;color:var(--text3);background:rgba(13,17,23,.8);
@@ -769,6 +779,32 @@ const DESIGNS=(()=>{
         {tag:'path',d:starPath(350,200,22,10,5,-90)},
       ]
     },
+    // ── تصاميم SVG جاهزة (ملفات خارجية في /library) — خط أسود على خلفية بيضاء، مثالية للحفر ──
+    {
+      id:'dq016',name:'دوائر متشابكة',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['دوائر','متشابك','هندسي','زخرفة','SVG'],w:122,h:201,complexity:3,free:true,
+      src:'/library/zakhrafa-1-circles.svg',thumb:'/library/zakhrafa-1-circles.png',
+    },
+    {
+      id:'dq017',name:'معينات سداسية',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['معين','سداسي','شبكة','زخرفة','SVG'],w:123,h:159,complexity:3,free:true,
+      src:'/library/zakhrafa-2-rhombi.svg',thumb:'/library/zakhrafa-2-rhombi.png',
+    },
+    {
+      id:'dq018',name:'نجمة ثمانية',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['نجمة','ثمانية','هندسي','زخرفة','SVG'],w:122,h:201,complexity:3,free:true,
+      src:'/library/zakhrafa-3-star8.svg',thumb:'/library/zakhrafa-3-star8.png',
+    },
+    {
+      id:'dq019',name:'مثمنات ومربعات',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['مثمن','مربع','تكرار','زخرفة','SVG'],w:123,h:194,complexity:3,free:true,
+      src:'/library/zakhrafa-4-octagons.svg',thumb:'/library/zakhrafa-4-octagons.png',
+    },
+    {
+      id:'dq020',name:'وردة اثنا عشرية',cat:'islamic',catLabel:'زخارف إسلامية',
+      tags:['وردة','اثنا عشر','زهرة','زخرفة','SVG'],w:123,h:159,complexity:3,free:true,
+      src:'/library/zakhrafa-5-rose12.svg',thumb:'/library/zakhrafa-5-rose12.png',
+    },
   ];
 })();
 
@@ -811,7 +847,8 @@ function catColor(cat){
 function complexLabel(n){return['','بسيط','متوسط','متقدم'][n]||'';}
 
 function renderCard(d){
-  const svg=buildSVG(d);
+  // تصاميم الملفات الخارجية: صورة معاينة سريعة؛ التصاميم المولّدة: SVG مضمّن
+  const svg=d.src?`<img class="card-img" src="${d.thumb||d.src}" alt="${d.name}" loading="lazy">`:buildSVG(d);
   const colorCls=catColor(d.cat);
   const dots=[1,2,3].map(i=>`<span class="dot${i<=d.complexity?' on':''}"></span>`).join('');
   return `
@@ -872,12 +909,12 @@ function openModal(id){
   if(!d) return;
   currentDesign=d;
 
-  // SVG كبير
-  const svgEl=buildSVG(d);
+  // SVG كبير — الملفات الخارجية تُعرض كصورة متجهة واضحة
+  const svgEl=d.src?`<img class="modal-img" src="${d.src}" alt="${d.name}">`:buildSVG(d);
   const colorCls=catColor(d.cat);
   document.getElementById('modal-svg-content').className=colorCls;
   document.getElementById('modal-svg-content').innerHTML=svgEl;
-  document.getElementById('modal-svg-dims').textContent=`400 × 400 (viewBox)`;
+  document.getElementById('modal-svg-dims').textContent=d.src?`${d.w} × ${d.h} مم`:`400 × 400 (viewBox)`;
 
   // معلومات
   document.getElementById('modal-name').textContent=d.name;
@@ -909,12 +946,19 @@ function openModal(id){
 /* ────────────────────────────────────────────
    فتح في المحرر
 ──────────────────────────────────────────────*/
-function openInEditor(id){
+async function openInEditor(id){
   const d=DESIGNS.find(x=>x.id===id)||currentDesign;
   if(!d) return;
   const wMm=parseInt(document.getElementById('dim-w')?.value)||d.w;
   const hMm=parseInt(document.getElementById('dim-h')?.value)||d.h;
-  const svgText=buildSVG(d,true,wMm,hMm);
+  // تصاميم الملفات: نجلب نص SVG الأصلي؛ المولّدة: نبنيه من المسارات
+  let svgText;
+  if(d.src){
+    try{ svgText=await (await fetch(d.src)).text(); }
+    catch(e){ alert('تعذّر تحميل ملف التصميم — تحقّق من الاتصال'); return; }
+  } else {
+    svgText=buildSVG(d,true,wMm,hMm);
+  }
   try{
     sessionStorage.setItem('dq_library_import',JSON.stringify({name:d.name,svgText,w:wMm,h:hMm}));
   } catch(e){
@@ -924,15 +968,22 @@ function openInEditor(id){
   window.location='/app';
 }
 
-function downloadSVG(){
+async function downloadSVG(){
   if(!currentDesign) return;
-  const wMm=parseInt(document.getElementById('dim-w')?.value)||currentDesign.w;
-  const hMm=parseInt(document.getElementById('dim-h')?.value)||currentDesign.h;
-  const svgText=buildSVG(currentDesign,true,wMm,hMm);
+  const d=currentDesign;
+  let svgText;
+  if(d.src){
+    try{ svgText=await (await fetch(d.src)).text(); }
+    catch(e){ alert('تعذّر تحميل ملف التصميم — تحقّق من الاتصال'); return; }
+  } else {
+    const wMm=parseInt(document.getElementById('dim-w')?.value)||d.w;
+    const hMm=parseInt(document.getElementById('dim-h')?.value)||d.h;
+    svgText=buildSVG(d,true,wMm,hMm);
+  }
   const blob=new Blob([svgText],{type:'image/svg+xml'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=currentDesign.name.replace(/\s+/g,'-')+'.svg';
+  a.href=url; a.download=d.name.replace(/\s+/g,'-')+'.svg';
   a.click(); URL.revokeObjectURL(url);
 }
 
