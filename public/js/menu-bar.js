@@ -42,6 +42,7 @@
 
     // كائن
     'obj-precise':  () => document.getElementById('btn-precise')?.click(),
+    'obj-topath':   () => ed()?.convertSelectedToPath(),
     'obj-pocket':   () => document.getElementById('btn-pocket-toggle')?.click(),
     'align-left':    () => ed()?.alignSelected('left'),
     'align-hcenter': () => ed()?.alignSelected('hcenter'),

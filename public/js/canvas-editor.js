@@ -314,13 +314,23 @@ class CanvasEditor {
   }
 
   _nodeDown(pt) {
-    const idx = this._pickEditable(pt);
+    let idx = this._pickEditable(pt);
     if (idx < 0) {
-      this.selectedIdx = this._hitTest(pt);
-      this._updateShapeToolbar?.(); this.render();
-      if (this.selectedIdx < 0 || !this._editablePts(this.shapes[this.selectedIdx]))
-        window.app?.toast?.('اختر مساراً قابلاً للتحرير (بولي‌خط / مضلع / مستورد)', 'info');
-      return;
+      // شكل بارامتري (مستطيل/دائرة…) تحت المؤشر؟ حوّله تلقائياً إلى مسار كي يصبح قابلاً للتحرير
+      const hit = this._hitTest(pt);
+      if (hit >= 0 && !this._editablePts(this.shapes[hit])) {
+        const np = this._toPath(this.shapes[hit]);
+        if (np) {
+          this._saveHistory();
+          this.shapes[hit] = np; this.selectedIdx = hit; idx = hit;
+          window.app?.toast?.('حُوّل الشكل إلى مسار — حرّر عُقَده الآن', 'info');
+        }
+      }
+      if (idx < 0) {
+        this.selectedIdx = hit; this._updateShapeToolbar?.(); this.render();
+        if (this.selectedIdx < 0) window.app?.toast?.('انقر على شكل لتحرير عُقَده', 'info');
+        return;
+      }
     }
     const s = this.shapes[idx], pts = s.points;
     const ai = this._hitAnchor(pts, pt);
@@ -375,6 +385,71 @@ class CanvasEditor {
       ctx.beginPath(); ctx.rect(sp.x - 4, sp.y - 4, 8, 8); ctx.fill(); ctx.stroke();
     }
     ctx.restore();
+  }
+
+  /* ── تحويل أي شكل إلى مسار نقاط قابل للتحرير (نفس هندسة الرسم) ── */
+  _toPath(s) {
+    if (!s) return null;
+    const N = 64;
+    const poly = (points, closed) => ({ type: 'polyline', points, closed });
+    switch (s.type) {
+      case 'polyline':
+        return poly(s.points.map(p => ({ x: p.x, y: p.y })), !!s.closed);
+      case 'polygon':
+        return poly(s.points.map(p => ({ x: p.x, y: p.y })), true);
+      case 'line':
+        return poly([{ x: s.x1, y: s.y1 }, { x: s.x2, y: s.y2 }], false);
+      case 'rect':
+        return poly([{ x: s.x, y: s.y }, { x: s.x + s.w, y: s.y },
+                     { x: s.x + s.w, y: s.y + s.h }, { x: s.x, y: s.y + s.h }], true);
+      case 'circle': {
+        const p = []; for (let i = 0; i < N; i++) { const a = 2*Math.PI*i/N; p.push({ x: s.cx + s.r*Math.cos(a), y: s.cy + s.r*Math.sin(a) }); }
+        return poly(p, true);
+      }
+      case 'ellipse': {
+        const rx = s.rx||1, ry = s.ry||1, p = [];
+        for (let i = 0; i < N; i++) { const a = 2*Math.PI*i/N; p.push({ x: s.cx + rx*Math.cos(a), y: s.cy + ry*Math.sin(a) }); }
+        return poly(p, true);
+      }
+      case 'arc': {
+        let sweep = s.endAngle - s.startAngle;
+        if (s.clockwise) { if (sweep > 0) sweep -= 2*Math.PI; } else { if (sweep < 0) sweep += 2*Math.PI; }
+        const steps = Math.max(8, Math.ceil(Math.abs(sweep)/(2*Math.PI)*N)), p = [];
+        for (let i = 0; i <= steps; i++) { const a = s.startAngle + sweep*i/steps; p.push({ x: s.cx + s.r*Math.cos(a), y: s.cy + s.r*Math.sin(a) }); }
+        return poly(p, false);
+      }
+      case 'slot': {
+        const a = Math.atan2(s.cy2 - s.cy1, s.cx2 - s.cx1), r = s.r||1, half = N/2, p = [];
+        for (let i = 0; i <= half; i++) { const t = a - Math.PI/2 + Math.PI*i/half; p.push({ x: s.cx2 + r*Math.cos(t), y: s.cy2 + r*Math.sin(t) }); }
+        for (let i = 0; i <= half; i++) { const t = a + Math.PI/2 + Math.PI*i/half; p.push({ x: s.cx1 + r*Math.cos(t), y: s.cy1 + r*Math.sin(t) }); }
+        return poly(p, true);
+      }
+      case 'compound':
+        return (s.contours && s.contours[0] && s.contours[0].length >= 2)
+          ? poly(s.contours[0].map(p => ({ x: p.x, y: p.y })), true) : null;
+      default:
+        return (Array.isArray(s.points) && s.points.length >= 2)
+          ? poly(s.points.map(p => ({ x: p.x, y: p.y })), s.closed !== false) : null;
+    }
+  }
+
+  /* ── «تحويل إلى مسار» للأشكال المحددة — يفتح كل شكل للتحرير بالعُقَد ── */
+  convertSelectedToPath() {
+    const idxs = new Set();
+    if (this.selectedIdx >= 0) idxs.add(this.selectedIdx);
+    if (this.msel) for (const i of this.msel) idxs.add(i);
+    if (!idxs.size) { window.app?.toast?.('حدد شكلاً أولاً', 'warn'); return; }
+    let converted = 0, already = 0;
+    this._saveHistory();
+    for (const i of idxs) {
+      const s = this.shapes[i];
+      if (s && (s.type === 'polyline')) { already++; continue; }
+      const np = this._toPath(s);
+      if (np) { this.shapes[i] = np; converted++; }
+    }
+    this.render(); this._updateShapeToolbar?.(); this._updateStatus?.();
+    if (converted) window.app?.toast?.(`✅ حُوّل ${converted} شكل إلى مسار قابل للتحرير`, 'success');
+    else window.app?.toast?.('الأشكال المحددة مسارات بالفعل', 'info');
   }
 
   /* ────────── SHAPE BUILDING ────────── */
