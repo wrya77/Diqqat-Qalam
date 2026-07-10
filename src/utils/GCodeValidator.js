@@ -36,7 +36,11 @@ class GCodeValidator {
         tokens[m[1]] = parseFloat(m[2]);
       }
 
-      // Track position
+      // Track position — and whether THIS line actually commands motion.
+      // Cutting checks must only fire on real moves, otherwise the modal G
+      // (which persists) would flag every following non-motion line (M05,
+      // S-word, comments…) as a duplicate error.
+      const hasMotion = tokens.X !== undefined || tokens.Y !== undefined || tokens.Z !== undefined;
       if (tokens.X !== undefined) pos.x = tokens.X;
       if (tokens.Y !== undefined) pos.y = tokens.Y;
       if (tokens.Z !== undefined) pos.z = tokens.Z;
@@ -52,25 +56,29 @@ class GCodeValidator {
       const g = tokens.G;
       if (g === 0 || g === 1 || g === 2 || g === 3) modalG = g;
 
-      // G01/G02/G03 without F
-      const activeG = g !== undefined ? g : modalG;
-      if ((activeG === 1 || activeG === 2 || activeG === 3) && !hasF && lastF === 0) {
+      const activeG   = g !== undefined ? g : modalG;
+      const isCutting = (activeG === 1 || activeG === 2 || activeG === 3) && hasMotion;
+
+      // Cutting move without any feed rate
+      if (isCutting && !hasF && lastF === 0) {
         errors.push({ line: ln, msg: `G0${activeG} بدون تغذية F (السطر: ${raw.trim()})` });
       }
 
-      // Travel limit checks
-      if (this.limits.x < Infinity && Math.abs(pos.x) > this.limits.x) {
-        warnings.push({ line: ln, msg: `X=${pos.x.toFixed(2)} يتجاوز الحد (${this.limits.x}mm)` });
-      }
-      if (this.limits.y < Infinity && Math.abs(pos.y) > this.limits.y) {
-        warnings.push({ line: ln, msg: `Y=${pos.y.toFixed(2)} يتجاوز الحد (${this.limits.y}mm)` });
-      }
-      if (this.limits.z < Infinity && pos.z < -this.limits.z) {
-        warnings.push({ line: ln, msg: `Z=${pos.z.toFixed(2)} أعمق من حد Z (${this.limits.z}mm)` });
+      // Travel limit checks — only on lines that actually move
+      if (hasMotion) {
+        if (this.limits.x < Infinity && Math.abs(pos.x) > this.limits.x) {
+          warnings.push({ line: ln, msg: `X=${pos.x.toFixed(2)} يتجاوز الحد (${this.limits.x}mm)` });
+        }
+        if (this.limits.y < Infinity && Math.abs(pos.y) > this.limits.y) {
+          warnings.push({ line: ln, msg: `Y=${pos.y.toFixed(2)} يتجاوز الحد (${this.limits.y}mm)` });
+        }
+        if (this.limits.z < Infinity && pos.z < -this.limits.z) {
+          warnings.push({ line: ln, msg: `Z=${pos.z.toFixed(2)} أعمق من حد Z (${this.limits.z}mm)` });
+        }
       }
 
-      // G01 without spindle on
-      if ((activeG === 1 || activeG === 2 || activeG === 3) && !spindleOn) {
+      // Cutting move without the spindle running
+      if (isCutting && !spindleOn) {
         warnings.push({ line: ln, msg: `حركة قطع بدون تشغيل المغزل (M03/M04)` });
       }
     }
