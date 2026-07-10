@@ -94,6 +94,30 @@
           toggleFlyout(e);
         });
 
+        // فتح بالمرور (نمط Illustrator/CorelDraw) — يكشف كل أدوات المجموعة دون البحث
+        // عن سهم صغير. مهلة فتح تمنع الوميض، ومهلة إغلاق تسمح بالانتقال إلى القائمة.
+        let openTimer = null, closeTimer = null;
+        function openHover() {
+          clearTimeout(closeTimer);
+          if (activeFlyout && activeFlyout !== flyout) activeFlyout.style.display = 'none';
+          positionFlyout(flyout, slot);
+          flyout.style.display = 'flex';
+          activeFlyout = flyout;
+        }
+        function scheduleClose() {
+          clearTimeout(openTimer);
+          closeTimer = setTimeout(function () {
+            if (activeFlyout === flyout) { flyout.style.display = 'none'; activeFlyout = null; }
+          }, 280);
+        }
+        slot.addEventListener('mouseenter', function () {
+          clearTimeout(closeTimer);
+          openTimer = setTimeout(openHover, 180);
+        });
+        slot.addEventListener('mouseleave', function () { clearTimeout(openTimer); scheduleClose(); });
+        flyout.addEventListener('mouseenter', function () { clearTimeout(closeTimer); });
+        flyout.addEventListener('mouseleave', scheduleClose);
+
         flyout.addEventListener('mousedown', function (e) { e.stopPropagation(); });
         flyout.addEventListener('click', function (e) {
           e.stopPropagation();
