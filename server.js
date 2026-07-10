@@ -44,6 +44,16 @@ const MaterialCostCalculator = require('./src/utils/MaterialCostCalculator');
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
+// ── Build the web JS bundle (يجمع ~31 سكربت واجهة في طلب واحد) ────────────────
+// يُولَّد عند كل إقلاع فيبقى متزامناً مع المصدر دائماً. فشله لا يمنع الإقلاع.
+try {
+  const { buildWebBundle } = require('./scripts/build-web');
+  const b = buildWebBundle();
+  console.log(`✓ web bundle: ${b.files} ملف → /dist/app.bundle.js (${Math.round(b.outBytes/1024)} KB)`);
+} catch (e) {
+  console.error('[bundle] فشل توليد حزمة الويب — سيُخدَّم index.html القديم إن وُجد:', e.message);
+}
+
 // ── Service instances ─────────────────────────────────────────────────────────
 const projectMgr   = new ProjectManager();
 const toolLib      = new ToolLibrary();

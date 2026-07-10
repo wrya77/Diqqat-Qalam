@@ -6,40 +6,14 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v28';
+const CACHE = 'diqqat-qalam-v29';
 
+// كل سكربتات الواجهة صارت في حزمة واحدة (dist/app.bundle.js) — تثبيت أسرع للـ SW.
 const CORE_ASSETS = [
   '/app',
   '/css/style.css',
-  '/shared/geometry.js',
-  '/shared/MachineConfig.js',
-  '/shared/HeaderGenerator.js',
-  '/shared/PocketGenerator.js',
-  '/shared/ToolpathGenerator.js',
-  '/shared/PathSort.js',
-  '/shared/GCodeGenerator.js',
   '/vendor/supabase.js',
-  '/js/supabase-auth.js',
-  '/js/svg-parser.js',
-  '/js/image-tracer.js',
-  '/js/canvas-editor.js',
-  '/js/tools-extra.js',
-  '/js/tools-pro.js',
-  '/js/tools-arrange.js',
-  '/js/tools-cnc.js',
-  '/js/tools-transform.js',
-  '/js/tools-effects.js',
-  '/js/menu-bar.js',
-  '/js/tools-rail-flyout.js',
-  '/js/tools-dock.js',
-  '/js/payments.js',
-  '/js/gcode-preview.js',
-  '/js/simulator-3d.js',
-  '/js/simulator-three.js',
-  '/js/file-importer.js',
-  '/js/ui-controls.js',
-  '/js/machine-control.js',
-  '/js/app.js',
+  '/dist/app.bundle.js',
   '/images/logo.png',
   '/images/icon.svg',
   '/manifest.webmanifest',

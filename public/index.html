@@ -1475,41 +1475,12 @@
   </div>
 </div>
 
-<!-- Supabase SDK مخدوم محلياً — يُحمَّل قبل supabase-auth.js فلا سباق ولا حظر CSP -->
+<!-- Supabase SDK + socket.io يُحمَّلان أولاً (تبعيات للحزمة) — ثم حزمة الواجهة -->
 <script src="/vendor/supabase.js"></script>
-<script src="js/supabase-auth.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<!-- المحرك المشترك (نفس كود الخادم حرفياً) — الترتيب مهم: التبعيات أولاً -->
-<script src="/shared/geometry.js"></script>
-<script src="/shared/MachineConfig.js"></script>
-<script src="/shared/HeaderGenerator.js"></script>
-<script src="/shared/PocketGenerator.js"></script>
-<script src="/shared/ToolpathGenerator.js"></script>
-<script src="/shared/PathSort.js"></script>
-<script src="/shared/PolyBoolean.js"></script>
-<script src="/shared/GCodeGenerator.js"></script>
-<script src="js/svg-parser.js"></script>
-<script src="js/image-tracer.js"></script>
-<script src="js/canvas-editor.js"></script>
-<script src="js/tools-extra.js"></script>
-<script src="js/tools-pro.js"></script>
-<script src="js/tools-arrange.js"></script>
-<script src="js/tools-cnc.js"></script>
-<script src="js/tools-boolean.js"></script>
-<script src="js/tools-transform.js"></script>
-<script src="js/tools-effects.js"></script>
-<script src="js/menu-bar.js"></script>
-<script src="js/gcode-preview.js"></script>
-<script src="js/simulator-3d.js"></script>
-<script src="js/simulator-three.js"></script>
-<script src="js/file-importer.js"></script>
-<script src="js/ui-controls.js"></script>
-<script src="js/machine-control.js"></script>
-<script src="js/tools-rail-flyout.js"></script>
-<script src="js/tools-dock.js"></script>
-<script src="js/ui-polish.js"></script>
-<script src="js/payments.js"></script>
-<script src="js/app.js"></script>
+<!-- حزمة الواجهة: تجمع supabase-auth + المحرك المشترك + كل سكربتات js بنفس الترتيب.
+     تُولَّد عند إقلاع الخادم (scripts/build-web.js). طلب واحد بدل ~31. -->
+<script src="/dist/app.bundle.js"></script>
 <script>
 // PWA: تسجيل Service Worker للعمل دون اتصال + تحديث تلقائي فوري
 if ('serviceWorker' in navigator) {
