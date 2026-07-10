@@ -65,7 +65,7 @@ body {
   border-bottom: 2px solid var(--border);
   flex-shrink: 0;
   flex-wrap: nowrap;
-  height: 44px;
+  height: 54px;
   position: relative;
   z-index: 3000; /* القوائم المنسدلة فوق كل شيء */
 }
@@ -107,8 +107,8 @@ body {
   border: none;
   color: var(--text2);
   font-family: inherit;
-  font-size: 12.5px;
-  padding: 5px 11px;
+  font-size: 13.5px;
+  padding: 8px 13px;
   border-radius: var(--radius);
   cursor: pointer;
   transition: all var(--trans);
@@ -1089,6 +1089,57 @@ dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(2px); }
    Machine Control Panel
    ══════════════════════════════════ */
 .modal-wide { min-width: min(600px, 92vw); max-width: 680px; }
+
+/* ══════════ إضافات: نافذة تضمين + نوافذ الأدوات ══════════ */
+/* نافذة التضمين (iframe): تملأ معظم الشاشة كتطبيق منبثق */
+dialog.ext-embed {
+  width: min(1180px, 94vw);
+  height: min(88vh, 900px);
+  max-width: 94vw;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ext-embed-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; background: var(--bg3);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.ext-embed-title { font-weight: 600; font-size: 14px; color: var(--text); }
+.ext-embed-actions { display: flex; gap: 8px; }
+.ext-embed-btn {
+  background: var(--bg4); border: 1px solid var(--border2); color: var(--text2);
+  font-family: inherit; font-size: 12.5px; padding: 6px 12px; border-radius: 6px;
+  cursor: pointer; text-decoration: none; transition: all var(--trans);
+}
+.ext-embed-btn:hover { background: var(--bg2); color: var(--text); border-color: var(--accent); }
+.ext-embed-frame { flex: 1; width: 100%; border: 0; background: #fff; }
+
+/* نوافذ الأدوات الحسابية */
+.ext-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ext-table td { padding: 9px 6px; border-bottom: 1px solid var(--border); color: var(--text2); }
+.ext-table td:last-child { text-align: left; color: var(--text); }
+.ext-table tr:last-child td { border-bottom: 0; }
+.ext-table .ext-total td { border-top: 2px solid var(--border2); font-size: 15px; padding-top: 12px; }
+.ext-note { margin-top: 12px; font-size: 12px; color: var(--text3); line-height: 1.6; }
+.ext-form { display: flex; flex-direction: column; gap: 12px; }
+.ext-form.ext-form-row { flex-direction: row; gap: 8px; }
+.ext-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text2); }
+.ext-form input, .ext-form select {
+  background: var(--bg1); border: 1px solid var(--border2); color: var(--text);
+  font-family: inherit; font-size: 14px; padding: 8px 10px; border-radius: 6px;
+}
+.ext-form input:focus, .ext-form select:focus { border-color: var(--accent); outline: none; }
+.ext-result {
+  margin-top: 16px; padding: 14px; text-align: center; font-size: 16px; font-weight: 600;
+  color: var(--accent-h); background: var(--bg1); border-radius: 8px; border: 1px solid var(--border);
+}
+#_ext-modal .btn-primary, #_ext-modal .btn-dl {
+  background: var(--accent); border: 1px solid var(--accent); color: #fff;
+  font-family: inherit; font-size: 13.5px; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+}
+#_ext-modal .btn-primary:hover { background: var(--accent-h); }
 
 .mc-section {
   padding: 10px 0;

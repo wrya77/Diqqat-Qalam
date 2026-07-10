@@ -91,10 +91,22 @@
     'tool-validate': () => document.getElementById('btn-validate-gcode')?.click(),
     'tool-library':  () => document.getElementById('btn-tool-library')?.click(),
     'tool-machine':  () => document.getElementById('btn-machine-panel')?.click(),
-    'tool-feeds':       () => window.open('/feeds', '_blank', 'noopener'),
-    'tool-quote':       () => window.open('/quote', '_blank', 'noopener'),
-    'tool-calligraphy': () => window.open('/calligraphy', '_blank', 'noopener'),
+    'tool-feeds':       () => window.Extras?.openEmbed('/feeds', 'حاسبة السرعات والتغذية'),
+    'tool-quote':       () => window.Extras?.openEmbed('/quote', 'مولّد عروض الأسعار'),
+    'tool-calligraphy': () => window.Extras?.openEmbed('/calligraphy', 'محرك الخط العربي'),
     'tool-upgrade':  () => document.getElementById('btn-upgrade')?.click(),
+
+    // إضافات — أدوات مضمّنة + إنتاجية CNC
+    'ext-feeds':       () => window.Extras?.openEmbed('/feeds', 'حاسبة السرعات والتغذية'),
+    'ext-quote':       () => window.Extras?.openEmbed('/quote', 'مولّد عروض الأسعار'),
+    'ext-calligraphy': () => window.Extras?.openEmbed('/calligraphy', 'محرك الخط العربي'),
+    'ext-stats':     () => window.Extras?.stats(),
+    'ext-runtime':   () => window.Extras?.runtime(),
+    'ext-cost':      () => window.Extras?.cost(),
+    'ext-units':     () => window.Extras?.units(),
+    'ext-intersect': () => window.Extras?.intersect(),
+    'ext-optimize':  () => window.Extras?.optimizeOrder(),
+    'ext-preflight': () => window.app?.preflight(),
   };
 
   function toggleCheck(id) {
