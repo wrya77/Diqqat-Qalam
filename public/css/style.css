@@ -878,6 +878,9 @@ dialog {
   min-width: 380px;
   max-width: 90vw;
   box-shadow: var(--shadow);
+  /* توسيط النافذة في وسط الشاشة: إعادة margin:auto التي ألغاها المُصفِّر العام
+     (* { margin:0 }) — بها يتوسّط <dialog> المشروط أفقياً ورأسياً بدل الالتصاق بالأعلى */
+  margin: auto;
 }
 dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(2px); }
 
