@@ -28,12 +28,33 @@ class DiqqatQalamApp {
     this._bindMain();
     this._checkServer();
 
+    // تحميل تصميم من مكتبة التصاميم (إذا أحضره المستخدم من /library)
+    this._loadLibraryTemplate();
+
     // استرجاع التصميم المحفوظ تلقائياً من الجلسة السابقة
     if (this.editor && this.editor.restoreAutosave()) {
       this.toast('📂 تم استرجاع تصميمك السابق تلقائياً', 'info');
     }
 
     console.log('✏ دقة قلم — Diqqat Qalam v1.1 ready');
+  }
+
+  _loadLibraryTemplate() {
+    try {
+      const raw = sessionStorage.getItem('dq_library_import');
+      if (!raw) return;
+      sessionStorage.removeItem('dq_library_import');
+      const { name, svgText } = JSON.parse(raw);
+      if (!svgText || !this.editor) return;
+      const parser = new SVGParser();
+      const shapes = parser.parse(svgText);
+      if (!shapes.length) { this.toast('لم يُتعرَّف على أشكال في التصميم', 'warn'); return; }
+      this.editor._saveHistory?.();
+      this.editor.addShapesFromSVG(shapes);
+      this.toast(`✅ "${name}" — تم تحميله من المكتبة`, 'success');
+    } catch (e) {
+      console.warn('[Library] import failed:', e.message);
+    }
   }
 
   _bindMain() {
@@ -423,18 +444,67 @@ class DiqqatQalamApp {
   }
 
   _showValidationResult(r) {
-    const lines = [];
-    if (r.errors?.length)   r.errors.forEach(e   => lines.push(`🔴 سطر ${e.line}: ${e.msg}`));
-    if (r.warnings?.length) r.warnings.forEach(w => lines.push(`🟡 سطر ${w.line}: ${w.msg}`));
-    if (!lines.length)      lines.push('✅ G-Code صحيح — لا أخطاء');
-    const msg = lines.slice(0, 5).join('\n') + (lines.length > 5 ? `\n...و${lines.length-5} أكثر` : '');
-    const type = r.errors?.length ? 'error' : r.warnings?.length ? 'warn' : 'success';
-    // Show as extended toast (or alert for now)
-    if (lines.length <= 3) {
-      lines.forEach(l => this.toast(l, type));
-    } else {
-      alert(msg);
+    const errors   = r.errors   || [];
+    const warnings = r.warnings || [];
+
+    // كل شيء سليم → إشعار سريع يكفي
+    if (!errors.length && !warnings.length) {
+      this.toast('✅ G-Code صحيح — لا أخطاء', 'success');
+      return;
     }
+    this._showValidationModal(errors, warnings);
+  }
+
+  /* مودال نتائج فحص G-Code — يعرض كل الأخطاء والتحذيرات (بلا اقتطاع) قابلاً للتمرير */
+  _showValidationModal(errors, warnings) {
+    document.getElementById('_gcode-validation')?.remove();
+
+    const row = (item, kind) => {
+      const color = kind === 'err' ? '#f85149' : '#d29922';
+      const icon  = kind === 'err' ? '🔴' : '🟡';
+      const line  = Number.isFinite(+item.line) ? `سطر ${+item.line}` : '';
+      return `<li style="display:flex;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border,#22262e);align-items:flex-start;line-height:1.55">
+        <span>${icon}</span>
+        <span style="flex:1;font-size:13px;color:var(--text,#e6edf3)">${esc(item.msg)}</span>
+        ${line ? `<span style="font-size:11px;color:${color};white-space:nowrap;font-variant-numeric:tabular-nums">${line}</span>` : ''}
+      </li>`;
+    };
+
+    const headTone = errors.length ? '#f85149' : '#d29922';
+    const headText = errors.length
+      ? `${errors.length} خطأ${warnings.length ? ` و${warnings.length} تحذير` : ''}`
+      : `${warnings.length} تحذير`;
+
+    const wrap = document.createElement('div');
+    wrap.id = '_gcode-validation';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(4,6,12,.62);display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
+    wrap.innerHTML = `
+      <div style="background:var(--panel,#0d1117);border:1px solid var(--border,#22262e);border-radius:16px;max-width:520px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:inherit;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border,#22262e)">
+          <span style="font-size:20px">🧪</span>
+          <div style="flex:1">
+            <h3 style="margin:0;font-size:16px;color:var(--text,#e6edf3)">نتيجة فحص G-Code</h3>
+            <span style="font-size:12px;color:${headTone}">${headText}</span>
+          </div>
+          <button id="_gv-close" title="إغلاق" style="background:transparent;border:0;color:var(--text2,#9aa4b2);font-size:20px;cursor:pointer;line-height:1;padding:4px 8px">✕</button>
+        </div>
+        <ul style="margin:0;padding:0;list-style:none;overflow-y:auto;flex:1">
+          ${errors.map(e => row(e, 'err')).join('')}
+          ${warnings.map(w => row(w, 'warn')).join('')}
+        </ul>
+        <div style="padding:12px 20px;border-top:1px solid var(--border,#22262e);text-align:left">
+          <button id="_gv-ok" style="padding:9px 22px;border-radius:10px;border:0;background:var(--accent,#3b82f6);color:#fff;cursor:pointer;font:inherit;font-weight:700">حسناً</button>
+        </div>
+      </div>`;
+
+    const close = () => wrap.remove();
+    wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+    document.body.appendChild(wrap);
+    wrap.querySelector('#_gv-close').addEventListener('click', close);
+    wrap.querySelector('#_gv-ok').addEventListener('click', close);
+    document.addEventListener('keydown', function esc2(ev) {
+      if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', esc2); }
+    });
   }
 
   /* ══ HELPERS ══ */
@@ -570,6 +640,7 @@ class DiqqatQalamApp {
 
   /* ══ PROJECTS ══ */
   async _openProjects() {
+    if (typeof AuthManager !== 'undefined' && !AuthManager.requireLogin('الوصول لمشاريعك السحابية')) return;
     const dlg  = document.getElementById('dlg-projects');
     const list = document.getElementById('project-list');
     if (!dlg || !list) return;
@@ -607,6 +678,7 @@ class DiqqatQalamApp {
   }
 
   async _saveProject() {
+    if (typeof AuthManager !== 'undefined' && !AuthManager.requireLogin('حفظ مشاريعك في السحابة')) return;
     const name = document.getElementById('save-project-name')?.value?.trim();
     if (!name) { this.toast('أدخل اسم المشروع', 'warn'); return; }
     const shapes = this.editor?.getShapes() || [];
