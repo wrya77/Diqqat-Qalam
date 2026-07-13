@@ -275,6 +275,8 @@
     <div class="menu">
       <button class="menu-btn">أدوات</button>
       <div class="menu-drop">
+        <button class="mi" data-act="cmd-palette">🔎 لوحة الأوامر <span class="mi-key">Ctrl+K</span></button>
+        <div class="mi-sep"></div>
         <button class="mi" data-act="tool-preflight">✅ فحص الجاهزية قبل التشغيل…</button>
         <button class="mi" data-act="tool-validate">التحقق من G-Code</button>
         <div class="mi-sep"></div>
@@ -370,6 +372,17 @@
 
     <!-- أدوات مساعدة — ثابتة في الصفحة (لا تعتمد على أي سكربت) -->
     <!-- أدوات المساعدة (السرعات · الأسعار · الخط) صارت في مكان واحد: قائمة «إضافات» بالشريط الرئيسي -->
+
+    <details class="section" open>
+      <summary class="sec-title">🗂 الطبقات</summary>
+      <div id="layers-panel">
+        <div class="lyr-toolbar">
+          <span class="lyr-hint">نظّم الأشكال: قطع · نقش · تخطيط</span>
+          <button id="layer-add" type="button">＋ طبقة</button>
+        </div>
+        <div id="layers-list"></div>
+      </div>
+    </details>
 
     <details class="section" open>
       <summary class="sec-title">🔩 الأداة</summary>
@@ -1615,7 +1628,9 @@
 <script defer src="js/tools-vector-pro.js"></script>
 <script defer src="js/tools-illustrator.js"></script>
 <script defer src="js/tools-cnc-invent.js"></script>
+<script defer src="js/layers-panel.js"></script>
 <script defer src="js/menu-bar.js"></script>
+<script defer src="js/command-palette.js"></script>
 <script defer src="js/gcode-preview.js"></script>
 <script defer src="js/simulator-2d.js"></script>
 <script defer src="js/simulator-three.js"></script>

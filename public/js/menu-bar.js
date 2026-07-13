@@ -123,6 +123,7 @@
     'fx-shadow':    () => ed()?.applyEffect('shadow'),
 
     // أدوات
+    'cmd-palette':   () => window.CommandPalette?.open(),
     'tool-preflight':() => window.app?.preflight(),
     'tool-presets':  () => document.getElementById('btn-presets')?.click(),
     'tool-validate': () => document.getElementById('btn-validate-gcode')?.click(),
