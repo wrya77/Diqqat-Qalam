@@ -977,7 +977,7 @@ class CanvasEditor {
     ctx.beginPath(); ctx.lineCap='round'; ctx.lineJoin='round';
     switch(s.type){
       case 'line': { const a=this._wToS(s.x1,s.y1),b=this._wToS(s.x2,s.y2); ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y); break; }
-      case 'rect': { const p=this._wToS(s.x,s.y); ctx.rect(p.x,p.y,s.w*this.scale,s.h*this.scale); break; }
+      case 'rect': { const p=this._wToS(s.x,s.y+s.h); ctx.rect(p.x,p.y,s.w*this.scale,s.h*this.scale); break; }
       case 'circle': { const c=this._wToS(s.cx,s.cy); ctx.arc(c.x,c.y,s.r*this.scale,0,Math.PI*2); break; }
       case 'ellipse': { const c=this._wToS(s.cx,s.cy); ctx.ellipse(c.x,c.y,(s.rx||1)*this.scale,(s.ry||1)*this.scale,0,0,Math.PI*2); break; }
       case 'arc': { const c=this._wToS(s.cx,s.cy); ctx.arc(c.x,c.y,s.r*this.scale,-s.startAngle,-s.endAngle,s.clockwise); break; }
@@ -1048,7 +1048,7 @@ class CanvasEditor {
     const {ctx}=this;
     switch(this.tool){
       case 'line': { const a=this._wToS(start.x,start.y),b=this._wToS(end.x,end.y); ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke(); break; }
-      case 'rect': { const p=this._wToS(Math.min(start.x,end.x),Math.min(start.y,end.y)); ctx.beginPath();ctx.strokeRect(p.x,p.y,Math.abs(end.x-start.x)*this.scale,Math.abs(end.y-start.y)*this.scale); break; }
+      case 'rect': { const p=this._wToS(Math.min(start.x,end.x),Math.max(start.y,end.y)); ctx.beginPath();ctx.strokeRect(p.x,p.y,Math.abs(end.x-start.x)*this.scale,Math.abs(end.y-start.y)*this.scale); break; }
       case 'circle': { const c=this._wToS(start.x,start.y); ctx.beginPath();ctx.arc(c.x,c.y,Math.hypot(end.x-start.x,end.y-start.y)*this.scale,0,Math.PI*2);ctx.stroke(); break; }
       case 'ellipse': { const c=this._wToS(start.x,start.y),rx=Math.abs(end.x-start.x)*this.scale,ry=Math.abs(end.y-start.y)*this.scale; if(rx>0.1&&ry>0.1){ctx.beginPath();ctx.ellipse(c.x,c.y,rx,ry,0,0,Math.PI*2);ctx.stroke();} break; }
       case 'arc': { const c=this._wToS(start.x,start.y); ctx.beginPath();ctx.arc(c.x,c.y,Math.hypot(end.x-start.x,end.y-start.y)*this.scale,0,-Math.PI*1.5,true);ctx.stroke(); break; }

@@ -311,6 +311,9 @@
     origOnDown.call(this, e);
   };
 
+  // واجهة عامة لمحرك النقش — تستعملها أدوات النص على مسار والترقيم التلقائي
+  P._textToStrokes = function (text, heightMM) { return textToStrokes(text, heightMM); };
+
   P._insertText = function () {
     const txt    = (document.getElementById('text-input')?.value || '').trim();
     const height = Math.max(1, parseFloat(document.getElementById('text-height')?.value) || 10);
