@@ -175,6 +175,14 @@
         <button class="mi" data-act="vp-blend">⇶ مزج بين شكلين…</button>
         <button class="mi" data-act="vp-polar">✳ مصفوفة قطبية…</button>
         <div class="mi-sep"></div>
+        <div class="mi-label">Illustrator</div>
+        <button class="mi" data-act="il-group">⧉ تجميع <span class="mi-key">Ctrl+G</span></button>
+        <button class="mi" data-act="il-ungroup">⧉ فك التجميع <span class="mi-key">Ctrl+Shift+G</span></button>
+        <button class="mi" data-act="il-same">⭐ تحديد المتشابه (عصا سحرية)</button>
+        <button class="mi" data-act="il-shear">⧨ قص / إمالة Shear…</button>
+        <button class="mi" data-act="il-typepath">〰 نص على مسار…</button>
+        <button class="mi" data-act="il-vtype">↕ نص عمودي…</button>
+        <div class="mi-sep"></div>
         <div class="mi-label">محاذاة</div>
         <button class="mi" data-act="align-left">⫷ يسار</button>
         <button class="mi" data-act="align-hcenter">⊜ وسط أفقي</button>
@@ -208,6 +216,16 @@
         <button class="mi" data-act="cnc-centermark">✛ علامة مركز للمحدد</button>
         <button class="mi" data-act="cnc-bbox">⬚ مستطيل إحاطة</button>
         <button class="mi" data-act="cnc-unlock">🔓 فك قفل الكل</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">CNC+ (دقة قلم)</div>
+        <button class="mi" data-act="cv-dogbone">🦴 تفريغ الزوايا Dogbone…</button>
+        <button class="mi" data-act="cv-cutcheck">🔎 فاحص قابلية القطع…</button>
+        <button class="mi" data-act="cv-autonumber">🔢 ترقيم القطع تلقائياً…</button>
+        <button class="mi" data-act="cv-distribute">📿 توزيع على مسار…</button>
+        <button class="mi" data-act="cv-kerf">👁 معاينة عرض القاطع</button>
+        <button class="mi" data-act="cv-clampcheck">🗜 فحص تصادم الكلامب</button>
+        <button class="mi" data-act="cv-time">⏱ تقدير زمن القطع…</button>
+        <button class="mi" data-act="cv-sheet">▦ تقرير استغلال اللوح…</button>
       </div>
     </div>
 
@@ -661,6 +679,28 @@
         </button>
         <button class="tr-btn" data-tool="ruler" title="مسطرة — قياس مسافة/زاوية">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="2" y="7" width="16" height="6" transform="rotate(-20 10 10)"/><path d="M6 8v2M9 7v2.5M12 6v2.5M15 5v2"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="magic-wand" title="العصا السحرية [Shift+W] — تحديد كل الأشكال المتشابهة (Alt = النوع فقط)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 16 L12 8"/><path d="M13 7l1.5-1.5"/><path d="M15 2v2M15 8v2M12 5h2M18 5h-2M16.8 3.2l-1 1M16.8 6.8l-1-1"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="shape-builder" title="منشئ الأشكال [Shift+M] — اسحب عبر أشكال متداخلة لدمجها (Alt = طرح)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="10" r="5.5"/><circle cx="13" cy="10" r="5.5"/><path d="M4 4 L17 16" stroke-dasharray="2.5 2" stroke-width="1.3"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="reshape" title="إعادة التشكيل [Shift+R] — سحب ناعم لجزء من المسار">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2 14 C6 14 7 6 10 6 C13 6 14 14 18 14"/><circle cx="10" cy="6" r="1.8" fill="currentColor"/><path d="M10 4V1.5M8.8 2.5L10 1.5l1.2 1"/></svg>
+        </button>
+
+        <!-- ── GROUP CNC+: أدوات دقة قلم المبتكرة ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">CNC+</div>
+        <button class="tr-btn" data-tool="depth-paint" title="رسّام العمق — انقر الأشكال لتعيين عمق مستقل لكل شكل (Alt = مسح، نقرة يمنى = تغيير العمق)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 3h12"/><path d="M6 3v4h8V3"/><path d="M10 7v4"/><path d="M7 11h6v6H7z" fill="currentColor" fill-opacity=".25"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="puzzle-joint" title="مفصل الأحجية — نقرتان ترسمان خط تعشيق Jigsaw يقسم اللوح لقطعتين متعاشقتين">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M2 10 h4 a2.2 2.2 0 1 0 3 -2 v-1 a2.2 2.2 0 1 1 3 -2 h6"/><path d="M2 10 h4 a2.2 2.2 0 1 1 3 2 v1 a2.2 2.2 0 1 0 3 2 h6" opacity=".45"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="clamp-zone" title="منطقة كلامب محظورة — اسحب مستطيلاً فوق موضع المشبك؛ يُستثنى من G-Code ويحذّر من التصادم">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="6" width="14" height="10" stroke-dasharray="3 2"/><path d="M7 6V3h6v3"/><path d="M9 3v-1.5M11 3v-1.5"/></svg>
         </button>
 
         <!-- ── GROUP 3: أشكال أساسية ── -->
@@ -1551,6 +1591,8 @@
 <script defer src="js/tools-transform.js"></script>
 <script defer src="js/tools-effects.js"></script>
 <script defer src="js/tools-vector-pro.js"></script>
+<script defer src="js/tools-illustrator.js"></script>
+<script defer src="js/tools-cnc-invent.js"></script>
 <script defer src="js/menu-bar.js"></script>
 <script defer src="js/gcode-preview.js"></script>
 <script defer src="js/simulator-2d.js"></script>

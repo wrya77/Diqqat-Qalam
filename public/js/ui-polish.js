@@ -132,6 +132,9 @@
       frame:'إطار', arc3:'قوس 3 نقاط', honeycomb:'خلايا نحل', 'living-hinge':'مفصل مرن',
       'finger-joint':'وصلة أصابع', voronoi:'فورونوي', maze:'متاهة', starburst:'نجمة شعاعية',
       hatch:'هاشير', lattice:'شبكة', 'wave-fill':'تعبئة موجية', 'tab-slot':'وصلة تابس',
+      'magic-wand':'عصا سحرية', 'shape-builder':'منشئ الأشكال', reshape:'إعادة تشكيل',
+      'depth-paint':'رسّام العمق', 'puzzle-joint':'مفصل أحجية', 'clamp-zone':'منطقة كلامب',
+      scissors:'مقص', 'mirror-line':'انعكاس حول محور', eyedropper:'قطّارة', ruler:'مسطرة',
     };
     const origSetTool = P.setTool;
     P.setTool = function (t) {

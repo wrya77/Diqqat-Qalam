@@ -108,10 +108,17 @@ class GCodeGenerator {
       }
 
       shapes.forEach((shape, idx) => {
-        if (this.config.addComments) {
-          allLines.push(`; --- الشكل ${idx + 1}/${shapes.length}: ${shape.type} ---`);
+        // عمق مخصص للشكل (رسّام العمق): يُقصّ عنده ويُتخطى الشكل في الطبقات الأعمق
+        let shapeDepth = depth;
+        if (shape.maxDepth > 0) {
+          const target = Math.min(shape.maxDepth, this.config.totalDepth);
+          if ((pass - 1) * this.config.passDepth >= target - 1e-9) return;
+          shapeDepth = -Math.min(pass * this.config.passDepth, target);
         }
-        const shapeLines = this._toolpath.generateShape(shape, depth);
+        if (this.config.addComments) {
+          allLines.push(`; --- الشكل ${idx + 1}/${shapes.length}: ${shape.type}${shape.maxDepth > 0 ? ` (عمق مخصص ${shape.maxDepth}mm)` : ''} ---`);
+        }
+        const shapeLines = this._toolpath.generateShape(shape, shapeDepth);
         allLines.push(...shapeLines);
       });
     }
