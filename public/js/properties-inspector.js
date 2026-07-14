@@ -22,9 +22,11 @@
   };
 
   /* فهارس التحديد: مفرد selectedIdx أو متعدد msel */
+  /* نُصفّي الفهارس الميتة (تبقى في msel/selectedIdx بعد الحذف) كي لا يُستدعى _bounds(undefined) */
   function selIdxs(e) {
-    if (e.msel && e.msel.size) return [...e.msel];
-    return e.selectedIdx >= 0 ? [e.selectedIdx] : [];
+    const valid = i => i >= 0 && i < e.shapes.length && e.shapes[i];
+    if (e.msel && e.msel.size) return [...e.msel].filter(valid);
+    return valid(e.selectedIdx) ? [e.selectedIdx] : [];
   }
 
   /* الصندوق الحاوي المجمّع لعدة أشكال */
