@@ -45,8 +45,8 @@
       ctx.save(); ctx.globalAlpha = (ctx.globalAlpha || 1) * 0.45; ctx.setLineDash([4, 3]);
       origDraw.call(this, s); ctx.restore(); return;
     }
-    // تلوين بلون الطبقة (إلا المحدد فيبقى بلون التحديد)
-    if (!sel && L.color) { ctx.save(); ctx.strokeStyle = L.color; origDraw.call(this, s); ctx.restore(); return; }
+    // تلوين بلون الطبقة (إلا المحدد فيبقى بلون التحديد، وإلا شكلاً له لون خاص من نظام الألوان)
+    if (!sel && L.color && !s.stroke) { ctx.save(); ctx.strokeStyle = L.color; origDraw.call(this, s); ctx.restore(); return; }
     origDraw.call(this, s);
   };
 

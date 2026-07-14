@@ -891,7 +891,7 @@ class CanvasEditor {
       const aiHL = this._aiHighlights && this._aiHighlights.has(i);
 
       if(aiHL){ ctx.shadowColor='rgba(255,211,61,.35)'; ctx.shadowBlur=12; ctx.strokeStyle='#ffd33d'; ctx.lineWidth=3; }
-      else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':'#2f81f7'; ctx.lineWidth=sel?2:1.5; }
+      else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':(s.stroke||'#2f81f7'); ctx.lineWidth=sel?2:1.5; }
 
       ctx.setLineDash([]);
       this._drawShape(s);
@@ -1012,6 +1012,10 @@ class CanvasEditor {
         }
         break;
       }
+    }
+    // تعبئة اختيارية (نظام الألوان) — evenodd كي تبقى فجوات compound فارغة
+    if(s.fill && s.type!=='line'){
+      ctx.save(); ctx.fillStyle=s.fill; ctx.globalAlpha=(ctx.globalAlpha||1)*0.3; ctx.fill('evenodd'); ctx.restore();
     }
     ctx.stroke();
     this._drawDimLabel(s);
