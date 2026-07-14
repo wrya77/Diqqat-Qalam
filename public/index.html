@@ -378,6 +378,8 @@
 
     <!-- الطبقات صارت لوحة عائمة مستقلة فوق الكانفس — انظر layers-float.js -->
 
+    <div class="sec-group-label">الشكل المحدد</div>
+
     <details class="section" open id="props-section">
       <summary class="sec-title">📐 الخصائص</summary>
       <div id="props-empty" class="props-empty">حدّد شكلاً لعرض خصائصه وتحريرها</div>
@@ -394,14 +396,7 @@
       </div>
     </details>
 
-    <details class="section" id="versions-section">
-      <summary class="sec-title">🕓 سجل النسخ</summary>
-      <div class="ver-toolbar">
-        <span class="ver-hint">لقطات تلقائية + يدوية — استرجعها بنقرة</span>
-        <button id="ver-save" type="button">💾 احفظ نسخة</button>
-      </div>
-      <div id="versions-list"></div>
-    </details>
+    <div class="sec-group-label">إعداد القطع</div>
 
     <details class="section" open>
       <summary class="sec-title">🔩 الأداة</summary>
@@ -471,8 +466,10 @@
       </label>
     </details>
 
+    <div class="sec-group-label">متقدّم</div>
+
     <details class="section">
-      <summary class="sec-title">📐 الإحداثيات</summary>
+      <summary class="sec-title">🎯 الإحداثيات</summary>
       <label>وحدة القياس
         <select id="units">
           <option value="mm">ميلليمتر mm</option>
@@ -510,7 +507,7 @@
     </details>
 
     <details class="section">
-      <summary class="sec-title">🖥 ملف الآلة</summary>
+      <summary class="sec-title">⚙️ ملف الآلة</summary>
       <select id="machine-profile">
         <option value="">مخصص...</option>
         <option value="generic">Generic CNC</option>
@@ -546,8 +543,10 @@
       <label class="toggle-row"><input type="checkbox" id="line-numbers"><span>أرقام الأسطر</span></label>
     </details>
 
+    <div class="sec-group-label">التطبيق</div>
+
     <details class="section">
-      <summary class="sec-title">🖥 الواجهة</summary>
+      <summary class="sec-title">🎨 الواجهة</summary>
       <label class="ui-scale-row">حجم الواجهة
         <span class="ui-scale-wrap">
           <input type="range" id="ui-scale" min="85" max="130" step="5" value="100">
@@ -555,6 +554,15 @@
         </span>
       </label>
       <p class="hint-sm">يكبّر الأشرطة والقوائم دون التأثير على دقة لوحة الرسم.</p>
+    </details>
+
+    <details class="section" id="versions-section">
+      <summary class="sec-title">🕓 سجل النسخ</summary>
+      <div class="ver-toolbar">
+        <span class="ver-hint">لقطات تلقائية + يدوية — استرجعها بنقرة</span>
+        <button id="ver-save" type="button">💾 احفظ نسخة</button>
+      </div>
+      <div id="versions-list"></div>
     </details>
 
   </aside>
