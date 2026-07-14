@@ -85,6 +85,132 @@ class UIControls {
     if (!this._devicePollInterval) this._devicePollInterval = setInterval(()=>this._updateDeviceStatus(), 2500);
     // عند العودة للتبويب: حدّث فوراً بدل انتظار الدورة التالية
     document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) this._updateDeviceStatus(); });
+
+    // تخطيط سطح المكتب: طيّ/تحجيم لوحة الإعدادات + تلميحات مفاتيح الأدوات
+    this._initSettingsPanelLayout();
+    this._initToolKeyTips();
+  }
+
+  /* ═══ لوحة إعدادات قابلة للطيّ والتحجيم (سطح المكتب >1024px فقط) ═══
+     تعديل عمود الشبكة الثالث مباشرة على .app-layout — بلا تحويلها إلى flex.
+     الكانفس يتقلّص/يتمدّد تلقائياً عبر ResizeObserver القائم في canvas-editor. */
+  _initSettingsPanelLayout() {
+    const panel = document.querySelector('.settings-panel');
+    const layout = document.querySelector('.app-layout');
+    if (!panel || !layout) return;
+    const isDesktop = () => window.innerWidth > 1024;
+
+    // العمود الأيسر الحالي (يحترم نقاط التوقّف: 240/220) والعرض الافتراضي
+    const leftCol = () => (getComputedStyle(layout).gridTemplateColumns.split(' ')[0] || '240px');
+    const DEF_W = 400, MIN_W = 280, MAX_W = 520;
+    let width = Math.min(MAX_W, Math.max(MIN_W, +localStorage.getItem('dq-sp-width') || DEF_W));
+    let collapsed = localStorage.getItem('dq-sp-collapsed') === '1';
+
+    const applyCols = () => {
+      if (!isDesktop()) { layout.style.gridTemplateColumns = ''; return; }   // اترك الأدراج للـ CSS
+      layout.style.gridTemplateColumns = collapsed
+        ? `${leftCol()} 1fr 0px`
+        : `${leftCol()} 1fr ${width}px`;
+    };
+
+    // زر الطيّ اللاصق أعلى اللوحة
+    const toggle = document.createElement('button');
+    toggle.className = 'sp-toggle-btn'; toggle.type = 'button';
+    toggle.innerHTML = `<span class="sp-chev">⟩</span><span>طيّ اللوحة</span>`;
+    panel.prepend(toggle);
+
+    // مقبض التحجيم على الحافة اليسرى
+    const handle = document.createElement('div');
+    handle.className = 'sp-resize-handle';
+    handle.title = 'اسحب لتغيير عرض اللوحة';
+    panel.appendChild(handle);
+
+    // لسان إعادة الفتح عند الطيّ
+    const reopen = document.createElement('button');
+    reopen.className = 'sp-reopen'; reopen.type = 'button';
+    reopen.innerHTML = `<span>⟨</span><span>الإعدادات</span>`;
+    document.body.appendChild(reopen);
+
+    const syncCollapsedUI = () => {
+      layout.classList.toggle('sp-collapsed', collapsed);
+      reopen.classList.toggle('show', collapsed && isDesktop());
+      toggle.querySelector('.sp-chev').style.transform = collapsed ? 'rotate(180deg)' : '';
+      applyCols();
+    };
+
+    const setCollapsed = v => {
+      collapsed = v; localStorage.setItem('dq-sp-collapsed', v ? '1' : '0'); syncCollapsedUI();
+    };
+    toggle.addEventListener('click', () => setCollapsed(true));
+    reopen.addEventListener('click', () => setCollapsed(false));
+
+    // السحب لتغيير العرض
+    let dragging = false;
+    handle.addEventListener('mousedown', e => {
+      if (!isDesktop() || collapsed) return;
+      dragging = true; handle.classList.add('active'); layout.classList.add('sp-resizing');
+      document.body.style.cursor = 'ew-resize'; document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      // اللوحة على اليمين: عرضها = عرض الشاشة − موضع المؤشّر
+      width = Math.min(MAX_W, Math.max(MIN_W, window.innerWidth - e.clientX));
+      layout.style.gridTemplateColumns = `${leftCol()} 1fr ${width}px`;
+    });
+    window.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false; handle.classList.remove('active'); layout.classList.remove('sp-resizing');
+      document.body.style.cursor = ''; document.body.style.userSelect = '';
+      localStorage.setItem('dq-sp-width', String(Math.round(width)));
+    });
+
+    // إعادة الضبط عند عبور نقطة التوقّف بين سطح المكتب والأدراج
+    window.addEventListener('resize', () => { syncCollapsedUI(); });
+
+    syncCollapsedUI();
+  }
+
+  /* ═══ تلميحات مفاتيح لأدوات الرسم — عنصر على مستوى body يتجاوز قصّ الشريط ═══
+     يزيل title من الأزرار السبعة كي لا يتضاعف مع نظام تلميحات ui-polish. */
+  _initToolKeyTips() {
+    const KEYS = { select:'V', line:'L', rect:'R', circle:'C', arc:'A', polyline:'P', freehand:'F' };
+    const btns = [];
+    document.querySelectorAll('.tr-btn[data-tool]').forEach(b => {
+      const key = KEYS[b.dataset.tool];
+      if (!key) return;
+      const raw = (b.getAttribute('title') || '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+      b.dataset.name = raw || b.dataset.tool;
+      b.dataset.key = key;
+      if (!b.hasAttribute('aria-label')) b.setAttribute('aria-label', `${b.dataset.name} (${key})`);
+      b.removeAttribute('title');   // يمنع تلميح المتصفح + تلميح ui-polish المزدوج
+      btns.push(b);
+    });
+    if (!btns.length) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'trkey-tip';
+    document.body.appendChild(tip);
+    let showTimer;
+
+    const show = b => {
+      tip.innerHTML = `<span>${escHtml(b.dataset.name)}</span><kbd>${escHtml(b.dataset.key)}</kbd>`;
+      tip.classList.add('on');
+      const r = b.getBoundingClientRect();
+      const tr = tip.getBoundingClientRect();
+      // إلى يمين الشريط (الشريط يسار الشاشة)
+      let left = r.right + 8;
+      let top = r.top + r.height / 2 - tr.height / 2;
+      top = Math.max(6, Math.min(top, window.innerHeight - tr.height - 6));
+      tip.style.left = left + 'px'; tip.style.top = top + 'px';
+    };
+    const hide = () => { clearTimeout(showTimer); tip.classList.remove('on'); };
+
+    btns.forEach(b => {
+      b.addEventListener('mouseenter', () => { clearTimeout(showTimer); showTimer = setTimeout(() => show(b), 400); });
+      b.addEventListener('mouseleave', hide);
+      b.addEventListener('click', hide);
+    });
   }
 
   getConfig() {
