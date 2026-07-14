@@ -384,6 +384,22 @@
       </div>
     </details>
 
+    <details class="section" open id="props-section">
+      <summary class="sec-title">📐 الخصائص</summary>
+      <div id="props-empty" class="props-empty">حدّد شكلاً لعرض خصائصه وتحريرها</div>
+      <div id="props-body" style="display:none">
+        <div class="props-head"><span id="props-type">—</span><span id="props-count"></span></div>
+        <div class="props-grid">
+          <label>X (mm)<input type="number" id="prop-x" step="0.5"></label>
+          <label>Y (mm)<input type="number" id="prop-y" step="0.5"></label>
+          <label>العرض<input type="number" id="prop-w" step="0.5" min="0.1"></label>
+          <label>الارتفاع<input type="number" id="prop-h" step="0.5" min="0.1"></label>
+        </div>
+        <label class="props-lock"><input type="checkbox" id="prop-lock-aspect"><span>🔒 حفظ التناسب</span></label>
+        <label class="props-angle">الدوران (°)<input type="number" id="prop-angle" step="1" value="0"></label>
+      </div>
+    </details>
+
     <details class="section" open>
       <summary class="sec-title">🔩 الأداة</summary>
       <label>قطر الأداة (mm)
@@ -1645,6 +1661,7 @@
 <script defer src="js/layers-panel.js"></script>
 <script defer src="js/color-system.js"></script>
 <script defer src="js/color-tools.js"></script>
+<script defer src="js/properties-inspector.js"></script>
 <script defer src="js/menu-bar.js"></script>
 <script defer src="js/command-palette.js"></script>
 <script defer src="js/ui-scale.js"></script>
