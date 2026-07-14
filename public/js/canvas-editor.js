@@ -1013,12 +1013,32 @@ class CanvasEditor {
         break;
       }
     }
-    // تعبئة اختيارية (نظام الألوان) — evenodd كي تبقى فجوات compound فارغة
+    // تعبئة اختيارية (نظام الألوان) — لون مصمت أو تدرّج — evenodd لإبقاء فجوات compound فارغة
     if(s.fill && s.type!=='line'){
-      ctx.save(); ctx.fillStyle=s.fill; ctx.globalAlpha=(ctx.globalAlpha||1)*0.3; ctx.fill('evenodd'); ctx.restore();
+      ctx.save(); ctx.fillStyle=this._resolveFill(s.fill,s); ctx.globalAlpha=(ctx.globalAlpha||1)*0.35; ctx.fill('evenodd'); ctx.restore();
     }
     ctx.stroke();
     this._drawDimLabel(s);
+  }
+
+  // يحوّل وصف التعبئة إلى نمط canvas: نص لوني مصمت، أو تدرّج خطي/شعاعي
+  _resolveFill(fill, s){
+    if(typeof fill==='string') return fill;
+    if(!fill || !Array.isArray(fill.stops) || !fill.stops.length) return '#888';
+    const b=this._bounds(s);
+    const p1=this._wToS(b.minX,b.minY), p2=this._wToS(b.maxX,b.maxY);
+    const cx=(p1.x+p2.x)/2, cy=(p1.y+p2.y)/2;
+    let g;
+    if(fill.type==='radial'){
+      const r=Math.max(Math.abs(p2.x-p1.x),Math.abs(p2.y-p1.y))/2 || 1;
+      g=this.ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    } else {
+      const a=(fill.angle||0)*Math.PI/180, hw=Math.abs(p2.x-p1.x)/2, hh=Math.abs(p2.y-p1.y)/2;
+      const dx=Math.cos(a)*hw, dy=Math.sin(a)*hh;
+      g=this.ctx.createLinearGradient(cx-dx,cy-dy,cx+dx,cy+dy);
+    }
+    fill.stops.forEach(st=>{ try{ g.addColorStop(Math.max(0,Math.min(1,st.offset)),st.color); }catch(e){} });
+    return g;
   }
 
   /* ─── AI highlight helpers ─── */

@@ -53,10 +53,31 @@
     return e.selectedIdx >= 0 ? [e.selectedIdx] : [];
   }
 
-  /* ── تطبيق لون على خاصية (stroke|fill) ── */
+  /* ── الألوان الأخيرة (آخر 10 ألوان مصمتة مُطبَّقة) ── */
+  let recents = [];
+  try { recents = JSON.parse(localStorage.getItem('dq_recent_colors') || '[]'); } catch (e) { recents = []; }
+  function pushRecent(color) {
+    if (typeof color !== 'string' || !color) return;   // التدرّجات لا تُسجَّل
+    recents = [color, ...recents.filter(c => c !== color)].slice(0, 10);
+    localStorage.setItem('dq_recent_colors', JSON.stringify(recents));
+    renderRecents();
+  }
+  function renderRecents() {
+    const box = document.getElementById('clr-recents');
+    if (!box) return;
+    box.innerHTML = recents.map(c => `<button class="clr-sw" data-c="${c}" style="background:${c}"
+      title="${c} — أخير: يسرى خط · يمنى تعبئة"></button>`).join('') || '<span class="clr-recent-empty">—</span>';
+    box.querySelectorAll('.clr-sw').forEach(b => {
+      b.addEventListener('click', () => apply('stroke', b.dataset.c));
+      b.addEventListener('contextmenu', e => { e.preventDefault(); apply('fill', b.dataset.c); });
+    });
+  }
+
+  /* ── تطبيق لون على خاصية (stroke|fill) — color نصّ مصمت أو كائن تدرّج ── */
   function apply(prop, color) {
     const e = ed();
     if (!e) return;
+    pushRecent(color);
     const idxs = selIdxs(e);
     if (!idxs.length) {
       // بلا تحديد → افتراضي الأشكال الجديدة (كما يسأل CorelDraw)
@@ -131,6 +152,14 @@
       .clr-custom{width:20px;height:18px;padding:0;border:1px solid var(--border2,#3d444d);border-radius:3px;
         background:none;cursor:pointer;flex-shrink:0}
       .clr-hint{font-size:10px;color:var(--text3,#8b949e);margin-inline-start:auto;white-space:nowrap;flex-shrink:0}
+      .clr-div{color:var(--border2,#3d444d);flex-shrink:0;font-size:14px}
+      .clr-recents{display:flex;gap:4px;align-items:center;flex-shrink:0}
+      .clr-recent-empty{color:var(--text3,#8b949e);font-size:11px}
+      .clr-tools{display:flex;gap:4px;align-items:center;flex-shrink:0;margin-inline-start:6px}
+      .clr-toolbtn{width:22px;height:19px;border:1px solid var(--border2,#3d444d);border-radius:4px;
+        background:var(--bg2,#161b22);color:var(--text2,#b1bac4);cursor:pointer;font-size:12px;line-height:1;padding:0}
+      .clr-toolbtn:hover{color:var(--text,#e6edf3);border-color:var(--accent,#4f6ef7)}
+      .clr-toolbtn.armed{background:var(--accent,#4f6ef7);color:#fff;border-color:var(--accent,#4f6ef7)}
     `;
     document.head.appendChild(st);
   }
@@ -155,6 +184,9 @@
              title="لون مخصص: يُطبَّق على الخط — مع Shift على التعبئة">
       ${SWATCHES.map(c => `<button class="clr-sw" data-c="${c}" style="background:${c}"
              title="${c} — يسرى: خط · يمنى: تعبئة"></button>`).join('')}
+      <span class="clr-div" title="ألوان أخيرة">│</span>
+      <span class="clr-recents" id="clr-recents"></span>
+      <span class="clr-tools" id="clr-tools"></span>
       <span class="clr-hint">يسرى: خط │ يمنى: تعبئة</span>
     `;
     wrap.insertBefore(bar, footer);
@@ -185,10 +217,12 @@
     const origToolbar = P._updateShapeToolbar;
     P._updateShapeToolbar = function () { origToolbar?.call(this); syncIndicator(); };
     syncIndicator();
+    renderRecents();
+    document.dispatchEvent(new CustomEvent('colorbar:ready'));   // إشارة لأدوات اللون الإضافية
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
   else build();
 
-  window.ColorSystem = { apply, swap };
+  window.ColorSystem = { apply, swap, selIdxs: () => selIdxs(ed()), pushRecent };
 })();
