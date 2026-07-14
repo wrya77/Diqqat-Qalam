@@ -212,16 +212,23 @@ button:focus-visible,
   --bg1:       #ffffff;
   --bg2:       #f4f6f9;
   --bg3:       #eaeef3;
-  --bg4:       #dfe4ea;
-  --border:    #d0d7de;
-  --border2:   #c2cad3;
-  --text:      #1f2328;
-  --text2:     #454c54;
-  --text3:     #6a737d;
-  --accent:    #2f6ef7;
-  --accent-h:  #1a5cf0;
+  --bg4:       #dbe1e8;
+  --border:    #ccd4dd;
+  --border2:   #aeb8c4;   /* أغمق كي تُقرأ الفواصل والحدود */
+  --text:      #1a1e23;
+  --text2:     #3b434c;
+  --text3:     #56606b;   /* ≥4.5:1 على bg2/bg3 (كان فاتحاً جداً) */
+  --accent:    #1f6feb;
+  --accent-h:  #0a58ca;
+  --accent-soft: rgba(31,111,235,.12);   /* خلفية التحديد الفاتحة */
+  --green:     #1a7f37;   /* نسخ داكنة للحالات كي تُقرأ على الفاتح */
+  --red:       #cf222e;
+  --amber:     #9a6700;
+  --cyan:      #0969da;
+  --purple:    #8250df;
   --shadow:    0 8px 32px rgba(140,150,170,.28);
 }
+/* ملاحظة: منطقة كود G تبقى داكنة دائماً (كمحرّرات الكود) — انظر القسم 10 */
 /* شارة زر تبديل السمة */
 .theme-seg { display: inline-flex; border: 1px solid var(--border2, #3d444d); border-radius: 8px;
   overflow: hidden; margin-top: 4px; }
@@ -251,3 +258,27 @@ button:focus-visible,
   flex-shrink: 0; }
 .ver-btn.ver-restore:hover { color: var(--green, #3fb950); border-color: var(--green, #3fb950); }
 .ver-btn.ver-del:hover { color: var(--red, #f85149); border-color: var(--red, #f85149); }
+
+/* ═══════════════ 10) إصلاحات قراءة السمة الفاتحة ═══════════════ */
+/* منطقة كود G تبقى داكنة دائماً كمحرّرات الكود — فتعمل ألوان التلوين الزاهية */
+.gc-body { background: #0d1117; }
+.gc-pre  { color: #c9d1d9; }
+.gc-pre .g-rapid   { color: #ff7b72; }
+.gc-pre .g-cut     { color: #7ee787; }
+.gc-pre .g-arc     { color: #79c0ff; }
+.gc-pre .g-spindle { color: #d2a8ff; }
+.gc-pre .g-setup   { color: #e3b341; }
+.gc-pre .g-comment { color: #8b949e; font-style: italic; }
+.gc-placeholder { color: #8b949e; }
+
+/* إحداثيات X/Y ومساعد المحاكاة: كانا فاتحين جداً في السمة الفاتحة */
+:root[data-theme="light"] .coord-display { color: var(--cyan); }
+.sim-hint { color: var(--text3); }
+/* الفواصل الرأسية: أغمق قليلاً كي تُميَّز */
+.cf-div, .clr-div { color: var(--border2); }
+
+/* مفتاح «حيّ» المفعّل: نصّ الحالة بلون النصّ لا الأخضر-على-أخضر */
+.live-toggle:has(input:checked) {
+  color: var(--text); border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+}
