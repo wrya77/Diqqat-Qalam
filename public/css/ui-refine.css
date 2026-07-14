@@ -204,3 +204,29 @@ button:focus-visible,
 .props-lock input { accent-color: var(--accent, #4f6ef7); }
 .props-angle { display: flex; flex-direction: column; gap: 3px;
   font-size: 11px; color: var(--text2, #b1bac4); }
+
+/* ═══════════════ 8) السمة الفاتحة (ميزة #5) ═══════════════ */
+/* الواجهة كلها مبنية على متغيّرات CSS — تبديل السمة يعيد تلوينها تلقائياً */
+:root[data-theme="light"] {
+  --bg:        #eef1f5;
+  --bg1:       #ffffff;
+  --bg2:       #f4f6f9;
+  --bg3:       #eaeef3;
+  --bg4:       #dfe4ea;
+  --border:    #d0d7de;
+  --border2:   #c2cad3;
+  --text:      #1f2328;
+  --text2:     #454c54;
+  --text3:     #6a737d;
+  --accent:    #2f6ef7;
+  --accent-h:  #1a5cf0;
+  --shadow:    0 8px 32px rgba(140,150,170,.28);
+}
+/* شارة زر تبديل السمة */
+.theme-seg { display: inline-flex; border: 1px solid var(--border2, #3d444d); border-radius: 8px;
+  overflow: hidden; margin-top: 4px; }
+.theme-seg button { flex: 1; padding: 6px 10px; border: none; background: var(--bg2, #161b22);
+  color: var(--text2, #b1bac4); cursor: pointer; font-size: 12.5px; font-family: inherit; }
+.theme-seg button.on { background: var(--accent, #4f6ef7); color: #fff; }
+.theme-row { display: flex; flex-direction: column; gap: 4px; margin-top: 10px;
+  font-size: 11px; color: var(--text2, #b1bac4); }

@@ -879,8 +879,9 @@ class CanvasEditor {
   /* ────────── RENDER ────────── */
   render() {
     const {ctx,canvas} = this;
+    const t = this._canvasTheme || (this._canvasTheme = { bg:'#0d1117', grid:'#161b22', axis:'#21262d', label:'#30363d' });
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle='#0d1117';
+    ctx.fillStyle=t.bg;
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     if(this.showGrid) this._drawGrid();
@@ -956,7 +957,7 @@ class CanvasEditor {
     let step=gridSize*scale;
     if(step<0.1) return;
     while(step<8) step*=5;
-    ctx.strokeStyle='#161b22'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=(this._canvasTheme&&this._canvasTheme.grid)||'#161b22'; ctx.lineWidth=0.5;
     const startX=offset.x%step, startY=offset.y%step;
     for(let x=startX;x<canvas.width;x+=step){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke(); }
     for(let y=startY;y<canvas.height;y+=step){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke(); }
@@ -964,11 +965,12 @@ class CanvasEditor {
 
   _drawAxes() {
     const {ctx,canvas,offset}=this;
-    ctx.strokeStyle='#21262d'; ctx.lineWidth=1;
+    const t=this._canvasTheme||{};
+    ctx.strokeStyle=t.axis||'#21262d'; ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(0,offset.y);ctx.lineTo(canvas.width,offset.y);ctx.stroke();
     ctx.beginPath();ctx.moveTo(offset.x,0);ctx.lineTo(offset.x,canvas.height);ctx.stroke();
     const o=this._wToS(0,0);
-    ctx.fillStyle='#30363d'; ctx.font='10px monospace';
+    ctx.fillStyle=t.label||'#30363d'; ctx.font='10px monospace';
     ctx.fillText('0,0',o.x+4,o.y-4);
   }
 
