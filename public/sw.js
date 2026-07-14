@@ -6,13 +6,14 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v45';
+const CACHE = 'diqqat-qalam-v56';
 
 const CORE_ASSETS = [
   '/app',
   '/css/style.css',
   '/css/welcome.css',
   '/css/redesign.css',
+  '/css/ui-refine.css',
   '/shared/geometry.js',
   '/shared/MachineConfig.js',
   '/shared/HeaderGenerator.js',
@@ -36,6 +37,16 @@ const CORE_ASSETS = [
   '/js/tools-vector-pro.js',
   '/js/tools-illustrator.js',
   '/js/tools-cnc-invent.js',
+  '/js/layers-panel.js',
+  '/js/color-system.js',
+  '/js/color-tools.js',
+  '/js/properties-inspector.js',
+  '/js/version-history.js',
+  '/js/templates-library.js',
+  '/js/onboarding.js',
+  '/js/command-palette.js',
+  '/js/ui-scale.js',
+  '/js/theme-system.js',
   '/js/menu-bar.js',
   '/js/ui-polish.js',
   '/js/redesign.js',
@@ -44,6 +55,7 @@ const CORE_ASSETS = [
   '/js/tools-dock.js',
   '/js/payments.js',
   '/js/gcode-preview.js',
+  '/js/live-gcode.js',
   '/js/simulator-2d.js',
   '/js/simulator-three.js',
   '/js/file-importer.js',

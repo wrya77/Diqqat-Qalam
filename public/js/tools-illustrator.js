@@ -326,6 +326,173 @@
     toast(`✓ نص عمودي: ${placed} حرفاً`, 'success');
   };
 
+  /* ═══════════════ ربط / إغلاق المسار (Join) ═══════════════ */
+  // مسار «مفتوح» قابل للربط: له نقاط وليس مغلقاً
+  function openPtsOf(ed, s) {
+    if (s.type === 'line') return [{ x: s.x1, y: s.y1 }, { x: s.x2, y: s.y2 }];
+    if (Array.isArray(s.points) && !s.closed && s.type !== 'polygon') return s.points.map(p => ({ x: p.x, y: p.y }));
+    const np = ed._toPath ? ed._toPath(s) : null;
+    return (np && np.points && !np.closed) ? np.points.map(p => ({ x: p.x, y: p.y })) : null;
+  }
+
+  P.joinPaths = function () {
+    const idx = this._selIndices();
+    if (!idx.length) return toast('حدد مساراً مفتوحاً لإغلاقه، أو مسارين لربطهما', 'warn');
+
+    // إغلاق مسار واحد
+    if (idx.length === 1) {
+      const s = this.shapes[idx[0]];
+      const pts = openPtsOf(this, s);
+      if (!pts || pts.length < 2) return toast('هذا المسار مغلق أصلاً أو غير قابل للإغلاق', 'info');
+      this._saveHistory();
+      this.shapes[idx[0]] = { type: 'polyline', points: pts, closed: true,
+        feedRate: s.feedRate, tabs: s.tabs, machineOp: s.machineOp, maxDepth: s.maxDepth, groupId: s.groupId };
+      this.render(); this._updateStatus?.();
+      return toast('✓ أُغلق المسار', 'success');
+    }
+    if (idx.length !== 2) return toast('اختر مسارين مفتوحين للربط', 'warn');
+
+    const A = openPtsOf(this, this.shapes[idx[0]]);
+    const B = openPtsOf(this, this.shapes[idx[1]]);
+    if (!A || !B) return toast('كلا الشكلين يجب أن يكونا مسارين مفتوحين', 'warn');
+
+    // أقرب زوج طرفين → نرتّب A ثم B بحيث يلتقيان
+    const a0 = A[0], a1 = A[A.length - 1], b0 = B[0], b1 = B[B.length - 1];
+    const cands = [
+      { d: dist(a1, b0), ra: false, rb: false },
+      { d: dist(a1, b1), ra: false, rb: true },
+      { d: dist(a0, b0), ra: true, rb: false },
+      { d: dist(a0, b1), ra: true, rb: true },
+    ].sort((x, y) => x.d - y.d)[0];
+    const AA = cands.ra ? [...A].reverse() : A;
+    const BB = cands.rb ? [...B].reverse() : B;
+    // ادمج نقطة الالتقاء (تجنّب التكرار إن كانا متقاربين)
+    const merged = dist(AA[AA.length - 1], BB[0]) < 0.05 ? [...AA, ...BB.slice(1)] : [...AA, ...BB];
+
+    this._saveHistory();
+    const keep = this.shapes[idx[0]];
+    const hi = Math.max(idx[0], idx[1]), lo = Math.min(idx[0], idx[1]);
+    this.shapes.splice(hi, 1);
+    this.shapes.splice(lo, 1);
+    this.shapes.push({ type: 'polyline', points: merged, closed: false,
+      feedRate: keep.feedRate, machineOp: keep.machineOp });
+    this.msel = new Set(); this.selectedIdx = this.shapes.length - 1;
+    this.render(); this._updateStatus?.(); this._updateShapeToolbar?.();
+    toast(cands.d > 1 ? `✓ رُبط المساران (فجوة ${cands.d.toFixed(1)}mm جُسّرت)` : '✓ رُبط المساران', 'success');
+  };
+
+  /* ═══════════════ عكس اتجاه المسار (Reverse) ═══════════════ */
+  // اتجاه القطع يحدّد التزامن/المعاكسة (climb ↔ conventional) — مهم لجودة الحافة
+  P.reversePathDir = function () {
+    const idx = this._selIndices();
+    if (!idx.length) return toast('حدد شكلاً أولاً', 'warn');
+    this._saveHistory();
+    let n = 0;
+    for (const i of idx) {
+      const s = this.shapes[i];
+      if (Array.isArray(s.points) && s.points.length >= 2) { s.points.reverse(); n++; }
+      else if (s.type === 'compound' && Array.isArray(s.contours)) { s.contours.forEach(r => r.reverse()); n++; }
+      else { s.reversed = !s.reversed; n++; }  // شكل بارامتري: راية يقرأها المولّد
+    }
+    this.render(); this._updateStatus?.();
+    toast(`✓ عُكس اتجاه ${n} مساراً (تبدّل climb ↔ conventional)`, 'success');
+  };
+
+  /* ═══════════════ إضافة نقاط ربط (Add Anchors) ═══════════════ */
+  // نقطة منتصف على كل قطعة — يضاعف دقة المسار قبل التشكيل أو التأثيرات
+  P.addAnchorPoints = function () {
+    const idx = this._selIndices();
+    if (!idx.length) return toast('حدد شكلاً أولاً', 'warn');
+    this._saveHistory();
+    let n = 0, added = 0;
+    for (const i of idx) {
+      let s = this.shapes[i];
+      if (!Array.isArray(s.points) || s.points.length < 2) {
+        const np = this._toPath ? this._toPath(s) : null;
+        if (!np || !np.points) continue;
+        s = this.shapes[i] = { type: 'polyline', points: np.points, closed: !!np.closed,
+          feedRate: s.feedRate, machineOp: s.machineOp, maxDepth: s.maxDepth };
+      }
+      const src = s.points, out = [];
+      const closed = !!s.closed || s.type === 'polygon';
+      const last = closed ? src.length : src.length - 1;
+      for (let k = 0; k < src.length; k++) {
+        out.push({ x: src[k].x, y: src[k].y });
+        if (k < last) {
+          const a = src[k], b = src[(k + 1) % src.length];
+          out.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+          added++;
+        }
+      }
+      s.points = out; n++;
+    }
+    this.render(); this._updateStatus?.();
+    toast(n ? `✓ أُضيفت ${added} نقطة ربط على ${n} شكلاً` : 'لا مسارات قابلة', n ? 'success' : 'warn');
+  };
+
+  /* ═══════════════ تنظيف المسار (Clean Up) ═══════════════ */
+  // حذف النقاط المتطابقة والنقاط على استقامة واحدة (لا تغيّر الشكل)
+  P.cleanupPath = function () {
+    const idx = this._selIndices();
+    if (!idx.length) return toast('حدد شكلاً أولاً', 'warn');
+    this._saveHistory();
+    let removed = 0, n = 0;
+    const COINC = 0.03, COLL = 0.02;   // mm
+    for (const i of idx) {
+      const s = this.shapes[i];
+      if (!Array.isArray(s.points) || s.points.length < 3) continue;
+      const closed = !!s.closed || s.type === 'polygon';
+      // 1) إزالة النقاط المتطابقة
+      let pts = [];
+      for (const p of s.points) {
+        const q = pts[pts.length - 1];
+        if (!q || dist(q, p) > COINC) pts.push({ x: p.x, y: p.y });
+      }
+      if (closed && pts.length > 1 && dist(pts[0], pts[pts.length - 1]) < COINC) pts.pop();
+      // 2) إزالة النقاط على استقامة واحدة (مساحة المثلث ≈ 0)
+      const out = [];
+      const m = pts.length;
+      for (let k = 0; k < m; k++) {
+        if (!closed && (k === 0 || k === m - 1)) { out.push(pts[k]); continue; }
+        const prev = pts[(k - 1 + m) % m], cur = pts[k], next = pts[(k + 1) % m];
+        const area = Math.abs((cur.x - prev.x) * (next.y - prev.y) - (next.x - prev.x) * (cur.y - prev.y));
+        const base = dist(prev, next) || 1;
+        if (area / base > COLL) out.push(cur);   // ارتفاع المثلث > العتبة → نقطة حقيقية
+        else removed++;
+      }
+      removed += (s.points.length - pts.length);
+      s.points = out.length >= (closed ? 3 : 2) ? out : pts;
+      n++;
+    }
+    this.render(); this._updateStatus?.();
+    toast(n ? `✓ نُظّف ${n} مساراً — حُذفت ${removed} نقطة زائدة` : 'لا مسارات قابلة للتنظيف', n ? 'success' : 'warn');
+  };
+
+  /* ═══════════════ تحويل كل عنصر (Transform Each) ═══════════════ */
+  // تحجيم/تدوير كل شكل حول مركزه هو (لا حول مركز التحديد المشترك)
+  P.transformEach = async function () {
+    const idx = this._selIndices();
+    if (!idx.length) return toast('حدد شكلاً أو أكثر', 'warn');
+    const res = await ilPrompt('تحويل كل عنصر (حول مركزه)', [
+      { key: 'scale', label: 'التحجيم (%)', def: 100, min: 1, max: 1000 },
+      { key: 'rotate', label: 'التدوير (°)', def: 0, min: -360, max: 360 },
+    ]);
+    if (!res) return;
+    const f = (res.scale || 100) / 100;
+    const th = (res.rotate || 0) * Math.PI / 180;
+    if (f === 1 && th === 0) return;
+    this._saveHistory();
+    for (const i of idx) {
+      const s = this.shapes[i];
+      const b = this._bounds(s);
+      const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2;
+      if (f !== 1 && this._scaleShape) this._scaleShape(s, f, f, cx, cy);
+      if (th !== 0 && this._rotateShape) this._rotateShape(s, th, cx, cy);
+    }
+    this.render(); this._updateStatus?.();
+    toast(`✓ حُوّل ${idx.length} عنصراً كلٌّ حول مركزه`, 'success');
+  };
+
   /* ═══════════════════════════════════════════════════════════════
      الأدوات التفاعلية
      ═══════════════════════════════════════════════════════════════ */
@@ -525,6 +692,8 @@
       ed.setTool('magic-wand');
     } else if (e.shiftKey && !e.ctrlKey && e.code === 'KeyR') {
       ed.setTool('reshape');
+    } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === 'KeyJ') {
+      e.preventDefault(); ed.joinPaths();
     }
   });
 })();

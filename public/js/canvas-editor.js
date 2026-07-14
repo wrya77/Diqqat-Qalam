@@ -879,8 +879,9 @@ class CanvasEditor {
   /* ────────── RENDER ────────── */
   render() {
     const {ctx,canvas} = this;
+    const t = this._canvasTheme || (this._canvasTheme = { bg:'#0d1117', grid:'#161b22', axis:'#21262d', label:'#30363d' });
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle='#0d1117';
+    ctx.fillStyle=t.bg;
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     if(this.showGrid) this._drawGrid();
@@ -891,7 +892,7 @@ class CanvasEditor {
       const aiHL = this._aiHighlights && this._aiHighlights.has(i);
 
       if(aiHL){ ctx.shadowColor='rgba(255,211,61,.35)'; ctx.shadowBlur=12; ctx.strokeStyle='#ffd33d'; ctx.lineWidth=3; }
-      else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':'#2f81f7'; ctx.lineWidth=sel?2:1.5; }
+      else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':(s.stroke||'#2f81f7'); ctx.lineWidth=sel?2:1.5; }
 
       ctx.setLineDash([]);
       this._drawShape(s);
@@ -956,7 +957,7 @@ class CanvasEditor {
     let step=gridSize*scale;
     if(step<0.1) return;
     while(step<8) step*=5;
-    ctx.strokeStyle='#161b22'; ctx.lineWidth=0.5;
+    ctx.strokeStyle=(this._canvasTheme&&this._canvasTheme.grid)||'#161b22'; ctx.lineWidth=0.5;
     const startX=offset.x%step, startY=offset.y%step;
     for(let x=startX;x<canvas.width;x+=step){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke(); }
     for(let y=startY;y<canvas.height;y+=step){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke(); }
@@ -964,11 +965,12 @@ class CanvasEditor {
 
   _drawAxes() {
     const {ctx,canvas,offset}=this;
-    ctx.strokeStyle='#21262d'; ctx.lineWidth=1;
+    const t=this._canvasTheme||{};
+    ctx.strokeStyle=t.axis||'#21262d'; ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(0,offset.y);ctx.lineTo(canvas.width,offset.y);ctx.stroke();
     ctx.beginPath();ctx.moveTo(offset.x,0);ctx.lineTo(offset.x,canvas.height);ctx.stroke();
     const o=this._wToS(0,0);
-    ctx.fillStyle='#30363d'; ctx.font='10px monospace';
+    ctx.fillStyle=t.label||'#30363d'; ctx.font='10px monospace';
     ctx.fillText('0,0',o.x+4,o.y-4);
   }
 
@@ -1013,8 +1015,32 @@ class CanvasEditor {
         break;
       }
     }
+    // تعبئة اختيارية (نظام الألوان) — لون مصمت أو تدرّج — evenodd لإبقاء فجوات compound فارغة
+    if(s.fill && s.type!=='line'){
+      ctx.save(); ctx.fillStyle=this._resolveFill(s.fill,s); ctx.globalAlpha=(ctx.globalAlpha||1)*0.35; ctx.fill('evenodd'); ctx.restore();
+    }
     ctx.stroke();
     this._drawDimLabel(s);
+  }
+
+  // يحوّل وصف التعبئة إلى نمط canvas: نص لوني مصمت، أو تدرّج خطي/شعاعي
+  _resolveFill(fill, s){
+    if(typeof fill==='string') return fill;
+    if(!fill || !Array.isArray(fill.stops) || !fill.stops.length) return '#888';
+    const b=this._bounds(s);
+    const p1=this._wToS(b.minX,b.minY), p2=this._wToS(b.maxX,b.maxY);
+    const cx=(p1.x+p2.x)/2, cy=(p1.y+p2.y)/2;
+    let g;
+    if(fill.type==='radial'){
+      const r=Math.max(Math.abs(p2.x-p1.x),Math.abs(p2.y-p1.y))/2 || 1;
+      g=this.ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    } else {
+      const a=(fill.angle||0)*Math.PI/180, hw=Math.abs(p2.x-p1.x)/2, hh=Math.abs(p2.y-p1.y)/2;
+      const dx=Math.cos(a)*hw, dy=Math.sin(a)*hh;
+      g=this.ctx.createLinearGradient(cx-dx,cy-dy,cx+dx,cy+dy);
+    }
+    fill.stops.forEach(st=>{ try{ g.addColorStop(Math.max(0,Math.min(1,st.offset)),st.color); }catch(e){} });
+    return g;
   }
 
   /* ─── AI highlight helpers ─── */
