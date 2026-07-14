@@ -335,3 +335,62 @@ details.section > summary { transition: color .15s ease, background .15s ease; }
   transition: transform .13s ease, background .13s ease, border-color .13s ease, color .13s ease;
 }
 #ver-save:hover { background: var(--accent); color: #fff; border-color: var(--accent); transform: translateY(-1px); }
+
+/* ═══════════════ 13) لوحة إعدادات قابلة للطيّ والتحجيم (سطح المكتب >1024px) ═══════════════ */
+/* انتقال ناعم لعرض عمود اللوحة عبر الشبكة — بلا تحويل البنية إلى flex */
+.app-layout { transition: grid-template-columns .2s cubic-bezier(.22, 1, .36, 1); }
+.app-layout.sp-resizing { transition: none; }   /* أثناء السحب: بلا تأخّر */
+.settings-panel { position: relative; }
+
+/* مقبض التحجيم على الحافة اليسرى (اللوحة يمين في RTL) */
+.sp-resize-handle {
+  position: absolute; top: 0; inset-inline-start: 0; width: 5px; height: 100%;
+  cursor: ew-resize; z-index: 6; background: transparent; transition: background .15s ease;
+}
+.sp-resize-handle:hover, .sp-resize-handle.active { background: var(--accent); }
+
+/* شريط الطيّ اللاصق أعلى اللوحة */
+.sp-toggle-btn {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 7px 10px; border: none; cursor: pointer;
+  background: var(--bg3); color: var(--text2); border-bottom: 1px solid var(--border);
+  font-family: inherit; font-size: 12px; transition: background .15s ease, color .15s ease;
+}
+.sp-toggle-btn:hover { background: var(--bg4); color: var(--text); }
+.sp-toggle-btn .sp-chev { transition: transform .2s cubic-bezier(.22, 1, .36, 1); }
+
+/* لسان إعادة الفتح عند الطيّ — على حافة الشاشة اليمنى */
+.sp-reopen {
+  position: fixed; top: 118px; inset-inline-end: 0; z-index: 800;
+  display: none; align-items: center; gap: 6px; padding: 9px 11px;
+  border: 1px solid var(--border2); border-inline-end: none;
+  border-radius: 10px 0 0 10px; cursor: pointer;
+  background: var(--bg2); color: var(--text2); font-family: inherit; font-size: 12.5px;
+  box-shadow: -6px 8px 22px rgba(0,0,0,.28); transition: color .15s ease, border-color .15s ease;
+}
+.sp-reopen:hover { color: var(--text); border-color: var(--accent); }
+.sp-reopen.show { display: inline-flex; }
+
+@media (max-width: 1024px) {
+  /* على اللوحي/الهاتف: نظام الأدراج يتكفّل — عطّل الطيّ/التحجيم */
+  .sp-toggle-btn, .sp-resize-handle, .sp-reopen { display: none !important; }
+}
+
+/* ═══════════════ 14) تلميحات مفاتيح أدوات الرسم (kbd) ═══════════════ */
+/* عنصر واحد على مستوى body (يتجاوز قصّ overflow في شريط الأدوات) */
+.trkey-tip {
+  position: fixed; z-index: 4000; display: none; align-items: center; gap: 8px;
+  padding: 5px 9px; border-radius: 8px; pointer-events: none;
+  background: var(--bg4); border: 1px solid var(--border2); color: var(--text);
+  font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  opacity: 0; transform: translateX(4px); transition: opacity .12s ease, transform .12s ease;
+}
+.trkey-tip.on { display: inline-flex; opacity: 1; transform: none; }
+.trkey-tip kbd {
+  min-width: 18px; height: 18px; padding: 0 5px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg2); color: var(--text2);
+  border: 1px solid var(--border2); border-bottom-width: 2px; border-radius: 4px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; line-height: 1;
+}
