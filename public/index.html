@@ -527,6 +527,17 @@
       <label class="toggle-row"><input type="checkbox" id="line-numbers"><span>أرقام الأسطر</span></label>
     </details>
 
+    <details class="section">
+      <summary class="sec-title">🖥 الواجهة</summary>
+      <label class="ui-scale-row">حجم الواجهة
+        <span class="ui-scale-wrap">
+          <input type="range" id="ui-scale" min="85" max="130" step="5" value="100">
+          <b id="ui-scale-val" title="نقرة مزدوجة = 100%">100%</b>
+        </span>
+      </label>
+      <p class="hint-sm">يكبّر الأشرطة والقوائم دون التأثير على دقة لوحة الرسم.</p>
+    </details>
+
   </aside>
 
   <!-- ═══ CANVAS ═══ -->
@@ -916,6 +927,9 @@
     <div class="out-pane active" id="pane-gcode">
       <div class="gc-bar">
         <span id="gc-line-count">0 سطر</span>
+        <label class="live-toggle" title="إعادة توليد G-Code تلقائياً مع كل تعديل">
+          <input type="checkbox" id="live-gcode" checked><span>⚡ حيّ</span>
+        </label>
         <span class="gc-acts">
           <button class="mbtn" id="btn-edit-gcode" title="تحرير الكود يدوياً">✏</button>
           <button class="mbtn" id="btn-copy-gcode" title="نسخ">📋</button>
@@ -1631,7 +1645,9 @@
 <script defer src="js/layers-panel.js"></script>
 <script defer src="js/menu-bar.js"></script>
 <script defer src="js/command-palette.js"></script>
+<script defer src="js/ui-scale.js"></script>
 <script defer src="js/gcode-preview.js"></script>
+<script defer src="js/live-gcode.js"></script>
 <script defer src="js/simulator-2d.js"></script>
 <script defer src="js/simulator-three.js"></script>
 <script defer src="js/file-importer.js"></script>

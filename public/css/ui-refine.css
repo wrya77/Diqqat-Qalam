@@ -153,3 +153,38 @@ button:focus-visible,
   outline: 2px solid var(--accent-h);
   outline-offset: 2px;
 }
+
+/* ═══════════════ 5) مقياس الواجهة --ui-scale (ميزة #8) ═══════════════ */
+/* zoom على «كروم» التطبيق فقط — الكانفس خارج النطاق فلا تتأثر إحداثيات الفأرة */
+.toolbar,
+.menubar,
+.settings-panel,
+.output-panel,
+.tools-rail,
+.canvas-topbar,
+.canvas-footer {
+  zoom: var(--ui-scale, 1);
+}
+
+.ui-scale-row { display: flex; flex-direction: column; gap: 6px; }
+.ui-scale-wrap { display: flex; align-items: center; gap: 10px; }
+.ui-scale-wrap input[type="range"] { flex: 1; accent-color: var(--accent, #4f6ef7); }
+.ui-scale-wrap b {
+  min-width: 44px; text-align: center; font-size: 12.5px; cursor: pointer;
+  color: var(--accent-h, #6b86ff); border: 1px solid var(--border, #30363d);
+  border-radius: 6px; padding: 2px 6px; user-select: none;
+}
+.hint-sm { font-size: 11px; color: var(--text3, #8b949e); margin: 6px 0 0; }
+
+/* ═══════════════ 6) مفتاح التوليد الحيّ (ميزة #4) ═══════════════ */
+.live-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--text2, #b1bac4); cursor: pointer;
+  border: 1px solid var(--border, #30363d); border-radius: 6px;
+  padding: 2px 8px; margin-inline-start: 8px; user-select: none;
+}
+.live-toggle input { accent-color: var(--accent, #4f6ef7); margin: 0; }
+.live-toggle:has(input:checked) {
+  color: #3fb950; border-color: rgba(63, 185, 80, .4);
+  background: rgba(63, 185, 80, .08);
+}
