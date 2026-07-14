@@ -124,6 +124,7 @@
 
     // أدوات
     'cmd-palette':   () => window.CommandPalette?.open(),
+    'tpl-open':      () => window.TemplatesLibrary?.open(),
     'tool-preflight':() => window.app?.preflight(),
     'tool-presets':  () => document.getElementById('btn-presets')?.click(),
     'tool-validate': () => document.getElementById('btn-validate-gcode')?.click(),
