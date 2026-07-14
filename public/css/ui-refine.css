@@ -282,3 +282,36 @@ button:focus-visible,
   color: var(--text); border-color: var(--green);
   background: color-mix(in srgb, var(--green) 12%, transparent);
 }
+
+/* ═══════════════ 11) حركات احترافية هادئة (نوافذ · أشرطة · تبويبات) ═══════════════ */
+/* المبدأ: الحركة تنقل الحالة لا الزينة — 150-220ms، منحنى خروجي، بلا ارتداد */
+
+/* تبديل تبويبات لوحة الإخراج: تلاشٍ + انزلاق خفيف للمحتوى */
+.out-pane.active { animation: dqPaneIn .2s cubic-bezier(.22,1,.36,1); }
+@keyframes dqPaneIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* التبويبات نفسها: انتقال لوني ناعم + نموّ خطّ المؤشّر */
+.otab { transition: color .18s ease, background .18s ease; }
+.otab.active::after { animation: dqTabBar .22s cubic-bezier(.22,1,.36,1); transform-origin: center; }
+@keyframes dqTabBar { from { transform: scaleX(.25); opacity: .3; } to { transform: scaleX(1); opacity: 1; } }
+
+/* القوائم المنسدلة: دخول أنعم من الافتراضي */
+.menu.open > .menu-drop { animation: dqMenuIn .16s cubic-bezier(.22,1,.36,1); }
+@keyframes dqMenuIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* تبويبات/أقسام الإعدادات (details): كشف ناعم لمحتوى القسم عند فتحه بالنقر
+   (لا يُشغَّل على تحميل الصفحة لأن المتصفح لا يعيد تشغيل الأنيميشن للعناصر المفتوحة أصلاً) */
+details.section > summary { transition: color .15s ease, background .15s ease; }
+
+/* الأزرار الصغيرة في لوحة الإخراج والحالة: تغذية راجعة عند الضغط */
+.mbtn:active, .otab:active { transform: translateY(0) scale(.96); }
+
+/* احترام تفضيل تقليل الحركة — بديل فوري لكل حركة (غير اختياري) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
