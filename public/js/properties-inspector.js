@@ -46,6 +46,15 @@
   const $ = id => document.getElementById(id);
   const num = v => Math.round(v * 100) / 100;
 
+  /* ── النقطة المرجعية (نمط Illustrator) ──
+     تحدّد أي نقطة من الصندوق تشير إليها X/Y وأيّها تبقى ثابتة عند التحجيم.
+     المحور الرأسي صاعد: «أعلى» = maxY. الافتراضي bl حفاظاً على السلوك السابق. */
+  let refPt = 'bl';
+  const REF_FX = { l: b => b.minX, c: b => (b.minX + b.maxX) / 2, r: b => b.maxX };
+  const REF_FY = { t: b => b.maxY, m: b => (b.minY + b.maxY) / 2, b: b => b.minY };
+  const refX = b => REF_FX[refPt[1]](b);
+  const refY = b => REF_FY[refPt[0]](b);
+
   /* ملء الحقول من التحديد الحالي (يتخطّى الحقل قيد التحرير كي لا يُقاطَع) */
   function refresh() {
     const e = ed();
@@ -69,8 +78,8 @@
     $('props-count').textContent = single ? '' : `${idxs.length} أشكال`;
 
     const setIf = (id, val) => { const el = $(id); if (el && document.activeElement !== el) el.value = num(val); };
-    setIf('prop-x', b.minX);
-    setIf('prop-y', b.minY);
+    setIf('prop-x', refX(b));
+    setIf('prop-y', refY(b));
     setIf('prop-w', b.w);
     setIf('prop-h', b.h);
     const ang = $('prop-angle');
@@ -81,8 +90,8 @@
   function move(axis, val) {
     const e = ed(); const idxs = selIdxs(e); if (!idxs.length) return;
     const b = combinedBounds(e, idxs);
-    const dx = axis === 'x' ? val - b.minX : 0;
-    const dy = axis === 'y' ? val - b.minY : 0;
+    const dx = axis === 'x' ? val - refX(b) : 0;
+    const dy = axis === 'y' ? val - refY(b) : 0;
     if (!dx && !dy) return;
     e._saveHistory();
     idxs.forEach(i => e._offsetShape(e.shapes[i], dx, dy));
@@ -100,7 +109,7 @@
     let fx, fy;
     if (dim === 'w') { fx = f; fy = lock ? f : 1; } else { fy = f; fx = lock ? f : 1; }
     e._saveHistory();
-    idxs.forEach(i => e._scaleShape(e.shapes[i], fx, fy, b.minX, b.minY));  // تثبيت الزاوية السفلى-اليسرى
+    idxs.forEach(i => e._scaleShape(e.shapes[i], fx, fy, refX(b), refY(b)));  // تثبيت النقطة المرجعية
     e.render(); e._updateStatus?.();
   }
 
@@ -129,6 +138,46 @@
     on('prop-w', v => !isNaN(v) && resize('w', v));
     on('prop-h', v => !isNaN(v) && resize('h', v));
     on('prop-angle', v => !isNaN(v) && rotate(v));
+
+    /* النقطة المرجعية */
+    document.querySelectorAll('#props-ref .pr-dot').forEach(d =>
+      d.addEventListener('click', () => {
+        refPt = d.dataset.ref;
+        document.querySelectorAll('#props-ref .pr-dot').forEach(o => o.classList.toggle('on', o === d));
+        refresh();
+      }));
+
+    /* القلب حول محور الصندوق — عبر _scaleShape بمعامل سالب */
+    const flip = axis => {
+      const e = ed(); const list = selIdxs(e); if (!list.length) return;
+      const b = combinedBounds(e, list);
+      const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2;
+      e._saveHistory();
+      list.forEach(i => e._scaleShape(e.shapes[i], axis === 'h' ? -1 : 1, axis === 'v' ? -1 : 1, cx, cy));
+      e.render(); e._updateStatus?.(); refresh();
+    };
+    $('prop-flip-h')?.addEventListener('click', () => flip('h'));
+    $('prop-flip-v')?.addEventListener('click', () => flip('v'));
+
+    /* المحاذاة والتوزيع — يعيدان استخدام tools-arrange */
+    document.querySelectorAll('.props-align [data-align]').forEach(b =>
+      b.addEventListener('click', () => { ed()?.alignSelected?.(b.dataset.align); refresh(); }));
+    document.querySelectorAll('.props-align [data-dist]').forEach(b =>
+      b.addEventListener('click', () => { ed()?.distributeSelected?.(b.dataset.dist); refresh(); }));
+
+    /* إجراءات سريعة */
+    const QUICK = {
+      group:     e => e.groupSelected?.(),
+      ungroup:   e => e.ungroupSelected?.(),
+      duplicate: e => e._duplicate?.(),
+      delete:    e => e._deleteSelected?.(),
+    };
+    document.querySelectorAll('.props-quick [data-act]').forEach(b =>
+      b.addEventListener('click', () => {
+        const e = ed(); if (!e) return;
+        QUICK[b.dataset.act]?.(e);
+        e._updateShapeToolbar?.(); refresh();
+      }));
   }
 
   /* ── تحديث اللوحة عند كل تغيّر تحديد (نقطة العبور المركزية) ── */
