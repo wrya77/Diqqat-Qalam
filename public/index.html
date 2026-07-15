@@ -101,11 +101,11 @@
   </a>
 
   <!-- أزرار فتح الأدراج (تظهر على اللوحي/الهاتف فقط) -->
-  <button class="drawer-toggle" id="dt-settings" title="الإعدادات والأدوات" aria-label="فتح الإعدادات والأدوات">⚙</button>
-  <button class="drawer-toggle" id="dt-output" title="الإخراج والمعاينة" aria-label="فتح الإخراج والمعاينة">📄</button>
+  <button class="drawer-toggle" id="dt-settings" title="الإعدادات والأدوات" aria-label="فتح الإعدادات والأدوات"><span class="ti-ph" data-icon="settings"></span></button>
+  <button class="drawer-toggle" id="dt-output" title="الإخراج والمعاينة" aria-label="فتح الإخراج والمعاينة"><span class="ti-ph" data-icon="page"></span></button>
 
   <!-- زر القائمة المدمجة (جوال فقط) -->
-  <button class="menu-hamburger" id="menu-hamburger" title="القائمة" aria-label="القائمة">☰</button>
+  <button class="menu-hamburger" id="menu-hamburger" title="القائمة" aria-label="القائمة"><span class="ti-ph" data-icon="menu"></span></button>
 
   <!-- ═══ شريط القوائم (نمط CorelDraw) ═══ -->
   <nav id="menubar" class="menubar">
@@ -119,7 +119,7 @@
         <button class="mi" data-act="file-import">استيراد ملف… <span class="mi-key">SVG·DXF·NC</span></button>
         <button class="mi" data-act="file-trace">تتبع صورة…</button>
         <div class="mi-sep"></div>
-        <a class="mi" href="/library" target="_blank" rel="noopener">🗂 مكتبة التصاميم <span class="mi-key">جديد</span></a>
+        <a class="mi" href="/library" target="_blank" rel="noopener"><span class="ti-ph" data-icon="library"></span>مكتبة التصاميم <span class="mi-key">جديد</span></a>
         <div class="mi-sep"></div>
         <button class="mi" data-act="file-export">تصدير… <span class="mi-key">NC·DXF·PDF</span></button>
       </div>
@@ -140,7 +140,7 @@
         <button class="mi" data-act="sel-invert">عكس التحديد</button>
         <button class="mi" data-act="sel-none">إلغاء التحديد <span class="mi-key">Esc</span></button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="delete-all">🗑 حذف كل الأشكال <span class="mi-key">Ctrl+Del</span></button>
+        <button class="mi" data-act="delete-all"><span class="ti-ph" data-icon="trash"></span>ذف كل الأشكال <span class="mi-key">Ctrl+Del</span></button>
       </div>
     </div>
 
@@ -156,8 +156,8 @@
         <button class="mi" data-act="view-snap"  data-check="snap-grid">التقاط الشبكة</button>
         <button class="mi" data-act="view-osnap" data-check="snap-objects">التقاط الكائنات</button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="view-order">① أرقام تسلسل القطع</button>
-        <button class="mi" data-act="view-dir">➤ أسهم اتجاه القطع</button>
+        <button class="mi" data-act="view-order"><span class="ti-ph" data-icon="list-ordered"></span>رقام تسلسل القطع</button>
+        <button class="mi" data-act="view-dir"><span class="ti-ph" data-icon="arrow-cut"></span>سهم اتجاه القطع</button>
       </div>
     </div>
 
@@ -165,60 +165,60 @@
       <button class="menu-btn">كائن</button>
       <div class="menu-drop">
         <button class="mi" data-act="obj-precise">شكل بأبعاد دقيقة…</button>
-        <button class="mi" data-act="obj-topath">⛓ تحويل إلى مسار (لتحرير العُقَد)</button>
+        <button class="mi" data-act="obj-topath"><span class="ti-ph" data-icon="chain"></span>حويل إلى مسار (لتحرير العُقَد)</button>
         <button class="mi" data-act="obj-pocket">وضع حفر الجيوب</button>
         <div class="mi-sep"></div>
         <div class="mi-label">مسار احترافي</div>
-        <button class="mi" data-act="vp-offset">⊛ إزاحة الكفاف (تعويض الأداة)…</button>
-        <button class="mi" data-act="vp-outline">▭ تفريغ الخط إلى شريط…</button>
-        <button class="mi" data-act="vp-fillet">◜ تدوير كل الزوايا…</button>
-        <button class="mi" data-act="vp-chamfer">◺ شطب كل الزوايا…</button>
-        <button class="mi" data-act="vp-blend">⇶ مزج بين شكلين…</button>
-        <button class="mi" data-act="vp-polar">✳ مصفوفة قطبية…</button>
+        <button class="mi" data-act="vp-offset"><span class="ti-ph" data-icon="offset"></span>زاحة الكفاف (تعويض الأداة)…</button>
+        <button class="mi" data-act="vp-outline"><span class="ti-ph" data-icon="rect"></span>فريغ الخط إلى شريط…</button>
+        <button class="mi" data-act="vp-fillet"><span class="ti-ph" data-icon="corner-round"></span>دوير كل الزوايا…</button>
+        <button class="mi" data-act="vp-chamfer"><span class="ti-ph" data-icon="corner-chamfer"></span>طب كل الزوايا…</button>
+        <button class="mi" data-act="vp-blend"><span class="ti-ph" data-icon="blend"></span>زج بين شكلين…</button>
+        <button class="mi" data-act="vp-polar"><span class="ti-ph" data-icon="polar"></span>صفوفة قطبية…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">محاذاة</div>
-        <button class="mi" data-act="align-left">⫷ يسار</button>
-        <button class="mi" data-act="align-hcenter">⊜ وسط أفقي</button>
-        <button class="mi" data-act="align-right">⫸ يمين</button>
-        <button class="mi" data-act="align-top">⫪ أعلى</button>
-        <button class="mi" data-act="align-vcenter">⊟ منتصف رأسي</button>
-        <button class="mi" data-act="align-bottom">⫫ أسفل</button>
+        <button class="mi" data-act="align-left"><span class="ti-ph" data-icon="align-left"></span>سار</button>
+        <button class="mi" data-act="align-hcenter"><span class="ti-ph" data-icon="align-hcenter"></span>سط أفقي</button>
+        <button class="mi" data-act="align-right"><span class="ti-ph" data-icon="align-right"></span>مين</button>
+        <button class="mi" data-act="align-top"><span class="ti-ph" data-icon="align-top"></span>على</button>
+        <button class="mi" data-act="align-vcenter"><span class="ti-ph" data-icon="align-vcenter"></span>نتصف رأسي</button>
+        <button class="mi" data-act="align-bottom"><span class="ti-ph" data-icon="align-bottom"></span>سفل</button>
         <div class="mi-sep"></div>
         <div class="mi-label">توزيع</div>
-        <button class="mi" data-act="dist-h">↹ أفقي متساوٍ</button>
-        <button class="mi" data-act="dist-v">↨ رأسي متساوٍ</button>
+        <button class="mi" data-act="dist-h"><span class="ti-ph" data-icon="dist-h"></span>فقي متساوٍ</button>
+        <button class="mi" data-act="dist-v"><span class="ti-ph" data-icon="dist-v"></span>أسي متساوٍ</button>
         <div class="mi-sep"></div>
         <div class="mi-label">ترتيب القطع</div>
-        <button class="mi" data-act="order-front">⤒ القطع أخيراً (للمقدمة)</button>
-        <button class="mi" data-act="order-forward">↑ تأخير خطوة</button>
-        <button class="mi" data-act="order-backward">↓ تقديم خطوة</button>
-        <button class="mi" data-act="order-back">⤓ القطع أولاً (للخلفية)</button>
+        <button class="mi" data-act="order-front"><span class="ti-ph" data-icon="bring-front"></span>لقطع أخيراً (للمقدمة)</button>
+        <button class="mi" data-act="order-forward"><span class="ti-ph" data-icon="arrow-up"></span>أخير خطوة</button>
+        <button class="mi" data-act="order-backward"><span class="ti-ph" data-icon="arrow-down"></span>قديم خطوة</button>
+        <button class="mi" data-act="order-back"><span class="ti-ph" data-icon="send-back"></span>لقطع أولاً (للخلفية)</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تحويل</div>
-        <button class="mi" data-act="tr-mirror-h">⇔ مرآة أفقية</button>
-        <button class="mi" data-act="tr-mirror-v">⇕ مرآة عمودية</button>
-        <button class="mi" data-act="tr-rotate">↻ تدوير…</button>
-        <button class="mi" data-act="tr-scale">⇲ تغيير الحجم…</button>
-        <button class="mi" data-act="tr-array">⊞ مصفوفة…</button>
-        <button class="mi" data-act="tr-offset">⊚ إزاحة المسار…</button>
+        <button class="mi" data-act="tr-mirror-h"><span class="ti-ph" data-icon="mirror-h"></span>رآة أفقية</button>
+        <button class="mi" data-act="tr-mirror-v"><span class="ti-ph" data-icon="mirror-v"></span>رآة عمودية</button>
+        <button class="mi" data-act="tr-rotate"><span class="ti-ph" data-icon="rotate"></span>دوير…</button>
+        <button class="mi" data-act="tr-scale"><span class="ti-ph" data-icon="scale"></span>غيير الحجم…</button>
+        <button class="mi" data-act="tr-array"><span class="ti-ph" data-icon="grid"></span>صفوفة…</button>
+        <button class="mi" data-act="tr-offset"><span class="ti-ph" data-icon="offset"></span>زاحة المسار…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تجهيز للقطع</div>
-        <button class="mi" data-act="cnc-nesting">▦ رصف على الخامة…</button>
-        <button class="mi" data-act="cnc-bolt">⚙ دائرة براغي…</button>
-        <button class="mi" data-act="cnc-join">⌁ دمج المسارات المحددة</button>
-        <button class="mi" data-act="cnc-centermark">✛ علامة مركز للمحدد</button>
-        <button class="mi" data-act="cnc-bbox">⬚ مستطيل إحاطة</button>
-        <button class="mi" data-act="cnc-unlock">🔓 فك قفل الكل</button>
+        <button class="mi" data-act="cnc-nesting"><span class="ti-ph" data-icon="grid"></span>صف على الخامة…</button>
+        <button class="mi" data-act="cnc-bolt"><span class="ti-ph" data-icon="bolt-circle"></span>ائرة براغي…</button>
+        <button class="mi" data-act="cnc-join"><span class="ti-ph" data-icon="merge"></span>مج المسارات المحددة</button>
+        <button class="mi" data-act="cnc-centermark"><span class="ti-ph" data-icon="crosshair"></span>لامة مركز للمحدد</button>
+        <button class="mi" data-act="cnc-bbox"><span class="ti-ph" data-icon="bbox"></span>ستطيل إحاطة</button>
+        <button class="mi" data-act="cnc-unlock"><span class="ti-ph" data-icon="unlock"></span>ك قفل الكل</button>
         <div class="mi-sep"></div>
         <div class="mi-label">CNC+ (دقة قلم)</div>
-        <button class="mi" data-act="cv-dogbone">🦴 تفريغ الزوايا Dogbone…</button>
-        <button class="mi" data-act="cv-cutcheck">🔎 فاحص قابلية القطع…</button>
-        <button class="mi" data-act="cv-autonumber">🔢 ترقيم القطع تلقائياً…</button>
-        <button class="mi" data-act="cv-distribute">📿 توزيع على مسار…</button>
-        <button class="mi" data-act="cv-kerf">👁 معاينة عرض القاطع</button>
-        <button class="mi" data-act="cv-clampcheck">🗜 فحص تصادم الكلامب</button>
-        <button class="mi" data-act="cv-time">⏱ تقدير زمن القطع…</button>
-        <button class="mi" data-act="cv-sheet">▦ تقرير استغلال اللوح…</button>
+        <button class="mi" data-act="cv-dogbone"><span class="ti-ph" data-icon="dogbone"></span>فريغ الزوايا Dogbone…</button>
+        <button class="mi" data-act="cv-cutcheck"><span class="ti-ph" data-icon="search"></span>احص قابلية القطع…</button>
+        <button class="mi" data-act="cv-autonumber"><span class="ti-ph" data-icon="hash"></span>رقيم القطع تلقائياً…</button>
+        <button class="mi" data-act="cv-distribute"><span class="ti-ph" data-icon="dots-path"></span>وزيع على مسار…</button>
+        <button class="mi" data-act="cv-kerf"><span class="ti-ph" data-icon="eye"></span>عاينة عرض القاطع</button>
+        <button class="mi" data-act="cv-clampcheck"><span class="ti-ph" data-icon="clamp"></span>حص تصادم الكلامب</button>
+        <button class="mi" data-act="cv-time"><span class="ti-ph" data-icon="clock"></span>قدير زمن القطع…</button>
+        <button class="mi" data-act="cv-sheet"><span class="ti-ph" data-icon="grid"></span>قرير استغلال اللوح…</button>
       </div>
     </div>
 
@@ -226,28 +226,28 @@
       <button class="menu-btn">Illustrator</button>
       <div class="menu-drop">
         <div class="mi-label">تحديد وتجميع</div>
-        <button class="mi" data-act="il-group">⧉ تجميع <span class="mi-key">Ctrl+G</span></button>
-        <button class="mi" data-act="il-ungroup">⧉ فك التجميع <span class="mi-key">Ctrl+Shift+G</span></button>
-        <button class="mi" data-act="il-same">⭐ تحديد المتشابه (عصا سحرية)</button>
+        <button class="mi" data-act="il-group"><span class="ti-ph" data-icon="group"></span>جميع <span class="mi-key">Ctrl+G</span></button>
+        <button class="mi" data-act="il-ungroup"><span class="ti-ph" data-icon="ungroup"></span>ك التجميع <span class="mi-key">Ctrl+Shift+G</span></button>
+        <button class="mi" data-act="il-same"><span class="ti-ph" data-icon="star"></span>حديد المتشابه (عصا سحرية)</button>
         <div class="mi-sep"></div>
         <div class="mi-label">المسار Path</div>
-        <button class="mi" data-act="il-join">⌒ ربط / إغلاق المسار <span class="mi-key">Ctrl+J</span></button>
-        <button class="mi" data-act="il-reverse">⇋ عكس اتجاه المسار</button>
-        <button class="mi" data-act="il-addanchors">⊕ إضافة نقاط ربط (منتصفات)</button>
-        <button class="mi" data-act="il-cleanup">🧹 تنظيف المسار (نقاط زائدة)</button>
+        <button class="mi" data-act="il-join"><span class="ti-ph" data-icon="arc-join"></span>بط / إغلاق المسار <span class="mi-key">Ctrl+J</span></button>
+        <button class="mi" data-act="il-reverse"><span class="ti-ph" data-icon="swap"></span>كس اتجاه المسار</button>
+        <button class="mi" data-act="il-addanchors"><span class="ti-ph" data-icon="plus-node"></span>ضافة نقاط ربط (منتصفات)</button>
+        <button class="mi" data-act="il-cleanup"><span class="ti-ph" data-icon="broom"></span>نظيف المسار (نقاط زائدة)</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تحويل</div>
-        <button class="mi" data-act="il-transformeach">⊞ تحويل كل عنصر حول مركزه…</button>
-        <button class="mi" data-act="il-shear">⧨ قص / إمالة Shear…</button>
+        <button class="mi" data-act="il-transformeach"><span class="ti-ph" data-icon="boxes"></span>حويل كل عنصر حول مركزه…</button>
+        <button class="mi" data-act="il-shear"><span class="ti-ph" data-icon="shear"></span>ص / إمالة Shear…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">نص</div>
         <button class="mi" data-act="il-typepath">〰 نص على مسار…</button>
-        <button class="mi" data-act="il-vtype">↕ نص عمودي…</button>
+        <button class="mi" data-act="il-vtype"><span class="ti-ph" data-icon="text-vertical"></span>ص عمودي…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">أدوات تفاعلية</div>
-        <button class="mi" data-act="il-tool-wand">🪄 العصا السحرية <span class="mi-key">Shift+W</span></button>
-        <button class="mi" data-act="il-tool-builder">⬭ منشئ الأشكال <span class="mi-key">Shift+M</span></button>
-        <button class="mi" data-act="il-tool-reshape">✋ إعادة التشكيل <span class="mi-key">Shift+R</span></button>
+        <button class="mi" data-act="il-tool-wand"><span class="ti-ph" data-icon="wand"></span>لعصا السحرية <span class="mi-key">Shift+W</span></button>
+        <button class="mi" data-act="il-tool-builder"><span class="ti-ph" data-icon="shapes"></span>نشئ الأشكال <span class="mi-key">Shift+M</span></button>
+        <button class="mi" data-act="il-tool-reshape"><span class="ti-ph" data-icon="hand"></span>عادة التشكيل <span class="mi-key">Shift+R</span></button>
       </div>
     </div>
 
@@ -257,37 +257,37 @@
         <div class="mi-label">تشويه فني</div>
         <button class="mi" data-act="fx-wave">〰 تموج</button>
         <button class="mi" data-act="fx-roughen">〜 خشونة</button>
-        <button class="mi" data-act="fx-twirl">🌀 دوامة</button>
-        <button class="mi" data-act="fx-bloat">◯ انتفاخ</button>
-        <button class="mi" data-act="fx-stair">▤ تدريج</button>
+        <button class="mi" data-act="fx-twirl"><span class="ti-ph" data-icon="spiral"></span>وامة</button>
+        <button class="mi" data-act="fx-bloat"><span class="ti-ph" data-icon="circle"></span>نتفاخ</button>
+        <button class="mi" data-act="fx-stair"><span class="ti-ph" data-icon="stairs"></span>دريج</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تحسين المسار</div>
-        <button class="mi" data-act="fx-smooth">∿ تنعيم</button>
-        <button class="mi" data-act="fx-simplify">⌇ تبسيط النقاط</button>
+        <button class="mi" data-act="fx-smooth"><span class="ti-ph" data-icon="smooth"></span>نعيم</button>
+        <button class="mi" data-act="fx-simplify"><span class="ti-ph" data-icon="simplify"></span>بسيط النقاط</button>
         <div class="mi-sep"></div>
         <div class="mi-label">للقطع والنقش</div>
-        <button class="mi" data-act="fx-perforate">┄ تخريم (قص متقطع)</button>
-        <button class="mi" data-act="fx-hatchfill">▨ تعبئة هاشير</button>
-        <button class="mi" data-act="fx-shadow">⧉ ظل مزدوج</button>
+        <button class="mi" data-act="fx-perforate"><span class="ti-ph" data-icon="dashed"></span>خريم (قص متقطع)</button>
+        <button class="mi" data-act="fx-hatchfill"><span class="ti-ph" data-icon="hatch"></span>عبئة هاشير</button>
+        <button class="mi" data-act="fx-shadow"><span class="ti-ph" data-icon="shadow"></span>ل مزدوج</button>
       </div>
     </div>
 
     <div class="menu">
       <button class="menu-btn">أدوات</button>
       <div class="menu-drop">
-        <button class="mi" data-act="cmd-palette">🔎 لوحة الأوامر <span class="mi-key">Ctrl+K</span></button>
+        <button class="mi" data-act="cmd-palette"><span class="ti-ph" data-icon="search"></span>وحة الأوامر <span class="mi-key">Ctrl+K</span></button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="tpl-open">📦 مكتبة القوالب الجاهزة…</button>
-        <button class="mi" data-act="tour-start">🎓 جولة تعريفية</button>
+        <button class="mi" data-act="tpl-open"><span class="ti-ph" data-icon="box"></span>كتبة القوالب الجاهزة…</button>
+        <button class="mi" data-act="tour-start"><span class="ti-ph" data-icon="cap"></span>ولة تعريفية</button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="tool-preflight">✅ فحص الجاهزية قبل التشغيل…</button>
+        <button class="mi" data-act="tool-preflight"><span class="ti-ph" data-icon="check-circle"></span>حص الجاهزية قبل التشغيل…</button>
         <button class="mi" data-act="tool-validate">التحقق من G-Code</button>
         <div class="mi-sep"></div>
         <button class="mi" data-act="tool-library">مكتبة أدوات القطع…</button>
-        <button class="mi" data-act="tool-presets">🖥 ملفات الآلات المحفوظة…</button>
+        <button class="mi" data-act="tool-presets"><span class="ti-ph" data-icon="monitor"></span>لفات الآلات المحفوظة…</button>
         <button class="mi" data-act="tool-machine">لوحة التحكم بالآلة…</button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="tool-upgrade">⭐ ترقية الاشتراك…</button>
+        <button class="mi" data-act="tool-upgrade"><span class="ti-ph" data-icon="star"></span>رقية الاشتراك…</button>
       </div>
     </div>
 
@@ -295,18 +295,18 @@
       <button class="menu-btn">إضافات</button>
       <div class="menu-drop">
         <div class="mi-label">أدوات مضمّنة</div>
-        <button class="mi" data-act="ext-feeds">⚡ حاسبة السرعات والتغذية</button>
-        <button class="mi" data-act="ext-quote">🧾 مولّد عروض الأسعار</button>
-        <button class="mi" data-act="ext-calligraphy">✒ محرك الخط العربي</button>
+        <button class="mi" data-act="ext-feeds"><span class="ti-ph" data-icon="zap"></span>اسبة السرعات والتغذية</button>
+        <button class="mi" data-act="ext-quote"><span class="ti-ph" data-icon="receipt"></span>ولّد عروض الأسعار</button>
+        <button class="mi" data-act="ext-calligraphy"><span class="ti-ph" data-icon="pen"></span>حرك الخط العربي</button>
         <div class="mi-sep"></div>
         <div class="mi-label">إنتاجية CNC</div>
-        <button class="mi" data-act="ext-stats">📊 إحصاءات التصميم</button>
-        <button class="mi" data-act="ext-runtime">⏱ تقدير زمن التشغيل</button>
-        <button class="mi" data-act="ext-cost">💰 تقدير التكلفة السريع</button>
-        <button class="mi" data-act="ext-optimize">🔀 تحسين ترتيب القطع</button>
-        <button class="mi" data-act="ext-intersect">⚠ كشف تقاطعات المسارات</button>
-        <button class="mi" data-act="ext-units">📏 محوّل الوحدات</button>
-        <button class="mi" data-act="ext-preflight">✅ فحص الجاهزية قبل التشغيل…</button>
+        <button class="mi" data-act="ext-stats"><span class="ti-ph" data-icon="bar-chart"></span>حصاءات التصميم</button>
+        <button class="mi" data-act="ext-runtime"><span class="ti-ph" data-icon="clock"></span>قدير زمن التشغيل</button>
+        <button class="mi" data-act="ext-cost"><span class="ti-ph" data-icon="coin"></span>قدير التكلفة السريع</button>
+        <button class="mi" data-act="ext-optimize"><span class="ti-ph" data-icon="shuffle"></span>حسين ترتيب القطع</button>
+        <button class="mi" data-act="ext-intersect"><span class="ti-ph" data-icon="alert"></span>شف تقاطعات المسارات</button>
+        <button class="mi" data-act="ext-units"><span class="ti-ph" data-icon="ruler"></span>حوّل الوحدات</button>
+        <button class="mi" data-act="ext-preflight"><span class="ti-ph" data-icon="check-circle"></span>حص الجاهزية قبل التشغيل…</button>
       </div>
     </div>
   </nav>
@@ -381,7 +381,7 @@
     <div class="sec-group-label">الشكل المحدد</div>
 
     <details class="section" open id="props-section">
-      <summary class="sec-title">📐 الخصائص</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="dimensions"></span>الخصائص</summary>
       <div id="props-empty" class="props-empty">حدّد شكلاً لعرض خصائصه وتحريرها</div>
       <div id="props-body" style="display:none">
         <div class="props-head"><span id="props-type">—</span><span id="props-count"></span></div>
@@ -450,7 +450,7 @@
     <div class="sec-group-label">إعداد القطع</div>
 
     <details class="section" open>
-      <summary class="sec-title">🔩 الأداة</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="wrench"></span>الأداة</summary>
       <label>قطر الأداة (mm)
         <input type="number" id="tool-diameter" value="3" min="0.1" max="50" step="0.1">
       </label>
@@ -486,7 +486,7 @@
     </details>
 
     <details class="section" open>
-      <summary class="sec-title">📏 الأعماق</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="ruler"></span>الأعماق</summary>
       <label>العمق الكلي (mm)
         <input type="number" id="total-depth" value="5" min="0.1" max="500" step="0.1">
       </label>
@@ -499,7 +499,7 @@
     </details>
 
     <details class="section" open>
-      <summary class="sec-title">⚡ السرعات</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="zap"></span>السرعات</summary>
       <label>تغذية XY (mm/min)
         <input type="number" id="feed-rate-xy" value="1000" min="1" max="50000">
       </label>
@@ -520,7 +520,7 @@
     <div class="sec-group-label">متقدّم</div>
 
     <details class="section">
-      <summary class="sec-title">🎯 الإحداثيات</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="target"></span>الإحداثيات</summary>
       <label>وحدة القياس
         <select id="units">
           <option value="mm">ميلليمتر mm</option>
@@ -544,7 +544,7 @@
     </details>
 
     <details class="section">
-      <summary class="sec-title">⬇ استراتيجية الهبوط</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="arrow-down-line"></span>استراتيجية الهبوط</summary>
       <label>طريقة الدخول
         <select id="plunge-strategy">
           <option value="straight">مباشر (Straight)</option>
@@ -558,7 +558,7 @@
     </details>
 
     <details class="section">
-      <summary class="sec-title">⚙️ ملف الآلة</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="cpu"></span>ملف الآلة</summary>
       <select id="machine-profile">
         <option value="">مخصص...</option>
         <option value="generic">Generic CNC</option>
@@ -586,7 +586,7 @@
     </details>
 
     <details class="section">
-      <summary class="sec-title">🤖 التحسين</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="sparkles"></span>التحسين</summary>
       <label class="toggle-row"><input type="checkbox" id="ai-optimize" checked><span>تحسين AI</span></label>
       <label class="toggle-row"><input type="checkbox" id="arc-detect"  checked><span>اكتشاف أقواس G02/G03</span></label>
       <label class="toggle-row"><input type="checkbox" id="sort-paths"  checked><span>ترتيب المسارات</span></label>
@@ -597,7 +597,7 @@
     <div class="sec-group-label">التطبيق</div>
 
     <details class="section">
-      <summary class="sec-title">🎨 الواجهة</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="palette"></span>الواجهة</summary>
       <label class="ui-scale-row">حجم الواجهة
         <span class="ui-scale-wrap">
           <input type="range" id="ui-scale" min="85" max="130" step="5" value="100">
@@ -608,7 +608,7 @@
     </details>
 
     <details class="section" id="versions-section">
-      <summary class="sec-title">🕓 سجل النسخ</summary>
+      <summary class="sec-title"><span class="ti-ph" data-icon="history"></span>سجل النسخ</summary>
       <div class="ver-toolbar">
         <span class="ver-hint">لقطات تلقائية + يدوية — استرجعها بنقرة</span>
         <button id="ver-save" type="button">💾 احفظ نسخة</button>
@@ -1020,7 +1020,7 @@
       <button class="otab active" data-tab="gcode">G-Code</button>
       <button class="otab" data-tab="stats">إحصائيات</button>
       <button class="otab" data-tab="sim">محاكاة</button>
-      <button class="otab-fs" id="btn-output-fs" title="ملء الشاشة" aria-label="ملء الشاشة">⛶</button>
+      <button class="otab-fs" id="btn-output-fs" title="ملء الشاشة" aria-label="ملء الشاشة"><span class="ti-ph" data-icon="fullscreen"></span></button>
     </div>
 
     <!-- G-Code Tab -->
@@ -1031,10 +1031,10 @@
           <input type="checkbox" id="live-gcode" checked><span>⚡ حيّ</span>
         </label>
         <span class="gc-acts">
-          <button class="mbtn" id="btn-edit-gcode" title="تحرير الكود يدوياً">✏</button>
-          <button class="mbtn" id="btn-copy-gcode" title="نسخ">📋</button>
-          <button class="mbtn" id="btn-dl-gcode"   title="تحميل">⬇</button>
-          <button class="mbtn" id="btn-clr-gcode"  title="مسح">✕</button>
+          <button class="mbtn" id="btn-edit-gcode" title="تحرير الكود يدوياً"><span class="ti-ph" data-icon="pencil"></span></button>
+          <button class="mbtn" id="btn-copy-gcode" title="نسخ"><span class="ti-ph" data-icon="clipboard"></span></button>
+          <button class="mbtn" id="btn-dl-gcode"   title="تحميل"><span class="ti-ph" data-icon="download"></span></button>
+          <button class="mbtn" id="btn-clr-gcode"  title="مسح"><span class="ti-ph" data-icon="close"></span></button>
         </span>
       </div>
       <div class="gc-body" id="gc-body">
@@ -1111,7 +1111,7 @@
 
 <!-- ════ IMPORT DIALOG ════ -->
 <dialog id="dlg-import" class="modal">
-  <button class="mdl-close" id="cls-import">✕</button>
+  <button class="mdl-close" id="cls-import"><span class="ti-ph" data-icon="close"></span></button>
   <h3>📂 استيراد ملف تصميم</h3>
   <div class="drop-zone" id="drop-zone">
     <div class="dz-icon">📁</div>
@@ -1122,14 +1122,14 @@
   </div>
   <div id="import-preview-area"></div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-import-ok" disabled>✓ استيراد</button>
+    <button class="btn-pri" id="btn-import-ok" disabled><span class="ti-ph" data-icon="check"></span>ستيراد</button>
     <button class="btn-cnl" id="btn-import-cancel">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ EXPORT DIALOG ════ -->
 <dialog id="dlg-export" class="modal">
-  <button class="mdl-close" id="cls-export">✕</button>
+  <button class="mdl-close" id="cls-export"><span class="ti-ph" data-icon="close"></span></button>
   <h3>💾 تصدير G-Code</h3>
   <label>اسم الملف<input type="text" id="exp-filename" value="my_design"></label>
   <label>نوع الملف
@@ -1146,14 +1146,14 @@
   <label class="toggle-row"><input type="checkbox" id="exp-comments" checked><span>تضمين التعليقات</span></label>
   <label class="toggle-row"><input type="checkbox" id="exp-linenums"><span>أرقام الأسطر</span></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-export-ok">💾 تحميل</button>
+    <button class="btn-pri" id="btn-export-ok"><span class="ti-ph" data-icon="save"></span>حميل</button>
     <button class="btn-cnl" id="btn-export-cancel">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ AI REVIEW DIALOG ════ -->
 <dialog id="dlg-ai-review" class="modal">
-  <button class="mdl-close" id="cls-ai-review">✕</button>
+  <button class="mdl-close" id="cls-ai-review"><span class="ti-ph" data-icon="close"></span></button>
   <h3>🤖 مراجعة اقتراحات AI</h3>
   <div id="ai-review-meta" style="margin-bottom:8px;color:var(--text3)"></div>
   <div class="ai-analysis-list" id="ai-analysis-list" style="max-height:360px;overflow:auto;margin-bottom:8px;">
@@ -1168,15 +1168,15 @@
     </table>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-ai-apply-all">✓ تطبيق الكل</button>
-    <button class="btn-pri" id="btn-ai-apply-feeds">⚙ تطبيق التغذيات</button>
-    <button class="btn-sec" id="btn-ai-ignore">✕ تجاهل</button>
+    <button class="btn-pri" id="btn-ai-apply-all"><span class="ti-ph" data-icon="check"></span>طبيق الكل</button>
+    <button class="btn-pri" id="btn-ai-apply-feeds"><span class="ti-ph" data-icon="settings"></span>طبيق التغذيات</button>
+    <button class="btn-sec" id="btn-ai-ignore"><span class="ti-ph" data-icon="close"></span>جاهل</button>
   </div>
 </dialog>
 
 <!-- ════ MACHINE CONTROL DIALOG ════ -->
 <dialog id="dlg-machine" class="modal modal-wide">
-  <button class="mdl-close" id="cls-machine">✕</button>
+  <button class="mdl-close" id="cls-machine"><span class="ti-ph" data-icon="close"></span></button>
   <h3>🖥 التحكم بالآلة</h3>
 
   <div class="mc-section">
@@ -1273,7 +1273,7 @@
 
 <!-- ════ TOOL LIBRARY ════ -->
 <dialog id="dlg-tools" class="modal modal-wide">
-  <button class="mdl-close" id="cls-tools">✕</button>
+  <button class="mdl-close" id="cls-tools"><span class="ti-ph" data-icon="close"></span></button>
   <h3>🔩 مكتبة الأدوات</h3>
   <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
     <button class="tbtn primary" id="btn-add-tool">+ إضافة أداة</button>
@@ -1284,7 +1284,7 @@
 
 <!-- ════ ADD/EDIT TOOL ════ -->
 <dialog id="dlg-tool-edit" class="modal">
-  <button class="mdl-close" id="cls-tool-edit">✕</button>
+  <button class="mdl-close" id="cls-tool-edit"><span class="ti-ph" data-icon="close"></span></button>
   <h3 id="tool-edit-title">إضافة أداة</h3>
   <input type="hidden" id="tool-edit-id">
   <label>اسم الأداة<input type="text" id="tool-edit-name" placeholder="مثال: Flat 6mm 2-Flute"></label>
@@ -1303,14 +1303,14 @@
   <label>تغذية Z (mm/min)<input type="number" id="tool-edit-feed-z" value="300"></label>
   <label>ملاحظات<input type="text" id="tool-edit-notes"></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-tool-save">✓ حفظ</button>
+    <button class="btn-pri" id="btn-tool-save"><span class="ti-ph" data-icon="check"></span>فظ</button>
     <button class="btn-cnl" id="btn-tool-cancel">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ PROJECTS ════ -->
 <dialog id="dlg-projects" class="modal modal-wide">
-  <button class="mdl-close" id="cls-projects">✕</button>
+  <button class="mdl-close" id="cls-projects"><span class="ti-ph" data-icon="close"></span></button>
   <h3>📁 المشاريع المحفوظة</h3>
   <div style="display:flex;gap:8px;margin-bottom:8px">
     <input type="text" id="save-project-name" placeholder="اسم المشروع..." style="flex:1">
@@ -1321,7 +1321,7 @@
 
 <!-- ════ IMAGE TRACE DIALOG ════ -->
 <dialog id="dlg-image-trace" class="modal trace-modal">
-  <button class="mdl-close" id="cls-image-trace">✕</button>
+  <button class="mdl-close" id="cls-image-trace"><span class="ti-ph" data-icon="close"></span></button>
   <h3>🖼 تحويل صورة إلى مسارات CNC</h3>
 
   <div class="trace-body">
@@ -1347,7 +1347,7 @@
           <span>العتبة (Threshold)</span>
           <input type="range" id="trace-threshold" min="0" max="255" value="128">
           <span class="trace-val" id="trace-threshold-val">128</span>
-          <button class="btn-sec" id="btn-trace-auto" title="تحليل الصورة واختيار العتبة المثلى (Otsu)" style="padding:3px 10px;font-size:11px">✨ تلقائي</button>
+          <button class="btn-sec" id="btn-trace-auto" title="تحليل الصورة واختيار العتبة المثلى (Otsu)" style="padding:3px 10px;font-size:11px"><span class="ti-ph" data-icon="sparkles"></span>لقائي</button>
         </label>
         <label class="toggle-row" style="padding:0;margin-top:2px">
           <input type="checkbox" id="trace-smooth" checked>
@@ -1378,15 +1378,15 @@
   </div>
 
   <div class="mdl-foot">
-    <button class="btn-pri"  id="btn-trace-run">⚡ تتبع الآن</button>
-    <button class="btn-pri"  id="btn-trace-import" disabled>✓ استيراد للرسم</button>
+    <button class="btn-pri"  id="btn-trace-run"><span class="ti-ph" data-icon="zap"></span>تبع الآن</button>
+    <button class="btn-pri"  id="btn-trace-import" disabled><span class="ti-ph" data-icon="check"></span>ستيراد للرسم</button>
     <button class="btn-cnl"  id="btn-trace-cancel">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ ROTATE DIALOG ════ -->
 <dialog id="dlg-rotate" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-rotate').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-rotate').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>↻ تدوير الشكل</h3>
   <div class="mini-preset-row">
     <button class="mini-preset" data-angle="90">+90°</button>
@@ -1398,14 +1398,14 @@
     <input type="number" id="rotate-angle" value="45" min="-360" max="360" step="1">
   </label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-rotate-apply">↻ تطبيق</button>
+    <button class="btn-pri" id="btn-rotate-apply"><span class="ti-ph" data-icon="rotate"></span>طبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-rotate').close()">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ SCALE DIALOG ════ -->
 <dialog id="dlg-scale" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-scale').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-scale').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>⇲ تغيير الحجم</h3>
   <label class="toggle-row"><input type="checkbox" id="scale-uniform" checked><span>قياس موحد X=Y</span></label>
   <label>X (%)
@@ -1415,14 +1415,14 @@
     <input type="number" id="scale-y" value="100" min="1" max="1000" step="5">
   </label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-scale-apply">⇲ تطبيق</button>
+    <button class="btn-pri" id="btn-scale-apply"><span class="ti-ph" data-icon="scale"></span>طبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-scale').close()">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ ARRAY DIALOG ════ -->
 <dialog id="dlg-array" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-array').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-array').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>⊞ مصفوفة الأشكال</h3>
   <div class="mini-tabs">
     <button class="mini-tab active" data-arr="rect">مستطيل</button>
@@ -1439,40 +1439,40 @@
     <label>نصف القطر (mm) <input type="number" id="arr-radius" value="30" min="1" step="1"></label>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-array-apply">⊞ إنشاء</button>
+    <button class="btn-pri" id="btn-array-apply"><span class="ti-ph" data-icon="grid"></span>نشاء</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-array').close()">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ NEW PROJECT DIALOG ════ -->
 <dialog id="dlg-newproj" class="modal mini-modal">
-  <button class="mdl-close" id="np-cancel-x" onclick="document.getElementById('dlg-newproj').close()">✕</button>
+  <button class="mdl-close" id="np-cancel-x" onclick="document.getElementById('dlg-newproj').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>📄 مشروع جديد</h3>
   <p style="font-size:13px;color:var(--text2);margin:6px 0 14px">
     لديك تصميم مفتوح — ماذا تريد أن تفعل به؟
   </p>
   <div style="display:flex;flex-direction:column;gap:8px">
-    <button class="btn-pri" id="np-save">💾 حفظ المشروع ثم البدء بجديد</button>
-    <button class="btn-sec" id="np-discard">📄 بدء جديد بدون حفظ</button>
+    <button class="btn-pri" id="np-save"><span class="ti-ph" data-icon="save"></span>فظ المشروع ثم البدء بجديد</button>
+    <button class="btn-sec" id="np-discard"><span class="ti-ph" data-icon="page"></span>دء جديد بدون حفظ</button>
     <button class="btn-cnl" id="np-cancel">إلغاء — البقاء على الحالي</button>
   </div>
 </dialog>
 
 <!-- ════ PREFLIGHT CHECK DIALOG ════ -->
 <dialog id="dlg-preflight" class="modal">
-  <button class="mdl-close" id="cls-preflight">✕</button>
+  <button class="mdl-close" id="cls-preflight"><span class="ti-ph" data-icon="close"></span></button>
   <h3>✅ فحص الجاهزية قبل التشغيل</h3>
   <div id="preflight-verdict" class="pf-verdict">…</div>
   <div id="preflight-list" class="pf-list"></div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="pf-proceed">⚡ متابعة التوليد</button>
+    <button class="btn-pri" id="pf-proceed"><span class="ti-ph" data-icon="zap"></span>تابعة التوليد</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-preflight').close()">إغلاق</button>
   </div>
 </dialog>
 
 <!-- ════ MACHINE PRESETS DIALOG ════ -->
 <dialog id="dlg-presets" class="modal">
-  <button class="mdl-close" id="cls-presets">✕</button>
+  <button class="mdl-close" id="cls-presets"><span class="ti-ph" data-icon="close"></span></button>
   <h3>🖥 ملفات الآلات</h3>
   <p style="font-size:12px;color:var(--text3);margin-bottom:8px">احفظ كل إعدادات آلتك (المتحكم، الأداة، السرعات، الحدود) وبدّل بينها بنقرة.</p>
   <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -1484,30 +1484,30 @@
 
 <!-- ════ TABS / FILLET / NESTING / BOLT / INFO DIALOGS ════ -->
 <dialog id="dlg-tabs" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-tabs').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-tabs').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>⊥ جسور التثبيت</h3>
   <label>عدد الجسور<input type="number" id="tabs-count" value="4" min="2" max="20"></label>
   <label>عرض الجسر (mm)<input type="number" id="tabs-width" value="5" min="0.5" max="50" step="0.5"></label>
   <label>ارتفاع الجسر (mm)<input type="number" id="tabs-height" value="1" min="0.2" max="20" step="0.1"></label>
   <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">جسور بارتفاع جزئي: ترتفع الأداة فوق مكان الجسر بعمق أقل فيبقى جسر رقيق يُبقي القطعة متصلة فلا تطير — يُكسر يدوياً بعد التشغيل</div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-tabs-apply">⊥ تطبيق</button>
+    <button class="btn-pri" id="btn-tabs-apply"><span class="ti-ph" data-icon="tabs"></span>طبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-tabs').close()">إلغاء</button>
   </div>
 </dialog>
 
 <dialog id="dlg-fillet" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-fillet').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-fillet').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>⌒ تدوير الزوايا</h3>
   <label>نصف القطر (mm)<input type="number" id="fillet-radius" value="5" min="0.2" max="100" step="0.5"></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-fillet-apply">⌒ تطبيق</button>
+    <button class="btn-pri" id="btn-fillet-apply"><span class="ti-ph" data-icon="arc-join"></span>طبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-fillet').close()">إلغاء</button>
   </div>
 </dialog>
 
 <dialog id="dlg-nesting" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-nesting').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-nesting').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>▦ رصف على الخامة</h3>
   <div style="display:flex;gap:8px">
     <label style="flex:1">عرض الخامة (mm)<input type="number" id="nest-w" value="600" min="10"></label>
@@ -1516,13 +1516,13 @@
   <label>المسافة بين القطع (mm)<input type="number" id="nest-gap" value="5" min="0" step="0.5"></label>
   <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">يرصّ الأشكال المحددة (أو الكل) تلقائياً لتقليل هدر الخامة</div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-nesting-apply">▦ رصف</button>
+    <button class="btn-pri" id="btn-nesting-apply"><span class="ti-ph" data-icon="grid"></span>صف</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-nesting').close()">إلغاء</button>
   </div>
 </dialog>
 
 <dialog id="dlg-boltcircle" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-boltcircle').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-boltcircle').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>⚙ دائرة براغي</h3>
   <div style="display:flex;gap:8px">
     <label style="flex:1">مركز X<input type="number" id="bolt-cx" value="50" step="0.5"></label>
@@ -1534,13 +1534,13 @@
   </div>
   <label>⌀ الثقب (mm)<input type="number" id="bolt-hole" value="6" min="0.2" step="0.5"></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-bolt-apply">⚙ إنشاء</button>
+    <button class="btn-pri" id="btn-bolt-apply"><span class="ti-ph" data-icon="bolt-circle"></span>نشاء</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-boltcircle').close()">إلغاء</button>
   </div>
 </dialog>
 
 <dialog id="dlg-shapeinfo" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-shapeinfo').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-shapeinfo').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>ⓘ معلومات الشكل</h3>
   <div style="font-size:12px;color:var(--text3);margin-bottom:8px">
     النوع: <b id="si-type" style="color:var(--cyan)">--</b> ·
@@ -1552,14 +1552,14 @@
     <label style="flex:1">الموضع Y (mm)<input type="number" id="si-y" step="0.1"></label>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-si-apply">✓ تطبيق الموضع</button>
+    <button class="btn-pri" id="btn-si-apply"><span class="ti-ph" data-icon="check"></span>طبيق الموضع</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-shapeinfo').close()">إغلاق</button>
   </div>
 </dialog>
 
 <!-- ════ TEXT ENGRAVING DIALOG ════ -->
 <dialog id="dlg-text" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-text').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-text').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>✏ نقش نص</h3>
   <label>النص
     <input type="text" id="text-input" placeholder="PART-01 / SN:1234" dir="ltr" style="text-align:left">
@@ -1572,14 +1572,14 @@
     الموضع: <b id="text-pos-label" style="color:var(--cyan)">--</b>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-text-ok">✓ إدراج</button>
+    <button class="btn-pri" id="btn-text-ok"><span class="ti-ph" data-icon="check"></span>دراج</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-text').close()">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ PATH OFFSET DIALOG ════ -->
 <dialog id="dlg-offset" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-offset').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-offset').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>⊚ إزاحة المسار</h3>
   <label>المسافة (mm)
     <input type="number" id="offset-dist" value="3" min="0.05" max="500" step="0.5">
@@ -1592,14 +1592,14 @@
     ينشئ مساراً موازياً للشكل المحدد — مفيد لتعويض قطر الأداة أو جدران الجيوب
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-offset-apply">⊚ إنشاء المسار</button>
+    <button class="btn-pri" id="btn-offset-apply"><span class="ti-ph" data-icon="offset"></span>نشاء المسار</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-offset').close()">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ PRECISE SHAPE DIALOG ════ -->
 <dialog id="dlg-precise" class="modal mini-modal">
-  <button class="mdl-close" onclick="document.getElementById('dlg-precise').close()">✕</button>
+  <button class="mdl-close" onclick="document.getElementById('dlg-precise').close()"><span class="ti-ph" data-icon="close"></span></button>
   <h3>📐 شكل بأبعاد دقيقة</h3>
   <label>النوع
     <select id="precise-type">
@@ -1625,14 +1625,14 @@
     <label style="flex:1">Y2 (mm)<input type="number" id="precise-y2" value="0" step="0.1"></label>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-precise-ok">✓ إنشاء</button>
+    <button class="btn-pri" id="btn-precise-ok"><span class="ti-ph" data-icon="check"></span>نشاء</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-precise').close()">إلغاء</button>
   </div>
 </dialog>
 
 <!-- ════ UPGRADE / PAYMENT DIALOG ════ -->
 <dialog id="dlg-upgrade" class="modal">
-  <button class="mdl-close" id="cls-upgrade">✕</button>
+  <button class="mdl-close" id="cls-upgrade"><span class="ti-ph" data-icon="close"></span></button>
   <h3>⭐ ترقية الاشتراك</h3>
 
   <p class="plan-sub">باقات تناسب كل مستوى — من الهواة إلى المصانع. تجديد شهري، رقِّ أو ألغِ في أي وقت.</p>
@@ -1718,6 +1718,7 @@
      قبل DOMContentLoaded — يلغي حجب العرض ويحافظ على ترتيب التبعيات حرفياً. -->
 <script defer src="/vendor/supabase.js"></script>
 <script defer src="js/supabase-auth.js"></script>
+<script defer src="js/icons.js"></script>
 <script defer src="/socket.io/socket.io.js"></script>
 <!-- المحرك المشترك (نفس كود الخادم حرفياً) — الترتيب مهم: التبعيات أولاً -->
 <script defer src="/shared/geometry.js"></script>

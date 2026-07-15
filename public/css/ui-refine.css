@@ -9,6 +9,15 @@
  *  لا يغيّر المنطق — CSS فقط. متغيّرات التصميم من style.css / redesign.css.
  */
 
+/* ═══════════════ أيقونات SVG الموحّدة (بدل الإيموجي) ═══════════════ */
+/* حامل الأيقونة: يحاذي الرمز مع النصّ العربي المجاور ويرث لونه وحجمه */
+.ti-ph { display: inline-flex; align-items: center; justify-content: center;
+  vertical-align: -0.14em; color: inherit; }
+.ti-ph .ti { width: 1.05em; height: 1.05em; }
+/* في عناوين الأقسام: مسافة صغيرة بعد الأيقونة (RTL) وتلوين خافت */
+.sec-title .ti-ph { margin-inline-end: 7px; color: var(--accent-h); opacity: .9; }
+.mi .ti-ph { margin-inline-end: 8px; opacity: .85; }
+
 /* ═══════════════ 0) رموز العمق والحركة ═══════════════ */
 /* التطبيق داكن دائماً (كمحرّرات التصميم الاحترافية) — كل تدرّج/ظل/لمعة يمرّ عبر هذه الرموز */
 :root {
