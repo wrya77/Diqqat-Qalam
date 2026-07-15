@@ -385,14 +385,65 @@
       <div id="props-empty" class="props-empty">حدّد شكلاً لعرض خصائصه وتحريرها</div>
       <div id="props-body" style="display:none">
         <div class="props-head"><span id="props-type">—</span><span id="props-count"></span></div>
-        <div class="props-grid">
-          <label>X (mm)<input type="number" id="prop-x" step="0.5"></label>
-          <label>Y (mm)<input type="number" id="prop-y" step="0.5"></label>
-          <label>العرض<input type="number" id="prop-w" step="0.5" min="0.1"></label>
-          <label>الارتفاع<input type="number" id="prop-h" step="0.5" min="0.1"></label>
+
+        <div class="props-sub">تحويل</div>
+        <div class="props-xform">
+          <!-- النقطة المرجعية: تحدّد أي زاوية تثبت عند التحجيم وإلى أيّها تشير X/Y -->
+          <div class="props-ref" id="props-ref" role="radiogroup" aria-label="النقطة المرجعية">
+            <button class="pr-dot" data-ref="tl" title="أعلى يسار" aria-label="أعلى يسار"></button>
+            <button class="pr-dot" data-ref="tc" title="أعلى وسط" aria-label="أعلى وسط"></button>
+            <button class="pr-dot" data-ref="tr" title="أعلى يمين" aria-label="أعلى يمين"></button>
+            <button class="pr-dot" data-ref="ml" title="وسط يسار" aria-label="وسط يسار"></button>
+            <button class="pr-dot" data-ref="mc" title="المركز" aria-label="المركز"></button>
+            <button class="pr-dot" data-ref="mr" title="وسط يمين" aria-label="وسط يمين"></button>
+            <button class="pr-dot on" data-ref="bl" title="أسفل يسار" aria-label="أسفل يسار"></button>
+            <button class="pr-dot" data-ref="bc" title="أسفل وسط" aria-label="أسفل وسط"></button>
+            <button class="pr-dot" data-ref="br" title="أسفل يمين" aria-label="أسفل يمين"></button>
+          </div>
+          <div class="props-fields">
+            <label class="pf">X<input type="number" id="prop-x" step="0.5"></label>
+            <label class="pf">Y<input type="number" id="prop-y" step="0.5"></label>
+            <label class="pf">W<input type="number" id="prop-w" step="0.5" min="0.1"></label>
+            <label class="pf">H<input type="number" id="prop-h" step="0.5" min="0.1"></label>
+          </div>
+          <!-- سلسلة التناسب: checkbox مخفي يبقى #prop-lock-aspect كما تقرأه الشيفرة -->
+          <label class="props-chain" title="حفظ التناسب بين العرض والارتفاع">
+            <input type="checkbox" id="prop-lock-aspect">
+            <svg viewBox="0 0 12 30" aria-hidden="true"><path d="M9 3H6a3 3 0 0 0 0 6h1M9 27H6a3 3 0 0 1 0-6h1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9 9v12" fill="none" stroke="currentColor" stroke-width="1.4" class="chain-mid"/></svg>
+          </label>
         </div>
-        <label class="props-lock"><input type="checkbox" id="prop-lock-aspect"><span>🔒 حفظ التناسب</span></label>
-        <label class="props-angle">الدوران (°)<input type="number" id="prop-angle" step="1" value="0"></label>
+
+        <div class="props-row2">
+          <label class="pf pf-ang">∠<input type="number" id="prop-angle" step="1" value="0"></label>
+          <div class="props-flips">
+            <button class="pbtn" id="prop-flip-h" title="قلب أفقي">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2v16" stroke-dasharray="2 2"/><path d="M7 5L3 10l4 5z"/><path d="M13 5l4 5-4 5z" fill="currentColor" fill-opacity=".3"/></svg>
+            </button>
+            <button class="pbtn" id="prop-flip-v" title="قلب رأسي">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 10h16" stroke-dasharray="2 2"/><path d="M5 7l5-4 5 4z"/><path d="M5 13l5 4 5-4z" fill="currentColor" fill-opacity=".3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="props-sub">محاذاة</div>
+        <div class="props-align">
+          <button class="pbtn" data-align="left" title="محاذاة لليسار"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="1.6" height="16" opacity=".55"/><rect x="5.5" y="4" width="11" height="4" rx="1"/><rect x="5.5" y="12" width="7" height="4" rx="1"/></svg></button>
+          <button class="pbtn" data-align="hcenter" title="توسيط أفقي"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="9.2" y="2" width="1.6" height="16" opacity=".55"/><rect x="4.5" y="4" width="11" height="4" rx="1"/><rect x="6.5" y="12" width="7" height="4" rx="1"/></svg></button>
+          <button class="pbtn" data-align="right" title="محاذاة لليمين"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="16.4" y="2" width="1.6" height="16" opacity=".55"/><rect x="3.5" y="4" width="11" height="4" rx="1"/><rect x="7.5" y="12" width="7" height="4" rx="1"/></svg></button>
+          <button class="pbtn" data-align="top" title="محاذاة للأعلى"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="16" height="1.6" opacity=".55"/><rect x="4" y="5.5" width="4" height="11" rx="1"/><rect x="12" y="5.5" width="4" height="7" rx="1"/></svg></button>
+          <button class="pbtn" data-align="vcenter" title="توسيط رأسي"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="9.2" width="16" height="1.6" opacity=".55"/><rect x="4" y="4.5" width="4" height="11" rx="1"/><rect x="12" y="6.5" width="4" height="7" rx="1"/></svg></button>
+          <button class="pbtn" data-align="bottom" title="محاذاة للأسفل"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="16.4" width="16" height="1.6" opacity=".55"/><rect x="4" y="3.5" width="4" height="11" rx="1"/><rect x="12" y="7.5" width="4" height="7" rx="1"/></svg></button>
+          <button class="pbtn" data-dist="h" title="توزيع أفقي متساوٍ (3 أشكال+)"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="1.4" height="16" opacity=".55"/><rect x="16.6" y="2" width="1.4" height="16" opacity=".55"/><rect x="8.8" y="5" width="2.4" height="10" rx="1"/></svg></button>
+          <button class="pbtn" data-dist="v" title="توزيع رأسي متساوٍ (3 أشكال+)"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="16" height="1.4" opacity=".55"/><rect x="2" y="16.6" width="16" height="1.4" opacity=".55"/><rect x="5" y="8.8" width="10" height="2.4" rx="1"/></svg></button>
+        </div>
+
+        <div class="props-sub">إجراءات سريعة</div>
+        <div class="props-quick">
+          <button class="qbtn" data-act="group">⧉ تجميع</button>
+          <button class="qbtn" data-act="ungroup">⧉̸ فك</button>
+          <button class="qbtn" data-act="duplicate">⧉+ تكرار</button>
+          <button class="qbtn qbtn-danger" data-act="delete">🗑 حذف</button>
+        </div>
       </div>
     </details>
 
@@ -761,6 +812,28 @@
         </button>
         <button class="tr-btn" data-tool="reshape" title="إعادة التشكيل [Shift+R] — سحب ناعم لجزء من المسار">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2 14 C6 14 7 6 10 6 C13 6 14 14 18 14"/><circle cx="10" cy="6" r="1.8" fill="currentColor"/><path d="M10 4V1.5M8.8 2.5L10 1.5l1.2 1"/></svg>
+        </button>
+
+        <!-- ── GROUP: تحويل حيّ (نمط Illustrator) ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">تحويل</div>
+        <button class="tr-btn" data-tool="rotate" title="تدوير — اسحب لتدوير المحدد (Shift = 15° · Alt/يمين = ضبط المحور)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8A6.5 6.5 0 1 0 15 13.5"/><polyline points="16,3 16,8 11,8"/><circle cx="10" cy="10" r="1.4" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="scale" title="تحجيم — اسحب لتكبير/تصغير المحدد حول المحور (Alt/يمين = ضبط المحور)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="7" height="7"/><rect x="10.5" y="10.5" width="7" height="7" stroke-dasharray="2.5 2"/><polyline points="11,6 14,6 14,9"/><path d="M14 6l-3.5 3.5"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="free-transform" title="تحويل حر — مقابض الصندوق تحجّم، المقبض العلوي يدوّر">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="4" y="6" width="12" height="9" stroke-dasharray="3 2"/><rect x="2.5" y="4.5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="14.5" y="4.5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="2.5" y="13.5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="14.5" y="13.5" width="3" height="3" fill="currentColor" stroke="none"/><circle cx="10" cy="2.5" r="1.6" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="eraser" title="ممحاة — اسحب لمحو أجزاء المسار تحت الفرشاة">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M8 16H4l-1.5-1.5a1.5 1.5 0 0 1 0-2.1l8-8a1.5 1.5 0 0 1 2.1 0l3.4 3.4a1.5 1.5 0 0 1 0 2.1L8 16z"/><line x1="7" y1="8" x2="12.5" y2="13.5"/><line x1="8" y1="16" x2="17" y2="16"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="knife" title="سكين — ارسم خطاً عبر شكل مغلق فينقسم إلى قطعتين">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 7-3 3-4-4z"/><line x1="10" y1="10" x2="17" y2="17"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="blend" title="مزج — حدّد شكلين فتُولَّد أشكال وسيطة متدرّجة بينهما">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="4.5" cy="10" r="3"/><circle cx="15.5" cy="10" r="3"/><circle cx="10" cy="10" r="2.2" stroke-dasharray="2 1.6"/></svg>
         </button>
 
         <!-- ── GROUP CNC+: أدوات دقة قلم المبتكرة ── -->
@@ -1668,6 +1741,7 @@
 <script defer src="js/tools-effects.js"></script>
 <script defer src="js/tools-vector-pro.js"></script>
 <script defer src="js/tools-illustrator.js"></script>
+<script defer src="js/tools-live-transform.js"></script>
 <script defer src="js/tools-cnc-invent.js"></script>
 <script defer src="js/layers-panel.js"></script>
 <script defer src="js/object-dock.js"></script>
