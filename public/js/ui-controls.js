@@ -86,89 +86,114 @@ class UIControls {
     // عند العودة للتبويب: حدّث فوراً بدل انتظار الدورة التالية
     document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) this._updateDeviceStatus(); });
 
-    // تخطيط سطح المكتب: طيّ/تحجيم لوحة الإعدادات + تلميحات مفاتيح الأدوات
-    this._initSettingsPanelLayout();
+    // تخطيط سطح المكتب: طيّ/تحجيم اللوحتين (إعدادات + إخراج) + تلميحات مفاتيح الأدوات
+    this._initPanelsLayout();
     this._initToolKeyTips();
   }
 
-  /* ═══ لوحة إعدادات قابلة للطيّ والتحجيم (سطح المكتب >1024px فقط) ═══
-     تعديل عمود الشبكة الثالث مباشرة على .app-layout — بلا تحويلها إلى flex.
+  /* ═══ لوحتا الإعدادات والإخراج: طيّ وتحجيم (سطح المكتب >1024px فقط) ═══
+     الشبكة RTL: العمود الأول = لوحة الإعدادات (يمين)، الثالث = لوحة الإخراج (يسار).
+     (كان الكود القديم يعدّل العمود الثالث ظنّاً أنه الإعدادات — فيطوي لوحة الإخراج
+     الخطأ. هنا حالة واحدة تدير العمودين معاً فلا يكتب أحدهما فوق الآخر.)
      الكانفس يتقلّص/يتمدّد تلقائياً عبر ResizeObserver القائم في canvas-editor. */
-  _initSettingsPanelLayout() {
-    const panel = document.querySelector('.settings-panel');
-    const layout = document.querySelector('.app-layout');
-    if (!panel || !layout) return;
+  _initPanelsLayout() {
+    const settings = document.querySelector('.settings-panel');
+    const output   = document.querySelector('.output-panel');
+    const layout   = document.querySelector('.app-layout');
+    if (!settings || !output || !layout) return;
     const isDesktop = () => window.innerWidth > 1024;
 
-    // العمود الأيسر الحالي (يحترم نقاط التوقّف: 240/220) والعرض الافتراضي
-    const leftCol = () => (getComputedStyle(layout).gridTemplateColumns.split(' ')[0] || '240px');
-    const DEF_W = 400, MIN_W = 280, MAX_W = 520;
-    let width = Math.min(MAX_W, Math.max(MIN_W, +localStorage.getItem('dq-sp-width') || DEF_W));
-    let collapsed = localStorage.getItem('dq-sp-collapsed') === '1';
+    const SP = { key: 'sp', DEF: 240, MIN: 200, MAX: 440 };   // إعدادات (عمود 1)
+    const OP = { key: 'op', DEF: 400, MIN: 300, MAX: 640 };   // إخراج (عمود 3)
+    const st = c => ({
+      width: Math.min(c.MAX, Math.max(c.MIN, +localStorage.getItem(`dq-${c.key}-width`) || c.DEF)),
+      collapsed: localStorage.getItem(`dq-${c.key}-collapsed`) === '1',
+    });
+    const sp = st(SP), op = st(OP);
 
     const applyCols = () => {
       if (!isDesktop()) { layout.style.gridTemplateColumns = ''; return; }   // اترك الأدراج للـ CSS
-      layout.style.gridTemplateColumns = collapsed
-        ? `${leftCol()} 1fr 0px`
-        : `${leftCol()} 1fr ${width}px`;
+      layout.style.gridTemplateColumns =
+        `${sp.collapsed ? 0 : sp.width}px 1fr ${op.collapsed ? 0 : op.width}px`;
     };
 
-    // زر الطيّ اللاصق أعلى اللوحة
-    const toggle = document.createElement('button');
-    toggle.className = 'sp-toggle-btn'; toggle.type = 'button';
-    toggle.innerHTML = `<span class="sp-chev">⟩</span><span>طيّ اللوحة</span>`;
-    panel.prepend(toggle);
+    /* ── لوحة الإعدادات: زر طيّ + لسان إعادة فتح على حافة الشاشة اليمنى ── */
+    const spToggle = document.createElement('button');
+    spToggle.className = 'sp-toggle-btn'; spToggle.type = 'button';
+    spToggle.innerHTML = `<span class="sp-chev">⟩</span><span>طيّ اللوحة</span>`;
+    settings.prepend(spToggle);
 
-    // مقبض التحجيم على الحافة اليسرى
-    const handle = document.createElement('div');
-    handle.className = 'sp-resize-handle';
-    handle.title = 'اسحب لتغيير عرض اللوحة';
-    panel.appendChild(handle);
+    const spHandle = document.createElement('div');
+    spHandle.className = 'sp-resize-handle';
+    spHandle.title = 'اسحب لتغيير عرض اللوحة';
+    settings.appendChild(spHandle);
 
-    // لسان إعادة الفتح عند الطيّ
-    const reopen = document.createElement('button');
-    reopen.className = 'sp-reopen'; reopen.type = 'button';
-    reopen.innerHTML = `<span>⟨</span><span>الإعدادات</span>`;
-    document.body.appendChild(reopen);
+    const spReopen = document.createElement('button');
+    spReopen.className = 'sp-reopen'; spReopen.type = 'button';
+    spReopen.innerHTML = `<span>⟨</span><span>الإعدادات</span>`;
+    document.body.appendChild(spReopen);
 
-    const syncCollapsedUI = () => {
-      layout.classList.toggle('sp-collapsed', collapsed);
-      reopen.classList.toggle('show', collapsed && isDesktop());
-      toggle.querySelector('.sp-chev').style.transform = collapsed ? 'rotate(180deg)' : '';
+    /* ── لوحة الإخراج: زر طيّ داخل شريط التبويبات + لسان على حافة الشاشة اليسرى ── */
+    const opToggle = document.createElement('button');
+    opToggle.className = 'op-toggle-btn'; opToggle.type = 'button';
+    opToggle.title = 'طيّ لوحة الإخراج';
+    opToggle.textContent = '⟨';
+    output.querySelector('.out-tabs')?.appendChild(opToggle);
+
+    const opHandle = document.createElement('div');
+    opHandle.className = 'op-resize-handle';
+    opHandle.title = 'اسحب لتغيير عرض اللوحة';
+    output.appendChild(opHandle);
+
+    const opReopen = document.createElement('button');
+    opReopen.className = 'op-reopen'; opReopen.type = 'button';
+    opReopen.innerHTML = `<span>⟩</span><span>الإخراج</span>`;
+    document.body.appendChild(opReopen);
+
+    const sync = () => {
+      layout.classList.toggle('sp-collapsed', sp.collapsed);
+      layout.classList.toggle('op-collapsed', op.collapsed);
+      spReopen.classList.toggle('show', sp.collapsed && isDesktop());
+      opReopen.classList.toggle('show', op.collapsed && isDesktop());
+      spToggle.querySelector('.sp-chev').style.transform = sp.collapsed ? 'rotate(180deg)' : '';
       applyCols();
     };
-
-    const setCollapsed = v => {
-      collapsed = v; localStorage.setItem('dq-sp-collapsed', v ? '1' : '0'); syncCollapsedUI();
+    const setCollapsed = (s, c, v) => {
+      s.collapsed = v; localStorage.setItem(`dq-${c.key}-collapsed`, v ? '1' : '0'); sync();
     };
-    toggle.addEventListener('click', () => setCollapsed(true));
-    reopen.addEventListener('click', () => setCollapsed(false));
+    spToggle.addEventListener('click', () => setCollapsed(sp, SP, true));
+    spReopen.addEventListener('click', () => setCollapsed(sp, SP, false));
+    opToggle.addEventListener('click', () => setCollapsed(op, OP, true));
+    opReopen.addEventListener('click', () => setCollapsed(op, OP, false));
 
-    // السحب لتغيير العرض
-    let dragging = false;
-    handle.addEventListener('mousedown', e => {
-      if (!isDesktop() || collapsed) return;
-      dragging = true; handle.classList.add('active'); layout.classList.add('sp-resizing');
-      document.body.style.cursor = 'ew-resize'; document.body.style.userSelect = 'none';
-      e.preventDefault();
-    });
-    window.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      // اللوحة على اليمين: عرضها = عرض الشاشة − موضع المؤشّر
-      width = Math.min(MAX_W, Math.max(MIN_W, window.innerWidth - e.clientX));
-      layout.style.gridTemplateColumns = `${leftCol()} 1fr ${width}px`;
-    });
-    window.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false; handle.classList.remove('active'); layout.classList.remove('sp-resizing');
-      document.body.style.cursor = ''; document.body.style.userSelect = '';
-      localStorage.setItem('dq-sp-width', String(Math.round(width)));
-    });
+    /* ── السحب لتغيير العرض (الإعدادات يمين: من حافة الشاشة؛ الإخراج يسار: من الصفر) ── */
+    const wireDrag = (handle, s, c, widthFromEvent) => {
+      let dragging = false;
+      handle.addEventListener('mousedown', e => {
+        if (!isDesktop() || s.collapsed) return;
+        dragging = true; handle.classList.add('active'); layout.classList.add('sp-resizing');
+        document.body.style.cursor = 'ew-resize'; document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        s.width = Math.min(c.MAX, Math.max(c.MIN, widthFromEvent(e)));
+        applyCols();
+      });
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false; handle.classList.remove('active'); layout.classList.remove('sp-resizing');
+        document.body.style.cursor = ''; document.body.style.userSelect = '';
+        localStorage.setItem(`dq-${c.key}-width`, String(Math.round(s.width)));
+      });
+    };
+    wireDrag(spHandle, sp, SP, e => window.innerWidth - e.clientX);  // لوحة يمنى
+    wireDrag(opHandle, op, OP, e => e.clientX);                      // لوحة يسرى
 
     // إعادة الضبط عند عبور نقطة التوقّف بين سطح المكتب والأدراج
-    window.addEventListener('resize', () => { syncCollapsedUI(); });
+    window.addEventListener('resize', sync);
 
-    syncCollapsedUI();
+    sync();
   }
 
   /* ═══ تلميحات مفاتيح لأدوات الرسم — عنصر على مستوى body يتجاوز قصّ الشريط ═══

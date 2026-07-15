@@ -856,7 +856,8 @@ class CanvasEditor {
     if(!this.history.length) return;
     this.redoStack.push(JSON.parse(JSON.stringify(this.shapes)));
     this.shapes=this.history.pop();
-    this.selectedIdx=-1; this._updateShapeToolbar();
+    // مسح msel أيضاً — بقاء فهارس ميتة فيه بعد استرجاع مصفوفة أقصر يُسقط كل من يمرّ عليه
+    this.selectedIdx=-1; this.msel?.clear?.(); this._updateShapeToolbar();
     this.render(); this._updateStatus();
   }
 
@@ -864,13 +865,13 @@ class CanvasEditor {
     if(!this.redoStack.length) return;
     this.history.push(JSON.parse(JSON.stringify(this.shapes)));
     this.shapes=this.redoStack.pop();
-    this.selectedIdx=-1; this._updateShapeToolbar();
+    this.selectedIdx=-1; this.msel?.clear?.(); this._updateShapeToolbar();
     this.render(); this._updateStatus();
   }
 
   clear() {
     this._saveHistory();
-    this.shapes=[]; this.selectedIdx=-1;
+    this.shapes=[]; this.selectedIdx=-1; this.msel?.clear?.();
     this.currentPath=[]; this.isDrawing=false;
     this._updateShapeToolbar();
     this.render(); this._updateStatus();

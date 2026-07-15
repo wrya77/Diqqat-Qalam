@@ -49,8 +49,10 @@
 
   /* ── الفهارس المحددة: msel الجماعي أو selectedIdx الفردي ── */
   function selIdxs(e) {
-    if (e.msel && e.msel.size) return [...e.msel];
-    return e.selectedIdx >= 0 ? [e.selectedIdx] : [];
+    // تصفية الفهارس الميتة (تبقى في msel بعد الحذف/التراجع) كي لا يُشتقّ undefined
+    const valid = i => i >= 0 && i < e.shapes.length && e.shapes[i];
+    if (e.msel && e.msel.size) return [...e.msel].filter(valid);
+    return valid(e.selectedIdx) ? [e.selectedIdx] : [];
   }
 
   /* ── الألوان الأخيرة (آخر 10 ألوان مصمتة مُطبَّقة) ── */
