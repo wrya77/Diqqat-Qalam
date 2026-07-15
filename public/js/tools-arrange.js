@@ -159,8 +159,10 @@
      المحاذاة والتوزيع
   ══════════════════════════════════════════════════════════ */
   P._selIndices = function () {
-    if (this.msel.size) return [...this.msel];
-    return this.selectedIdx >= 0 ? [this.selectedIdx] : [];
+    // تصفية الفهارس الميتة (بعد حذف/تراجع) — _bounds(undefined) يُسقط المحاذاة والتوزيع
+    const valid = i => i >= 0 && i < this.shapes.length && this.shapes[i];
+    if (this.msel.size) return [...this.msel].filter(valid);
+    return valid(this.selectedIdx) ? [this.selectedIdx] : [];
   };
 
   P.alignSelected = function (mode) {

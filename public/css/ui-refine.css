@@ -9,6 +9,30 @@
  *  لا يغيّر المنطق — CSS فقط. متغيّرات التصميم من style.css / redesign.css.
  */
 
+/* ═══════════════ 0) رموز العمق والحركة (تتبدّل مع السمة) ═══════════════ */
+/* كل تدرّج/ظل/لمعة يمرّ عبر هذه الرموز — فلا يبقى لون داكن مثبّت يكسر السمة الفاتحة */
+:root {
+  --gloss:        rgba(255,255,255,.05);            /* لمعة داخلية علوية للأزرار */
+  --btn-hi:       #262c36;                          /* تدرّج hover: أعلى */
+  --btn-lo:       #1c2128;                          /* تدرّج hover: أسفل */
+  --shadow-1:     0 1px 2px rgba(0,0,0,.28);        /* عمق زر ساكن */
+  --shadow-2:     0 4px 12px rgba(0,0,0,.38);       /* عمق زر مرفوع */
+  --shadow-menu:  0 10px 30px rgba(0,0,0,.55);      /* قوائم منسدلة */
+  --shadow-float: 0 16px 44px rgba(0,0,0,.42);      /* لوحات عائمة */
+  --press-in:     inset 0 2px 4px rgba(0,0,0,.4);   /* ضغط الزر للداخل */
+  --ease-out:     cubic-bezier(.22, 1, .36, 1);     /* منحنى خروجي — بلا ارتداد */
+}
+:root[data-theme="light"] {
+  --gloss:        rgba(255,255,255,.85);
+  --btn-hi:       #ffffff;
+  --btn-lo:       #e9edf2;
+  --shadow-1:     0 1px 2px rgba(25,35,55,.10);
+  --shadow-2:     0 4px 12px rgba(25,35,55,.16);
+  --shadow-menu:  0 10px 30px rgba(25,35,55,.22);
+  --shadow-float: 0 16px 44px rgba(25,35,55,.20);
+  --press-in:     inset 0 2px 4px rgba(25,35,55,.18);
+}
+
 /* ═══════════════ 1) مقياس الخط (أكبر قليلاً) ═══════════════ */
 body { font-size: 14px; letter-spacing: .1px; }
 
@@ -53,18 +77,18 @@ input[type="number"], input[type="text"], select { font-size: 13.5px; }
   padding: 5px 12px;
   border-radius: 7px;
   background: linear-gradient(180deg, var(--bg4) 0%, var(--bg3) 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 1px 2px rgba(0,0,0,.28);
-  transition: transform .13s ease, box-shadow .13s ease, background .13s ease, border-color .13s ease, color .13s ease;
+  box-shadow: inset 0 1px 0 var(--gloss), var(--shadow-1);
+  transition: transform .13s var(--ease-out), box-shadow .13s ease, background .13s ease, border-color .13s ease, color .13s ease;
 }
 .tbtn:not(.primary):not(.upgrade-btn):hover {
-  background: linear-gradient(180deg, #262c36 0%, #1c2128 100%);
+  background: linear-gradient(180deg, var(--btn-hi) 0%, var(--btn-lo) 100%);
   border-color: var(--border2);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 4px 12px rgba(0,0,0,.38);
+  box-shadow: inset 0 1px 0 var(--gloss), var(--shadow-2);
   transform: translateY(-1px);
 }
 .tbtn:not(.primary):not(.upgrade-btn):active {
-  transform: translateY(0);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.4);
+  transform: translateY(0) scale(.97);
+  box-shadow: var(--press-in);
 }
 
 /* أزرار شريط الأدوات الجانبي — أكبر قليلاً وأوضح تفاعلاً
@@ -74,30 +98,34 @@ input[type="number"], input[type="text"], select { font-size: 13.5px; }
 .tr-flyout .tr-btn { width: 38px; height: 38px; border-radius: 8px; }
 .tr-btn { border-radius: 8px; }
 .tr-btn svg { width: 18px; height: 18px; }
+.tr-btn { transition: transform .13s var(--ease-out), background .13s ease, border-color .13s ease, box-shadow .13s ease, color .13s ease; }
 .tr-btn:hover {
-  background: linear-gradient(180deg, #262c36, #1c2128);
+  background: linear-gradient(180deg, var(--btn-hi), var(--btn-lo));
   border-color: var(--border2);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  box-shadow: inset 0 1px 0 var(--gloss);
+  transform: translateY(-1px);
 }
+.tr-btn:active { transform: translateY(0) scale(.94); }
 .tr-btn.active {
   background: linear-gradient(180deg, var(--accent-h), var(--accent));
   border-color: var(--accent);
-  box-shadow: 0 2px 10px rgba(79,110,247,.45), inset 0 1px 0 rgba(255,255,255,.25);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 0 rgba(255,255,255,.25);
 }
 
 /* أزرار شريط تحويل الشكل */
 .st-btn {
   width: 28px; height: 28px;
   background: linear-gradient(180deg, var(--bg4), var(--bg3));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-  transition: transform .13s ease, box-shadow .13s ease, background .13s ease, border-color .13s ease, color .13s ease;
+  box-shadow: inset 0 1px 0 var(--gloss);
+  transition: transform .13s var(--ease-out), box-shadow .13s ease, background .13s ease, border-color .13s ease, color .13s ease;
 }
 .st-btn:hover {
   background: linear-gradient(180deg, var(--accent-h), var(--accent));
+  color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(79,110,247,.35);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 35%, transparent);
 }
-.st-btn:active { transform: translateY(0); box-shadow: inset 0 2px 4px rgba(0,0,0,.35); }
+.st-btn:active { transform: translateY(0) scale(.94); box-shadow: var(--press-in); }
 
 /* أزرار لوحة الإخراج الصغيرة */
 .mbtn {
@@ -119,7 +147,7 @@ input[type="number"], input[type="text"], select { font-size: 13.5px; }
 }
 .otab.active {
   color: var(--accent-h);
-  background: linear-gradient(180deg, rgba(79,110,247,.10), transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent);
 }
 .otab.active::after {
   content: '';
@@ -127,7 +155,7 @@ input[type="number"], input[type="text"], select { font-size: 13.5px; }
   left: 12%; right: 12%; bottom: -1px; height: 2px;
   background: var(--accent-h);
   border-radius: 2px 2px 0 0;
-  box-shadow: 0 0 8px rgba(79,110,247,.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 /* شريط الأدوات الجانبي: هواء أكثر بين المجموعات */
@@ -142,6 +170,17 @@ input[type="number"], input[type="text"], select { font-size: 13.5px; }
 /* شريط القوائم: فاصل سفلي أدق */
 .menu-btn { border-radius: 7px; }
 .menu-btn:hover { background: var(--bg3); }
+
+/* الشريط العلوي: عمق يتبع السمة
+   (style.css يثبّته على تدرّج داكن #121823→#0d1117 فيبقى أسود في السمة الفاتحة) */
+.toolbar {
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg1) 100%);
+  box-shadow: inset 0 1px 0 var(--gloss), var(--shadow-1);
+}
+:root[data-theme="light"] .toolbar {
+  background: linear-gradient(180deg, #fbfbfc 0%, var(--bg2) 100%);
+  border-bottom-color: var(--border2);
+}
 
 
 /* ═══════════════ حلقة تركيز موحّدة أوضح ═══════════════ */
@@ -207,17 +246,20 @@ button:focus-visible,
 
 /* ═══════════════ 8) السمة الفاتحة (ميزة #5) ═══════════════ */
 /* الواجهة كلها مبنية على متغيّرات CSS — تبديل السمة يعيد تلوينها تلقائياً */
+/* لوح فاتح احترافي محايد بنمط Illustrator/Photoshop الفاتح:
+   كروم رمادي محايد (لا مزرقّ)، حدود حاسمة، أبيض للحقول والقوائم فقط —
+   فيبقى التسلسل البصري واضحاً: لوحة الرسم أفتح سطح، والكروم أغمق منها درجة. */
 :root[data-theme="light"] {
-  --bg:        #eef1f5;
-  --bg1:       #ffffff;
-  --bg2:       #f4f6f9;
-  --bg3:       #eaeef3;
-  --bg4:       #dbe1e8;
-  --border:    #ccd4dd;
-  --border2:   #aeb8c4;   /* أغمق كي تُقرأ الفواصل والحدود */
-  --text:      #1a1e23;
-  --text2:     #3b434c;
-  --text3:     #56606b;   /* ≥4.5:1 على bg2/bg3 (كان فاتحاً جداً) */
+  --bg:        #d7dade;   /* أرضية التطبيق — أغمق من اللوحات كي تتمايز */
+  --bg1:       #ffffff;   /* الحقول والقوائم والسطوح المرتفعة */
+  --bg2:       #f0f1f3;   /* اللوحات والأشرطة (كروم) */
+  --bg3:       #e5e7ea;   /* hover ومستوى أدنى */
+  --bg4:       #d9dce0;   /* الأزرار الساكنة */
+  --border:    #c3c8ce;
+  --border2:   #9aa2ac;   /* أغمق كي تُقرأ الفواصل والحدود */
+  --text:      #16191d;
+  --text2:     #363d45;
+  --text3:     #525b65;   /* ≥4.5:1 على bg2/bg3 */
   --accent:    #1f6feb;
   --accent-h:  #0a58ca;
   --accent-soft: rgba(31,111,235,.12);   /* خلفية التحديد الفاتحة */
@@ -226,7 +268,7 @@ button:focus-visible,
   --amber:     #9a6700;
   --cyan:      #0969da;
   --purple:    #8250df;
-  --shadow:    0 8px 32px rgba(140,150,170,.28);
+  --shadow:    0 8px 32px rgba(30,40,60,.18);
 }
 /* ملاحظة: منطقة كود G تبقى داكنة دائماً (كمحرّرات الكود) — انظر القسم 10 */
 /* شارة زر تبديل السمة */
@@ -283,28 +325,44 @@ button:focus-visible,
   background: color-mix(in srgb, var(--green) 12%, transparent);
 }
 
-/* ═══════════════ 11) حركات احترافية هادئة (نوافذ · أشرطة · تبويبات) ═══════════════ */
+/* ═══════════════ 11) حركات احترافية (نوافذ · أشرطة · تبويبات · أزرار) ═══════════════ */
 /* المبدأ: الحركة تنقل الحالة لا الزينة — 150-220ms، منحنى خروجي، بلا ارتداد */
 
 /* تبديل تبويبات لوحة الإخراج: تلاشٍ + انزلاق خفيف للمحتوى */
-.out-pane.active { animation: dqPaneIn .2s cubic-bezier(.22,1,.36,1); }
+.out-pane.active { animation: dqPaneIn .2s var(--ease-out); }
 @keyframes dqPaneIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* التبويبات نفسها: انتقال لوني ناعم + نموّ خطّ المؤشّر */
 .otab { transition: color .18s ease, background .18s ease; }
-.otab.active::after { animation: dqTabBar .22s cubic-bezier(.22,1,.36,1); transform-origin: center; }
+.otab.active::after { animation: dqTabBar .22s var(--ease-out); transform-origin: center; }
 @keyframes dqTabBar { from { transform: scaleX(.25); opacity: .3; } to { transform: scaleX(1); opacity: 1; } }
 
-/* القوائم المنسدلة: دخول أنعم من الافتراضي */
-.menu.open > .menu-drop { animation: dqMenuIn .16s cubic-bezier(.22,1,.36,1); }
+/* القوائم المنسدلة: دخول أنعم من الافتراضي + ظل يتبع السمة */
+.menu.open > .menu-drop { animation: dqMenuIn .16s var(--ease-out); }
 @keyframes dqMenuIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+.menu-drop { box-shadow: var(--shadow-menu), 0 0 0 1px var(--border); }
 
-/* تبويبات/أقسام الإعدادات (details): كشف ناعم لمحتوى القسم عند فتحه بالنقر
-   (لا يُشغَّل على تحميل الصفحة لأن المتصفح لا يعيد تشغيل الأنيميشن للعناصر المفتوحة أصلاً) */
+/* النوافذ الحوارية (dialog): دخول بمقياس + تلاشٍ، وخلفية تُعتم تدريجياً — بنمط Illustrator */
+dialog[open] { animation: dqDlgIn .2s var(--ease-out); }
+dialog[open]::backdrop { animation: dqDlgBk .2s ease; }
+@keyframes dqDlgIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes dqDlgBk { from { opacity: 0; } to { opacity: 1; } }
+
+/* اللوحات العائمة (الطبقات، شريط الكائنات…): دخول موحّد */
+.dq-pop-in { animation: dqFloatIn .2s var(--ease-out); }
+@keyframes dqFloatIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* تبويبات/أقسام الإعدادات (details): كشف ناعم لمحتوى القسم عند فتحه بالنقر */
 details.section > summary { transition: color .15s ease, background .15s ease; }
+details.section[open] > *:not(summary) { animation: dqPaneIn .18s var(--ease-out); }
 
-/* الأزرار الصغيرة في لوحة الإخراج والحالة: تغذية راجعة عند الضغط */
-.mbtn:active, .otab:active { transform: translateY(0) scale(.96); }
+/* تغذية راجعة موحّدة للضغط على كل عناصر الكروم الصغيرة */
+.mbtn:active, .otab:active, .icon-btn:active, .menu-btn:active { transform: scale(.95); }
+.icon-btn, .menu-btn { transition: background .15s ease, color .15s ease, border-color .15s ease, transform .12s var(--ease-out); }
+
+/* التلميحات ولسان إعادة الفتح: ظلال تتبع السمة (كانت سوداء مثبّتة) */
+.trkey-tip { box-shadow: var(--shadow-2); }
+.sp-reopen { box-shadow: var(--shadow-float); }
 
 /* احترام تفضيل تقليل الحركة — بديل فوري لكل حركة (غير اختياري) */
 @media (prefers-reduced-motion: reduce) {
@@ -342,12 +400,42 @@ details.section > summary { transition: color .15s ease, background .15s ease; }
 .app-layout.sp-resizing { transition: none; }   /* أثناء السحب: بلا تأخّر */
 .settings-panel { position: relative; }
 
-/* مقبض التحجيم على الحافة اليسرى (اللوحة يمين في RTL) */
+/* مقبض التحجيم على الحافة المواجهة للكانفس
+   (لوحة الإعدادات يمين الشاشة ⇒ حافتها اليسرى = inline-end في RTL —
+    كان inset-inline-start فيلتصق المقبض بحافة الشاشة بدل حافة اللوحة) */
 .sp-resize-handle {
-  position: absolute; top: 0; inset-inline-start: 0; width: 5px; height: 100%;
+  position: absolute; top: 0; inset-inline-end: 0; width: 6px; height: 100%;
   cursor: ew-resize; z-index: 6; background: transparent; transition: background .15s ease;
 }
 .sp-resize-handle:hover, .sp-resize-handle.active { background: var(--accent); }
+
+/* لوحة الإخراج (يسار الشاشة): مقبض على حافتها اليمنى المواجهة للكانفس */
+.output-panel { position: relative; }
+.op-resize-handle {
+  position: absolute; top: 0; inset-inline-start: 0; width: 6px; height: 100%;
+  cursor: ew-resize; z-index: 6; background: transparent; transition: background .15s ease;
+}
+.op-resize-handle:hover, .op-resize-handle.active { background: var(--accent); }
+
+/* زر طيّ لوحة الإخراج داخل شريط تبويباتها */
+.op-toggle-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 14px; padding: 6px 10px; line-height: 1;
+  font-family: inherit; transition: color .15s ease, background .15s ease;
+}
+.op-toggle-btn:hover { color: var(--text); background: var(--bg3); }
+
+/* لسان إعادة فتح لوحة الإخراج — على حافة الشاشة اليسرى */
+.op-reopen {
+  position: fixed; top: 118px; inset-inline-end: 0; z-index: 800;
+  display: none; align-items: center; gap: 6px; padding: 9px 11px;
+  border: 1px solid var(--border2); border-inline-start: none;
+  border-radius: 0 10px 10px 0; cursor: pointer;
+  background: var(--bg2); color: var(--text2); font-family: inherit; font-size: 12.5px;
+  box-shadow: var(--shadow-float); transition: color .15s ease, border-color .15s ease;
+}
+.op-reopen:hover { color: var(--text); border-color: var(--accent); }
+.op-reopen.show { display: inline-flex; }
 
 /* شريط الطيّ اللاصق أعلى اللوحة */
 .sp-toggle-btn {
@@ -360,14 +448,15 @@ details.section > summary { transition: color .15s ease, background .15s ease; }
 .sp-toggle-btn:hover { background: var(--bg4); color: var(--text); }
 .sp-toggle-btn .sp-chev { transition: transform .2s cubic-bezier(.22, 1, .36, 1); }
 
-/* لسان إعادة الفتح عند الطيّ — على حافة الشاشة اليمنى */
+/* لسان إعادة الفتح عند الطيّ — على حافة الشاشة اليمنى
+   (inline-start في RTL = يمين؛ كان inline-end فيظهر اللسان على اليسار الخطأ) */
 .sp-reopen {
-  position: fixed; top: 118px; inset-inline-end: 0; z-index: 800;
+  position: fixed; top: 118px; inset-inline-start: 0; z-index: 800;
   display: none; align-items: center; gap: 6px; padding: 9px 11px;
-  border: 1px solid var(--border2); border-inline-end: none;
+  border: 1px solid var(--border2); border-inline-start: none;
   border-radius: 10px 0 0 10px; cursor: pointer;
   background: var(--bg2); color: var(--text2); font-family: inherit; font-size: 12.5px;
-  box-shadow: -6px 8px 22px rgba(0,0,0,.28); transition: color .15s ease, border-color .15s ease;
+  box-shadow: var(--shadow-float); transition: color .15s ease, border-color .15s ease;
 }
 .sp-reopen:hover { color: var(--text); border-color: var(--accent); }
 .sp-reopen.show { display: inline-flex; }
