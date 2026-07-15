@@ -65,16 +65,17 @@ class DiqqatQalamApp {
     const _outPanel = document.querySelector('.output-panel');
     const _fsBtn = document.getElementById('btn-output-fs');
     const _afterFs = () => requestAnimationFrame(() => { try { this.simulator?._resize(); window.dispatchEvent(new Event('resize')); } catch (_) {} });
+    const _fsIcon = on => { if (_fsBtn) _fsBtn.innerHTML = window.DQIcon ? window.DQIcon(on ? 'fullscreen-exit' : 'fullscreen') : (on ? '✕' : '⛶'); };
     _fsBtn?.addEventListener('click', () => {
       const on = _outPanel.classList.toggle('fs');
-      _fsBtn.textContent = on ? '✕' : '⛶';
+      _fsIcon(on);
       _fsBtn.title = on ? 'إغلاق ملء الشاشة' : 'ملء الشاشة';
       _afterFs();
     });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && _outPanel?.classList.contains('fs')) {
         _outPanel.classList.remove('fs');
-        if (_fsBtn) { _fsBtn.textContent = '⛶'; _fsBtn.title = 'ملء الشاشة'; }
+        _fsIcon(false); if (_fsBtn) _fsBtn.title = 'ملء الشاشة';
         _afterFs();
       }
     });

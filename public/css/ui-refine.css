@@ -9,8 +9,17 @@
  *  لا يغيّر المنطق — CSS فقط. متغيّرات التصميم من style.css / redesign.css.
  */
 
-/* ═══════════════ 0) رموز العمق والحركة (تتبدّل مع السمة) ═══════════════ */
-/* كل تدرّج/ظل/لمعة يمرّ عبر هذه الرموز — فلا يبقى لون داكن مثبّت يكسر السمة الفاتحة */
+/* ═══════════════ أيقونات SVG الموحّدة (بدل الإيموجي) ═══════════════ */
+/* حامل الأيقونة: يحاذي الرمز مع النصّ العربي المجاور ويرث لونه وحجمه */
+.ti-ph { display: inline-flex; align-items: center; justify-content: center;
+  vertical-align: -0.14em; color: inherit; }
+.ti-ph .ti { width: 1.05em; height: 1.05em; }
+/* في عناوين الأقسام: مسافة صغيرة بعد الأيقونة (RTL) وتلوين خافت */
+.sec-title .ti-ph { margin-inline-end: 7px; color: var(--accent-h); opacity: .9; }
+.mi .ti-ph { margin-inline-end: 8px; opacity: .85; }
+
+/* ═══════════════ 0) رموز العمق والحركة ═══════════════ */
+/* التطبيق داكن دائماً (كمحرّرات التصميم الاحترافية) — كل تدرّج/ظل/لمعة يمرّ عبر هذه الرموز */
 :root {
   --gloss:        rgba(255,255,255,.05);            /* لمعة داخلية علوية للأزرار */
   --btn-hi:       #262c36;                          /* تدرّج hover: أعلى */
@@ -21,16 +30,6 @@
   --shadow-float: 0 16px 44px rgba(0,0,0,.42);      /* لوحات عائمة */
   --press-in:     inset 0 2px 4px rgba(0,0,0,.4);   /* ضغط الزر للداخل */
   --ease-out:     cubic-bezier(.22, 1, .36, 1);     /* منحنى خروجي — بلا ارتداد */
-}
-:root[data-theme="light"] {
-  --gloss:        rgba(255,255,255,.85);
-  --btn-hi:       #ffffff;
-  --btn-lo:       #e9edf2;
-  --shadow-1:     0 1px 2px rgba(25,35,55,.10);
-  --shadow-2:     0 4px 12px rgba(25,35,55,.16);
-  --shadow-menu:  0 10px 30px rgba(25,35,55,.22);
-  --shadow-float: 0 16px 44px rgba(25,35,55,.20);
-  --press-in:     inset 0 2px 4px rgba(25,35,55,.18);
 }
 
 /* ═══════════════ 1) مقياس الخط (أكبر قليلاً) ═══════════════ */
@@ -171,15 +170,11 @@ input[type="number"], input[type="text"], select { font-size: 13.5px; }
 .menu-btn { border-radius: 7px; }
 .menu-btn:hover { background: var(--bg3); }
 
-/* الشريط العلوي: عمق يتبع السمة
-   (style.css يثبّته على تدرّج داكن #121823→#0d1117 فيبقى أسود في السمة الفاتحة) */
+/* الشريط العلوي: عمق موحّد عبر الرموز
+   (style.css يثبّته على تدرّج داكن #121823→#0d1117 — نوحّده مع بقية الكروم) */
 .toolbar {
   background: linear-gradient(180deg, var(--bg2) 0%, var(--bg1) 100%);
   box-shadow: inset 0 1px 0 var(--gloss), var(--shadow-1);
-}
-:root[data-theme="light"] .toolbar {
-  background: linear-gradient(180deg, #fbfbfc 0%, var(--bg2) 100%);
-  border-bottom-color: var(--border2);
 }
 
 
@@ -308,42 +303,6 @@ button:focus-visible,
 .qbtn-danger:hover { border-color: var(--red, #f85149); color: var(--red-h, #ff7b72);
   background: color-mix(in srgb, var(--red, #f85149) 12%, transparent); }
 
-/* ═══════════════ 8) السمة الفاتحة (ميزة #5) ═══════════════ */
-/* الواجهة كلها مبنية على متغيّرات CSS — تبديل السمة يعيد تلوينها تلقائياً */
-/* لوح فاتح احترافي محايد بنمط Illustrator/Photoshop الفاتح:
-   كروم رمادي محايد (لا مزرقّ)، حدود حاسمة، أبيض للحقول والقوائم فقط —
-   فيبقى التسلسل البصري واضحاً: لوحة الرسم أفتح سطح، والكروم أغمق منها درجة. */
-:root[data-theme="light"] {
-  --bg:        #d7dade;   /* أرضية التطبيق — أغمق من اللوحات كي تتمايز */
-  --bg1:       #ffffff;   /* الحقول والقوائم والسطوح المرتفعة */
-  --bg2:       #f0f1f3;   /* اللوحات والأشرطة (كروم) */
-  --bg3:       #e5e7ea;   /* hover ومستوى أدنى */
-  --bg4:       #d9dce0;   /* الأزرار الساكنة */
-  --border:    #c3c8ce;
-  --border2:   #9aa2ac;   /* أغمق كي تُقرأ الفواصل والحدود */
-  --text:      #16191d;
-  --text2:     #363d45;
-  --text3:     #525b65;   /* ≥4.5:1 على bg2/bg3 */
-  --accent:    #1f6feb;
-  --accent-h:  #0a58ca;
-  --accent-soft: rgba(31,111,235,.12);   /* خلفية التحديد الفاتحة */
-  --green:     #1a7f37;   /* نسخ داكنة للحالات كي تُقرأ على الفاتح */
-  --red:       #cf222e;
-  --amber:     #9a6700;
-  --cyan:      #0969da;
-  --purple:    #8250df;
-  --shadow:    0 8px 32px rgba(30,40,60,.18);
-}
-/* ملاحظة: منطقة كود G تبقى داكنة دائماً (كمحرّرات الكود) — انظر القسم 10 */
-/* شارة زر تبديل السمة */
-.theme-seg { display: inline-flex; border: 1px solid var(--border2, #3d444d); border-radius: 8px;
-  overflow: hidden; margin-top: 4px; }
-.theme-seg button { flex: 1; padding: 6px 10px; border: none; background: var(--bg2, #161b22);
-  color: var(--text2, #b1bac4); cursor: pointer; font-size: 12.5px; font-family: inherit; }
-.theme-seg button.on { background: var(--accent, #4f6ef7); color: #fff; }
-.theme-row { display: flex; flex-direction: column; gap: 4px; margin-top: 10px;
-  font-size: 11px; color: var(--text2, #b1bac4); }
-
 /* ═══════════════ 9) سجل النسخ (ميزة #9) ═══════════════ */
 .ver-toolbar { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .ver-hint { font-size: 11px; color: var(--text3, #8b949e); }
@@ -365,8 +324,8 @@ button:focus-visible,
 .ver-btn.ver-restore:hover { color: var(--green, #3fb950); border-color: var(--green, #3fb950); }
 .ver-btn.ver-del:hover { color: var(--red, #f85149); border-color: var(--red, #f85149); }
 
-/* ═══════════════ 10) إصلاحات قراءة السمة الفاتحة ═══════════════ */
-/* منطقة كود G تبقى داكنة دائماً كمحرّرات الكود — فتعمل ألوان التلوين الزاهية */
+/* ═══════════════ 10) منطقة كود G ═══════════════ */
+/* داكنة كمحرّرات الكود — فتعمل ألوان التلوين الزاهية */
 .gc-body { background: #0d1117; }
 .gc-pre  { color: #c9d1d9; }
 .gc-pre .g-rapid   { color: #ff7b72; }
@@ -377,8 +336,6 @@ button:focus-visible,
 .gc-pre .g-comment { color: #8b949e; font-style: italic; }
 .gc-placeholder { color: #8b949e; }
 
-/* إحداثيات X/Y ومساعد المحاكاة: كانا فاتحين جداً في السمة الفاتحة */
-:root[data-theme="light"] .coord-display { color: var(--cyan); }
 .sim-hint { color: var(--text3); }
 /* الفواصل الرأسية: أغمق قليلاً كي تُميَّز */
 .cf-div, .clr-div { color: var(--border2); }
