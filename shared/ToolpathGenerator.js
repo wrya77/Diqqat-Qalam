@@ -5,12 +5,12 @@
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./geometry'), require('./PocketGenerator'));
+    module.exports = factory(require('./geometry'), require('./PocketGenerator'), require('./PathModel'));
   } else {
     root.DQ = root.DQ || {};
-    root.DQ.ToolpathGenerator = factory(root.DQ.geometry, root.DQ.PocketGenerator);
+    root.DQ.ToolpathGenerator = factory(root.DQ.geometry, root.DQ.PocketGenerator, root.DQ.PathModel);
   }
-}(typeof self !== 'undefined' ? self : this, function (geometry, PocketGenerator) {
+}(typeof self !== 'undefined' ? self : this, function (geometry, PocketGenerator, PathModel) {
 
 class ToolpathGenerator {
   constructor(config) {
@@ -50,11 +50,21 @@ class ToolpathGenerator {
       case 'polygon':  return this._genPolygon(shape, depth);
       case 'slot':     return this._genSlot(shape, depth);
       case 'polyline': return this._genPolyline(shape, depth);
+      case 'path':     return this._genPath(shape, depth);
       case 'text':     return this._genText(shape, depth);
       case 'compound': return this._genCompound(shape, depth);
       default:
         return this.config.addComments ? [`; شكل غير مدعوم: ${shape.type}`] : [];
     }
+  }
+
+  // مسار بيزيري (PathModel): تفليط متكيّف 0.02mm ثم القطع كبولي‑خط —
+  // أدقّ من N ثابتة لأن كثافة النقاط تتبع الانحناء. (G2/G3 المباشرة مرحلة لاحقة)
+  _genPath(s, depth) {
+    if (!PathModel) return this.config.addComments ? ['; PathModel غير محمّل — تخطّي مسار بيزيري'] : [];
+    const f = PathModel.flatten(s, 0.02);
+    if (!f.points || f.points.length < 2) return [];
+    return this._genPolyline({ ...s, type: 'polyline', points: f.points, closed: f.closed }, depth);
   }
 
   // مسار مركّب (ناتج العمليات المنطقية): كل مسار مغلق يُقطع كحلقة مستقلّة.
