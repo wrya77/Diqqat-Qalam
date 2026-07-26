@@ -69,8 +69,11 @@ class CanvasEditor {
     // مواءمة: app.js يقرأ history.length، وtools-effects يعمل history.pop() — نُبقيها حيّة
     this.history   = this.commands.undoStack;
     this.redoStack = this.commands.redoStack;
-    // فهرس مكاني (P3): كل تعديل مُسجَّل في التاريخ يُبطِل الفهرس فيُعاد بناؤه كسولاً
-    this.events.on('history:changed', () => { this._spatialDirty = true; });
+    // P3: كل تعديل مُسجَّل يُبطِل الفهرس المكاني وطبقة المشهد الساكن المخزّنة
+    this.events.on('history:changed', () => {
+      this._spatialDirty = true;
+      this._sceneVersion = (this._sceneVersion | 0) + 1;
+    });
   }
 
   /** يُوزّع الحدث إلى أداة مسجّلة إن وُجدت؛ true = تعامَلت الأداة فاكتفِ. */
@@ -251,6 +254,7 @@ class CanvasEditor {
     }
 
     if (this.tool === 'select' && this.selectedIdx>=0 && e.buttons===1 && this.dragOffset) {
+      this._movingSel = true;   // سحب نشط → طبقة المشهد الساكن تستثني هذا الشكل
       this._moveShape(this.shapes[this.selectedIdx], pt.x-this.dragOffset.dx, pt.y-this.dragOffset.dy);
       this.render(); return;
     }
@@ -269,6 +273,7 @@ class CanvasEditor {
   }
 
   _onUp(e) {
+    this._movingSel = false;   // انتهى السحب النشط → العودة للرسم الكامل
     if (this._panStart) {
       this._panStart = null;
       if (this.tool === 'hand') this.canvas.style.cursor = 'grab';
@@ -757,7 +762,7 @@ class CanvasEditor {
   _cancelDraw() {
     this.isDrawing=false; this.startPt=null;
     this.previewPt=null; this.currentPath=[];
-    this._marquee=null; this._selDrag=null;
+    this._marquee=null; this._selDrag=null; this._movingSel=false;
     if (this.tool === 'select') { this.selectedIdx=-1; this._updateShapeToolbar(); }
     this.render();
   }
@@ -988,6 +993,7 @@ class CanvasEditor {
   // مع النواة: لقطة عبر CommandBus (يوحّد المؤقتة مع أوامر الدلتا). بلا النواة: المسار القديم.
   _saveHistory() {
     if (this.commands) { this.commands.openSnapshot(); return; }
+    this._sceneVersion = (this._sceneVersion | 0) + 1;
     this.history.push(JSON.parse(JSON.stringify(this.shapes)));
     this.redoStack=[];
     if(this.history.length>50) this.history.shift();
@@ -1026,37 +1032,87 @@ class CanvasEditor {
     this.render(); this._updateStatus();
   }
 
-  /* ────────── RENDER ────────── */
+  /* ────────── RENDER (P3: طبقتا كانفس عبر تخزين مؤقّت للمشهد الساكن) ──────────
+     أثناء السحب النشط لمشهد كبير: يُرسم المشهد الساكن مرة واحدة إلى كانفس خفيّة
+     (تستثني الأشكال المسحوبة)، ثم كل إطار = نسخة واحدة (blit) + رسم المسحوب حيّاً.
+     خارج السحب: إعادة رسم كاملة كالسابق (صفر تغيّر سلوكي، صفر خطر بيات). */
+  // عتبة تفعيل الكاش: المشاهد دون هذا الحدّ تُرسم كاملةً كل إطار (جودة تامّة، لا فرق
+  // بصري). الكاش يعمل فقط حين يُسقط الرسم الكامل الإطارات فعلاً (استيراد DXF ثقيل).
+  static get _CACHE_MIN() { return 800; }
+
   render() {
+    const live = this._liveDragSet();
+    if (live && this.shapes.length >= CanvasEditor._CACHE_MIN) this._renderCached(live);
+    else this._paintStatic(null);
+    this._paintOverlays();
+  }
+
+  // مجموعة فهارس الأشكال المسحوبة حالياً (null إن لا سحب نشط)
+  _liveDragSet() {
+    if (this._groupDrag && this.msel && this.msel.size) return this.msel;
+    if (this._movingSel && this.selectedIdx >= 0 && this.selectedIdx < this.shapes.length)
+      return new Set([this.selectedIdx]);
+    if (this._nodeDrag && this._nodeDrag.idx >= 0) return new Set([this._nodeDrag.idx]);
+    return null;
+  }
+
+  // خلفية + شبكة + محاور + كل الأشكال (متجاوزاً skip) — يُوجَّه إلى this.ctx الحالي
+  _paintStatic(skip) {
     const {ctx,canvas} = this;
     const t = this._canvasTheme || (this._canvasTheme = { bg:'#0d1117', grid:'#161b22', axis:'#21262d', label:'#30363d' });
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle=t.bg;
     ctx.fillRect(0,0,canvas.width,canvas.height);
-
     if(this.showGrid) this._drawGrid();
     this._drawAxes();
+    for (let i=0;i<this.shapes.length;i++){
+      if (skip && skip.has(i)) continue;
+      this._paintShape(i);
+    }
+  }
 
-    this.shapes.forEach((s,i) => {
-      const sel = i===this.selectedIdx;
-      const aiHL = this._aiHighlights && this._aiHighlights.has(i);
+  // رسم شكل واحد بحالته (تحديد/تمييز AI/نقطة الأصل) — يُوجَّه إلى this.ctx الحالي
+  _paintShape(i) {
+    const ctx = this.ctx, s = this.shapes[i];
+    if (!s) return;
+    const sel = i===this.selectedIdx;
+    const aiHL = this._aiHighlights && this._aiHighlights.has(i);
+    if(aiHL){ ctx.shadowColor='rgba(255,211,61,.35)'; ctx.shadowBlur=12; ctx.strokeStyle='#ffd33d'; ctx.lineWidth=3; }
+    else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':(s.stroke||'#2f81f7'); ctx.lineWidth=sel?2:1.5; }
+    ctx.setLineDash([]);
+    this._drawShape(s);
+    const o=this._shapeOrigin(s), sp=this._wToS(o.x,o.y);
+    ctx.fillStyle=aiHL?'#ffd33d':(sel?'#f85149':'#58a6ff');
+    ctx.beginPath(); ctx.arc(sp.x,sp.y,3,0,Math.PI*2); ctx.fill();
+    if(sel){ this._drawSelectionBox(s); }
+    ctx.shadowBlur=0; ctx.shadowColor='transparent';
+  }
 
-      if(aiHL){ ctx.shadowColor='rgba(255,211,61,.35)'; ctx.shadowBlur=12; ctx.strokeStyle='#ffd33d'; ctx.lineWidth=3; }
-      else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':(s.stroke||'#2f81f7'); ctx.lineWidth=sel?2:1.5; }
+  // يبني/يعيد استخدام كانفس المشهد الساكن (بمفتاح تحويل+نسخة+تحديد) ثم يرسم المسحوب حيّاً
+  _renderCached(live) {
+    const {ctx,canvas} = this;
+    const cw = canvas.width, ch = canvas.height;
+    const sig = (set) => set && set.size ? Array.from(set).sort((a,b)=>a-b).join(',') : '-';
+    const key = `${this.scale}|${this.offset.x}|${this.offset.y}|${cw}x${ch}|` +
+                `${this.showGrid?1:0}:${this.gridSize}|v${this._sceneVersion|0}|` +
+                `s${this.selectedIdx}|ai${sig(this._aiHighlights)}|L${sig(live)}`;
+    let off = this._sceneCacheCanvas;
+    if (!off) { off = document.createElement('canvas'); this._sceneCacheCanvas = off; }
+    if (this._sceneCacheKey !== key || off.width !== cw || off.height !== ch) {
+      if (off.width !== cw)  off.width  = cw;
+      if (off.height !== ch) off.height = ch;
+      const real = this.ctx;
+      this.ctx = off.getContext('2d');
+      try { this._paintStatic(live); } finally { this.ctx = real; }
+      this._sceneCacheKey = key;
+    }
+    ctx.drawImage(off, 0, 0);
+    for (const i of live) this._paintShape(i);
+  }
 
-      ctx.setLineDash([]);
-      this._drawShape(s);
-
-      const o=this._shapeOrigin(s), sp=this._wToS(o.x,o.y);
-      ctx.fillStyle=aiHL?'#ffd33d':(sel?'#f85149':'#58a6ff');
-      ctx.beginPath(); ctx.arc(sp.x,sp.y,3,0,Math.PI*2); ctx.fill();
-
-      // Selection handles
-      if(sel){ this._drawSelectionBox(s); }
-
-      ctx.shadowBlur=0; ctx.shadowColor='transparent';
-    });
-
+  // الطبقة العلوية الحيّة: عُقَد + معاينات + مؤشّر الالتقاط + marquee + تراكب الأداة
+  _paintOverlays() {
+    const {ctx} = this;
     this._drawNodes();
 
     if(this.isDrawing && this.startPt && this.previewPt){
