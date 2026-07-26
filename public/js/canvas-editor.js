@@ -69,6 +69,8 @@ class CanvasEditor {
     // مواءمة: app.js يقرأ history.length، وtools-effects يعمل history.pop() — نُبقيها حيّة
     this.history   = this.commands.undoStack;
     this.redoStack = this.commands.redoStack;
+    // فهرس مكاني (P3): كل تعديل مُسجَّل في التاريخ يُبطِل الفهرس فيُعاد بناؤه كسولاً
+    this.events.on('history:changed', () => { this._spatialDirty = true; });
   }
 
   /** يُوزّع الحدث إلى أداة مسجّلة إن وُجدت؛ true = تعامَلت الأداة فاكتفِ. */
@@ -198,6 +200,9 @@ class CanvasEditor {
         this.dragOffset = { dx: pt.x - o.x, dy: pt.y - o.y };
         // نقطة انطلاق السحب: تُختم عند الرفع كأمر دلتا (تراجع فوري بلا نسخ المشهد)
         this._selDrag = { idx: this.selectedIdx, fromX: o.x, fromY: o.y };
+      } else {
+        // نقر على فراغ = بدء تحديد مستطيلي (marquee) — يُغلق بالفهرس المكاني O(log n)
+        this._marquee = { x0: pt.x, y0: pt.y, x1: pt.x, y1: pt.y };
       }
       this._updateShapeToolbar();
       this.render();
@@ -241,6 +246,10 @@ class CanvasEditor {
 
     if (e.buttons===1 && this._dispatchTool('onMove', pt, e)) return;
 
+    if (this._marquee && this.tool==='select' && e.buttons===1) {
+      this._marquee.x1 = pt.x; this._marquee.y1 = pt.y; this.render(); return;
+    }
+
     if (this.tool === 'select' && this.selectedIdx>=0 && e.buttons===1 && this.dragOffset) {
       this._moveShape(this.shapes[this.selectedIdx], pt.x-this.dragOffset.dx, pt.y-this.dragOffset.dy);
       this.render(); return;
@@ -263,6 +272,20 @@ class CanvasEditor {
     if (this._panStart) {
       this._panStart = null;
       if (this.tool === 'hand') this.canvas.style.cursor = 'grab';
+      return;
+    }
+    // ختم التحديد المستطيلي (marquee) عبر الفهرس المكاني
+    if (this._marquee && this.tool === 'select') {
+      const m = this._marquee; this._marquee = null;
+      const moved = Math.abs(m.x1 - m.x0) > 1e-6 || Math.abs(m.y1 - m.y0) > 1e-6;
+      if (moved) {
+        const ids = this.selectInRect({ minX:m.x0, minY:m.y0, maxX:m.x1, maxY:m.y1 })
+                        .filter(i => !this.shapes[i]?.locked && !this.shapes[i]?.disabled);
+        this.msel = new Set(ids);
+        this.selectedIdx = ids.length ? ids[ids.length - 1] : -1;
+        this._updateShapeToolbar();
+      }
+      this.render(); this._updateStatus?.();
       return;
     }
     // ختم سحب التحديد المفرد كأمر دلتا — تراجع فوري O(1) بدل نسخ المشهد كاملاً
@@ -575,11 +598,68 @@ class CanvasEditor {
   }
 
   /* ────────── SELECTION ────────── */
-  _hitTest(pt) {
-    for (let i=this.shapes.length-1;i>=0;i--) {
-      if (this._isNear(this.shapes[i],pt)) return i;
+  // أنواع لها حدود موثوقة عبر _bounds (+ text نحسبه هنا)؛ غيرها يُعامَل «دائم الترشيح»
+  static get _INDEXABLE() {
+    return { line:1, rect:1, circle:1, arc:1, ellipse:1, polygon:1, slot:1, polyline:1, compound:1, text:1 };
+  }
+
+  _indexBounds(s) {
+    if (s.type === 'text')
+      return { minX:s.x, minY:s.y, maxX:s.x+(s.width||10), maxY:s.y+(s.height||10) };
+    try { return this._bounds(s); } catch (_) { return null; }
+  }
+
+  // يبني/يعيد بناء الفهرس المكاني كسولاً؛ null للمشاهد الصغيرة (المسح الخطي أكفأ)
+  _ensureSpatial() {
+    const SI = (typeof DQ !== 'undefined' && DQ.SpatialIndex) ||
+               (typeof window !== 'undefined' && window.DQ && window.DQ.SpatialIndex) || null;
+    const SI_MIN = 150;
+    if (!SI || this.shapes.length < SI_MIN) return null;
+    if (this._spatial && !this._spatialDirty && this._spatialCount === this.shapes.length)
+      return this._spatial;
+    const items = [], always = [];
+    for (let i = 0; i < this.shapes.length; i++) {
+      const s = this.shapes[i];
+      const b = CanvasEditor._INDEXABLE[s.type] ? this._indexBounds(s) : null;
+      if (b) items.push({ id:i, minX:b.minX, minY:b.minY, maxX:b.maxX, maxY:b.maxY });
+      else always.push(i);   // نوع بلا حدود موثوقة → يُختبر دائماً
     }
-    return -1;
+    this._spatial = (this._spatial || new SI()).build(items);
+    this._siAlways = always;
+    this._spatialDirty = false;
+    this._spatialCount = this.shapes.length;
+    return this._spatial;
+  }
+
+  _hitTest(pt) {
+    const si = this._ensureSpatial();
+    if (!si) {
+      for (let i=this.shapes.length-1;i>=0;i--)
+        if (this._isNear(this.shapes[i],pt)) return i;
+      return -1;
+    }
+    // مرشّحون قرب النقطة ثم اختبار دقيق — نُعيد أعلى فهرس (الأعلى في ترتيب الرسم) كالمسح الخطي
+    const pad = Math.max(4 / this.scale, 0.5);
+    let best = -1;
+    for (const it of si.queryPoint(pt.x, pt.y, pad))
+      if (it.id > best && this._isNear(this.shapes[it.id], pt)) best = it.id;
+    for (const i of (this._siAlways || []))
+      if (i > best && this._isNear(this.shapes[i], pt)) best = i;
+    return best;
+  }
+
+  // تحديد مستطيلي مُسرَّع (P3): فهارس الأشكال التي يتقاطع مستطيلها المحيط مع rect عالَمي
+  selectInRect(rect) {
+    const si = this._ensureSpatial();
+    if (si) return si.queryRegion(rect).map(it => it.id).sort((a,b)=>a-b);
+    const R = { minX:Math.min(rect.minX,rect.maxX), minY:Math.min(rect.minY,rect.maxY),
+                maxX:Math.max(rect.minX,rect.maxX), maxY:Math.max(rect.minY,rect.maxY) };
+    const out = [];
+    for (let i=0;i<this.shapes.length;i++){
+      let b; try { b=this._indexBounds(this.shapes[i]); } catch(_){ b=null; }
+      if (b && b.minX<=R.maxX && b.maxX>=R.minX && b.minY<=R.maxY && b.maxY>=R.minY) out.push(i);
+    }
+    return out;
   }
 
   _isNear(s,pt,tol=3/this.scale){
@@ -677,6 +757,7 @@ class CanvasEditor {
   _cancelDraw() {
     this.isDrawing=false; this.startPt=null;
     this.previewPt=null; this.currentPath=[];
+    this._marquee=null; this._selDrag=null;
     if (this.tool === 'select') { this.selectedIdx=-1; this._updateShapeToolbar(); }
     this.render();
   }
@@ -1007,6 +1088,17 @@ class CanvasEditor {
       ctx.strokeStyle='rgba(255,140,0,0.3)';
       ctx.beginPath(); ctx.arc(sp.x,sp.y,5,0,Math.PI*2); ctx.stroke();
       ctx.restore();
+    }
+
+    // مستطيل التحديد (marquee) أثناء السحب على فراغ
+    if (this._marquee) {
+      const a = this._wToS(this._marquee.x0, this._marquee.y0);
+      const b = this._wToS(this._marquee.x1, this._marquee.y1);
+      const x = Math.min(a.x,b.x), y = Math.min(a.y,b.y), w = Math.abs(b.x-a.x), h = Math.abs(b.y-a.y);
+      ctx.save();
+      ctx.fillStyle = 'rgba(88,166,255,0.12)'; ctx.fillRect(x,y,w,h);
+      ctx.strokeStyle = 'rgba(88,166,255,0.9)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+      ctx.strokeRect(x,y,w,h); ctx.restore();
     }
 
     // طبقة تراكب أداة مسجّلة (معاينة/أدلة خاصة بالأداة) — بعد رسم المشهد
