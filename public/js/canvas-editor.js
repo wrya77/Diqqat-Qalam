@@ -43,10 +43,40 @@ class CanvasEditor {
     } catch(e) {
       window.addEventListener('resize', () => this._resize());
     }
+    this._installCore();
     this._resize();
     this._bindEvents();
     this.render();
     if (typeof this.initExtraTools === 'function') this.initExtraTools();
+  }
+
+  /* ────────── بنية الأوامر المركزية (P1) — تُركّب إن توفّرت editor-core.js ────────── */
+  _installCore() {
+    const Core = (typeof DQ !== 'undefined' && DQ.EditorCore) ||
+                 (typeof window !== 'undefined' && window.DQ && window.DQ.EditorCore) || null;
+    if (!Core) return;  // بلا النواة: يبقى المسار القديم (this.history مصفوفة لقطات)
+    const self = this;
+    this.events = new Core.EditorEvents();
+    const ctx = {
+      cloneShapes: () => JSON.parse(JSON.stringify(self.shapes)),
+      setShapes:   (arr) => { self.shapes = JSON.parse(JSON.stringify(arr)); },
+      offsetShape: (s, dx, dy) => self._offsetShape(s, dx, dy),
+    };
+    Object.defineProperty(ctx, 'shapes', { get: () => self.shapes });
+    this.commands = new Core.CommandBus({ ctx, events: this.events, limit: 100 });
+    this.tools    = new Core.ToolManager({ events: this.events });
+    this._moveCommand = Core.moveCommand;
+    // مواءمة: app.js يقرأ history.length، وtools-effects يعمل history.pop() — نُبقيها حيّة
+    this.history   = this.commands.undoStack;
+    this.redoStack = this.commands.redoStack;
+  }
+
+  /** يُوزّع الحدث إلى أداة مسجّلة إن وُجدت؛ true = تعامَلت الأداة فاكتفِ. */
+  _dispatchTool(phase, pt, e) {
+    const def = this.tools && this.tools.get(this.tool);
+    const fn  = def && def[phase];
+    if (!fn) return false;
+    return fn.call(this, pt, e) !== false;
   }
 
   /* ────────── INIT ────────── */
@@ -157,11 +187,17 @@ class CanvasEditor {
     // أدوات العُقَد (تحرير/إضافة/حذف/تحويل نقاط الربط)
     if (this.tool && this.tool.indexOf('node') === 0) { this._nodeDown(pt); return; }
 
+    // أدوات مسجّلة ذاتياً عبر ToolManager — تُدار نفسها بلا اعتماد على ترتيب التحميل
+    this._selDrag = null;
+    if (this._dispatchTool('onDown', pt, e)) return;
+
     if (this.tool === 'select') {
       this.selectedIdx = this._hitTest(pt);
       if (this.selectedIdx >= 0) {
-        this.dragOffset = { dx: pt.x - this._shapeOrigin(this.shapes[this.selectedIdx]).x,
-                            dy: pt.y - this._shapeOrigin(this.shapes[this.selectedIdx]).y };
+        const o = this._shapeOrigin(this.shapes[this.selectedIdx]);
+        this.dragOffset = { dx: pt.x - o.x, dy: pt.y - o.y };
+        // نقطة انطلاق السحب: تُختم عند الرفع كأمر دلتا (تراجع فوري بلا نسخ المشهد)
+        this._selDrag = { idx: this.selectedIdx, fromX: o.x, fromY: o.y };
       }
       this._updateShapeToolbar();
       this.render();
@@ -203,6 +239,8 @@ class CanvasEditor {
 
     if (this._nodeDrag && e.buttons===1) { this._nodeMoveTo(pt); return; }
 
+    if (e.buttons===1 && this._dispatchTool('onMove', pt, e)) return;
+
     if (this.tool === 'select' && this.selectedIdx>=0 && e.buttons===1 && this.dragOffset) {
       this._moveShape(this.shapes[this.selectedIdx], pt.x-this.dragOffset.dx, pt.y-this.dragOffset.dy);
       this.render(); return;
@@ -227,7 +265,22 @@ class CanvasEditor {
       if (this.tool === 'hand') this.canvas.style.cursor = 'grab';
       return;
     }
+    // ختم سحب التحديد المفرد كأمر دلتا — تراجع فوري O(1) بدل نسخ المشهد كاملاً
+    if (this._selDrag && this.tool === 'select') {
+      const sd = this._selDrag; this._selDrag = null;
+      const s = this.shapes[sd.idx];
+      if (s) {
+        const o = this._shapeOrigin(s);
+        const dx = o.x - sd.fromX, dy = o.y - sd.fromY;
+        if ((Math.abs(dx) > 1e-9 || Math.abs(dy) > 1e-9) && this.commands && this._moveCommand) {
+          this.commands.run(this._moveCommand([sd.idx], dx, dy));
+          this._updateStatus?.();
+        }
+      }
+      return;
+    }
     if (this._nodeDrag) { this._nodeDrag = null; this._updateStatus?.(); return; }
+    if (this._dispatchTool('onUp', this._evPt(e), e)) return;
     if (!this.isDrawing || !this.startPt) return;
     if (this.tool==='polyline' || this.tool==='freehand') return;
 
@@ -837,6 +890,11 @@ class CanvasEditor {
 
   /* ────────── SHAPE TOOLBAR ────────── */
   _updateShapeToolbar() {
+    // نقطة اختناق واحدة لتغيّر التحديد — تُصدِر حدثاً بدل لفّ الوحدات لهذه الدالة
+    this.events?.emit('selection:changed', {
+      index: this.selectedIdx,
+      count: (this.msel && this.msel.size) ? this.msel.size : (this.selectedIdx >= 0 ? 1 : 0),
+    });
     const bar = document.getElementById('shape-toolbar');
     if (!bar) return;
     const hasSel = this.selectedIdx >= 0 && this.selectedIdx < this.shapes.length;
@@ -846,25 +904,35 @@ class CanvasEditor {
   }
 
   /* ────────── HISTORY ────────── */
+  // مع النواة: لقطة عبر CommandBus (يوحّد المؤقتة مع أوامر الدلتا). بلا النواة: المسار القديم.
   _saveHistory() {
+    if (this.commands) { this.commands.openSnapshot(); return; }
     this.history.push(JSON.parse(JSON.stringify(this.shapes)));
     this.redoStack=[];
     if(this.history.length>50) this.history.shift();
   }
 
   undo() {
-    if(!this.history.length) return;
-    this.redoStack.push(JSON.parse(JSON.stringify(this.shapes)));
-    this.shapes=this.history.pop();
+    if (this.commands) {
+      if (!this.commands.undo()) return;
+    } else {
+      if(!this.history.length) return;
+      this.redoStack.push(JSON.parse(JSON.stringify(this.shapes)));
+      this.shapes=this.history.pop();
+    }
     // مسح msel أيضاً — بقاء فهارس ميتة فيه بعد استرجاع مصفوفة أقصر يُسقط كل من يمرّ عليه
     this.selectedIdx=-1; this.msel?.clear?.(); this._updateShapeToolbar();
     this.render(); this._updateStatus();
   }
 
   redo() {
-    if(!this.redoStack.length) return;
-    this.history.push(JSON.parse(JSON.stringify(this.shapes)));
-    this.shapes=this.redoStack.pop();
+    if (this.commands) {
+      if (!this.commands.redo()) return;
+    } else {
+      if(!this.redoStack.length) return;
+      this.history.push(JSON.parse(JSON.stringify(this.shapes)));
+      this.shapes=this.redoStack.pop();
+    }
     this.selectedIdx=-1; this.msel?.clear?.(); this._updateShapeToolbar();
     this.render(); this._updateStatus();
   }
@@ -940,6 +1008,10 @@ class CanvasEditor {
       ctx.beginPath(); ctx.arc(sp.x,sp.y,5,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     }
+
+    // طبقة تراكب أداة مسجّلة (معاينة/أدلة خاصة بالأداة) — بعد رسم المشهد
+    const reg = this.tools && this.tools.get(this.tool);
+    if (reg && reg.onDraw) { ctx.save(); try { reg.onDraw.call(this, ctx); } catch(_){} ctx.restore(); }
   }
 
   _drawSelectionBox(s) {
@@ -1152,7 +1224,9 @@ class CanvasEditor {
     document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));
     const isNode = t && t.indexOf('node')===0;
     const cursors={select:'default',hand:'grab',zoom:'zoom-in'};
-    this.canvas.style.cursor=cursors[t]||'crosshair';
+    const reg = this.tools && this.tools.get(t);
+    this.canvas.style.cursor=(reg&&reg.cursor)||cursors[t]||'crosshair';
+    this.events?.emit('tool:changed', { tool:t });
     const optPoly=document.getElementById('opt-polygon'),optSlot=document.getElementById('opt-slot');
     if(optPoly) optPoly.style.display=t==='polygon'?'flex':'none';
     if(optSlot) optSlot.style.display=t==='slot'   ?'flex':'none';
