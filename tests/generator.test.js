@@ -67,6 +67,22 @@ describe('GCodeGenerator', () => {
     expect(gcode).toContain('G40');
   });
 
+  test('مسار بيزيري مع arcDetect يُخرج أقواس G02/G03 حقيقية', () => {
+    const PM = require('../shared/PathModel');
+    const path = PM.fromShape({ type: 'circle', cx: 0, cy: 0, r: 20 });
+    const { gcode } = gen.generate([path]);
+    expect(gcode).toMatch(/G0[23] X[\d.-]+ Y[\d.-]+ I[\d.-]+ J[\d.-]+/);
+  });
+
+  test('مسار بيزيري بلا arcDetect يفلَّط إلى G01 فقط', () => {
+    const PM = require('../shared/PathModel');
+    const g = new GCodeGenerator({ ...baseCfg, arcDetect: false });
+    const path = PM.fromShape({ type: 'circle', cx: 0, cy: 0, r: 20 });
+    const { gcode } = g.generate([path]);
+    expect(gcode).not.toMatch(/G0[23] X/);
+    expect((gcode.match(/G01 X/g) || []).length).toBeGreaterThan(20);
+  });
+
   test('Polyline with 3 points generates 2 feedmoves', () => {
     const shape = { type:'polyline', points:[{x:0,y:0},{x:5,y:0},{x:5,y:5}], closed:false };
     const { gcode } = gen.generate([shape]);

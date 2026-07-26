@@ -366,6 +366,134 @@ function nearest(path, pt) {
   return { segIdx: best.segIdx, t, pt: p, dist: Math.hypot(p.x - pt.x, p.y - pt.y) };
 }
 
+/* ═══════════════ ملاءمة الأقواس (biarc) لإخراج G2/G3 ═══════════════ */
+
+/* مشتقة البيزير عند t=0 أو t=1 كمماس وحدة — المقبض الصفري يهبط للتحكم التالي */
+function segTangent(s, atEnd) {
+  const cands = atEnd
+    ? [[s.p1.x - s.c2.x, s.p1.y - s.c2.y], [s.p1.x - s.c1.x, s.p1.y - s.c1.y], [s.p1.x - s.p0.x, s.p1.y - s.p0.y]]
+    : [[s.c1.x - s.p0.x, s.c1.y - s.p0.y], [s.c2.x - s.p0.x, s.c2.y - s.p0.y], [s.p1.x - s.p0.x, s.p1.y - s.p0.y]];
+  for (const [dx, dy] of cands) {
+    const l = Math.hypot(dx, dy);
+    if (l > 1e-12) return { x: dx / l, y: dy / l };
+  }
+  return null;
+}
+
+/* قوس من نقطتين + مماس البداية. يرجع {kind:'arc',...} أو خطاً إن كان شبه مستقيم */
+function arcFromTangent(p0, p1, T0) {
+  const vx = p1.x - p0.x, vy = p1.y - p0.y;
+  const chord = Math.hypot(vx, vy);
+  const line = { kind: 'line', x1: p0.x, y1: p0.y, x2: p1.x, y2: p1.y };
+  if (chord < 1e-9) return null;
+  // n = عمودي المماس؛ المركز = p0 + n·s حيث s = |v|²/(2·n·v)
+  const ndotv = -T0.y * vx + T0.x * vy;
+  if (Math.abs(ndotv) < chord * 1e-6) return line;          // المماس على الوتر → خط
+  const sgn = (chord * chord) / (2 * ndotv);
+  const cx = p0.x - T0.y * sgn, cy = p0.y + T0.x * sgn;
+  const r = Math.abs(sgn);
+  if (r > chord * 1e6) return line;
+  const cw = sgn < 0;                                        // ccw ⇔ s > 0 (اشتقاق cross(n,T)=-1)
+  let a0 = Math.atan2(p0.y - cy, p0.x - cx);
+  let a1 = Math.atan2(p1.y - cy, p1.x - cx);
+  let sweep = cw ? a0 - a1 : a1 - a0;
+  sweep = ((sweep % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  if (sweep < 1e-12) sweep = 2 * Math.PI;
+  return { kind: 'arc', x1: p0.x, y1: p0.y, x2: p1.x, y2: p1.y, cx, cy, r, cw, sweep };
+}
+
+/* بُعد نقطة عن عنصر (شعاعي للقوس، عمودي لقطعة الخط) — كافٍ لفحص التفاوت */
+function primDist(p, prim) {
+  if (!prim) return Infinity;
+  if (prim.kind === 'arc') return Math.abs(Math.hypot(p.x - prim.cx, p.y - prim.cy) - prim.r);
+  const dx = prim.x2 - prim.x1, dy = prim.y2 - prim.y1;
+  const L2 = dx * dx + dy * dy;
+  const t = L2 > 1e-18 ? Math.max(0, Math.min(1, ((p.x - prim.x1) * dx + (p.y - prim.y1) * dy) / L2)) : 0;
+  return Math.hypot(p.x - (prim.x1 + dx * t), p.y - (prim.y1 + dy * t));
+}
+
+/* ملاءمة biarc لمقطع واحد: قوسان يتشاركان المماس عند نقطة الوصل J */
+function biarcFit(s) {
+  const T0 = segTangent(s, false), T1 = segTangent(s, true);
+  if (!T0 || !T1) return null;
+  const vx = s.p1.x - s.p0.x, vy = s.p1.y - s.p0.y;
+  const vv = vx * vx + vy * vy;
+  if (vv < 1e-18) return null;
+  const tdot = T0.x * T1.x + T0.y * T1.y;
+  const vt = vx * (T0.x + T1.x) + vy * (T0.y + T1.y);
+  const denom = 2 * (1 - tdot);
+  let d;
+  if (denom < 1e-12) {
+    if (Math.abs(vt) < 1e-12) return null;                   // شكل S بمماسين متوازيين — قسّم
+    d = vv / (2 * vt);
+  } else {
+    d = (-vt + Math.sqrt(Math.max(0, vt * vt + denom * vv))) / denom;
+  }
+  if (!(d > 1e-12) || !isFinite(d)) return null;
+  const J = {
+    x: (s.p0.x + T0.x * d + s.p1.x - T1.x * d) / 2,
+    y: (s.p0.y + T0.y * d + s.p1.y - T1.y * d) / 2,
+  };
+  const a1 = arcFromTangent(s.p0, J, T0);
+  // القوس الثاني مماسه معلوم عند نهايته: ابنِه معكوساً ثم اقلبه
+  const rev = arcFromTangent(s.p1, J, { x: -T1.x, y: -T1.y });
+  let a2 = null;
+  if (rev) {
+    a2 = rev.kind === 'line'
+      ? { kind: 'line', x1: rev.x2, y1: rev.y2, x2: rev.x1, y2: rev.y1 }
+      : { ...rev, x1: rev.x2, y1: rev.y2, x2: rev.x1, y2: rev.y1, cw: !rev.cw };
+  }
+  if (!a1 || !a2) return null;
+  return [a1, a2];
+}
+
+function biarcSeg(s, tol, out, depth) {
+  const chord = Math.hypot(s.p1.x - s.p0.x, s.p1.y - s.p0.y);
+  if (segIsLine(s) || chord < tol) {
+    if (chord > 1e-9) out.push({ kind: 'line', x1: s.p0.x, y1: s.p0.y, x2: s.p1.x, y2: s.p1.y });
+    return;
+  }
+  const fit = biarcFit(s);
+  if (fit) {
+    let err = 0;
+    for (let k = 1; k < 16; k++) {
+      const p = evalSeg(s, k / 16);
+      const e = Math.min(primDist(p, fit[0]), primDist(p, fit[1]));
+      if (e > err) err = e;
+    }
+    if (err <= tol || depth >= 12) {
+      for (const pr of fit)
+        if (Math.hypot(pr.x2 - pr.x1, pr.y2 - pr.y1) > 1e-9 || (pr.kind === 'arc' && pr.sweep > 1e-9)) out.push(pr);
+      return;
+    }
+  } else if (depth >= 12) {
+    // تعذّرت الملاءمة عند أقصى عمق — فلّط هذا المقطع خطوطاً
+    const pts = [{ x: s.p0.x, y: s.p0.y }];
+    flattenSeg(s, tol, pts, 0);
+    for (let i = 1; i < pts.length; i++)
+      out.push({ kind: 'line', x1: pts[i - 1].x, y1: pts[i - 1].y, x2: pts[i].x, y2: pts[i].y });
+    return;
+  }
+  const [h1, h2] = subdivide(s);
+  biarcSeg(h1, tol, out, depth + 1);
+  biarcSeg(h2, tol, out, depth + 1);
+}
+
+/**
+ * تحويل المسار إلى سلسلة أقواس وخطوط متصلة (لإخراج G2/G3 الحقيقي).
+ * tol بوحدات العالم (mm) — افتراضي 0.01mm. كل عنصر:
+ *   { kind:'line', x1,y1,x2,y2 } أو
+ *   { kind:'arc',  x1,y1,x2,y2, cx,cy,r, cw, sweep }   (cw=true ⇒ G2)
+ */
+function toArcs(path, tol) {
+  tol = tol > 0 ? tol : 0.01;
+  const out = [];
+  for (const s of segments(path)) biarcSeg(s, tol, out, 0);
+  // لحام العناصر: نهاية كل عنصر تصبح بداية التالي حرفياً (ضد فجوات التقريب)
+  for (let i = 1; i < out.length; i++) { out[i].x1 = out[i - 1].x2; out[i].y1 = out[i - 1].y2; }
+  return out;
+}
+
 /* ═══════════════ من عقد القلم {x,y,ho} ═══════════════ */
 
 /* عقد أداة القلم: ho = المقبض الخارج، والداخل مرآته (نمط السحب أثناء الرسم) */
@@ -382,7 +510,7 @@ function fromPenNodes(nodes, closed) {
 
 return {
   KAPPA, anchor, isPath, makePath, fromShape, fromPenNodes,
-  segments, evalSeg, flatten, bounds,
+  segments, evalSeg, flatten, bounds, toArcs,
   transform, translate, rotate, scale,
   splitSegment, removeAnchor, setKind, syncSmooth, nearest,
 };

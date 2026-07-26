@@ -144,6 +144,74 @@ describe('PathModel: التحويلات', () => {
   });
 });
 
+describe('PathModel: ملاءمة الأقواس toArcs (لإخراج G2/G3)', () => {
+  const sampleErr = (path, prims) => {
+    // أقصى انحراف لعينات المنحنى عن أقرب عنصر مُلاءم
+    const pd = (p, pr) => pr.kind === 'arc'
+      ? Math.abs(Math.hypot(p.x - pr.cx, p.y - pr.cy) - pr.r)
+      : (() => {
+          const dx = pr.x2 - pr.x1, dy = pr.y2 - pr.y1, L2 = dx * dx + dy * dy;
+          const t = L2 > 1e-18 ? Math.max(0, Math.min(1, ((p.x - pr.x1) * dx + (p.y - pr.y1) * dy) / L2)) : 0;
+          return Math.hypot(p.x - (pr.x1 + dx * t), p.y - (pr.y1 + dy * t));
+        })();
+    let worst = 0;
+    for (const s of PM.segments(path))
+      for (let k = 0; k <= 40; k++) {
+        const p = PM.evalSeg(s, k / 40);
+        const e = Math.min(...prims.map(pr => pd(p, pr)));
+        if (e > worst) worst = e;
+      }
+    return worst;
+  };
+
+  test('دائرة محوّلة → أقواس فقط بنصف قطر مضبوط ومجموع قوسي 360°', () => {
+    const p = PM.fromShape({ type: 'circle', cx: 5, cy: -3, r: 25 });
+    const prims = PM.toArcs(p, 0.01);
+    expect(prims.length).toBeGreaterThan(0);
+    let sweep = 0;
+    for (const pr of prims) {
+      expect(pr.kind).toBe('arc');
+      expect(Math.abs(pr.r - 25)).toBeLessThan(0.02);
+      expect(Math.hypot(pr.cx - 5, pr.cy + 3)).toBeLessThan(0.02);
+      sweep += pr.sweep;
+    }
+    expect(sweep).toBeCloseTo(2 * Math.PI, 2);
+  });
+
+  test('مستطيل → خطوط فقط', () => {
+    const p = PM.fromShape({ type: 'rect', x: 0, y: 0, w: 30, h: 20 });
+    const prims = PM.toArcs(p, 0.01);
+    expect(prims).toHaveLength(4);
+    prims.forEach(pr => expect(pr.kind).toBe('line'));
+  });
+
+  test('منحنى S حر: سلسلة متصلة تنتهي بطرفَي المسار وانحرافها ≤ التفاوت', () => {
+    const p = PM.makePath([
+      PM.anchor(0, 0, null, { x: 15, y: 20 }, 'smooth'),
+      PM.anchor(40, 0, { x: -15, y: 20 }, { x: 15, y: -20 }, 'smooth'),
+      PM.anchor(80, 0, { x: -15, y: -20 }, null, 'smooth'),
+    ], false);
+    const prims = PM.toArcs(p, 0.01);
+    expect(prims.length).toBeGreaterThan(1);
+    // الاتصال: نهاية كل عنصر = بداية التالي، والطرفان مضبوطان
+    for (let i = 1; i < prims.length; i++) {
+      expect(prims[i].x1).toBeCloseTo(prims[i - 1].x2, 9);
+      expect(prims[i].y1).toBeCloseTo(prims[i - 1].y2, 9);
+    }
+    expect(dist({ x: prims[0].x1, y: prims[0].y1 }, { x: 0, y: 0 })).toBeLessThan(1e-6);
+    const last = prims[prims.length - 1];
+    expect(dist({ x: last.x2, y: last.y2 }, { x: 80, y: 0 })).toBeLessThan(1e-6);
+    expect(sampleErr(p, prims)).toBeLessThan(0.015);
+  });
+
+  test('عدد الأقواس أقل بكثير من نقاط التفليط بنفس الدقة', () => {
+    const p = PM.fromShape({ type: 'circle', cx: 0, cy: 0, r: 100 });
+    const prims = PM.toArcs(p, 0.01);
+    const flat = PM.flatten(p, 0.01).points;
+    expect(prims.length).toBeLessThan(flat.length / 5);
+  });
+});
+
 describe('PathModel: أقرب نقطة والقلم', () => {
   test('nearest يجد أقرب نقطة على دائرة', () => {
     const p = PM.fromShape({ type: 'circle', cx: 0, cy: 0, r: 10 });

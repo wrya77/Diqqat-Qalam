@@ -58,13 +58,63 @@ class ToolpathGenerator {
     }
   }
 
-  // مسار بيزيري (PathModel): تفليط متكيّف 0.02mm ثم القطع كبولي‑خط —
-  // أدقّ من N ثابتة لأن كثافة النقاط تتبع الانحناء. (G2/G3 المباشرة مرحلة لاحقة)
+  // مسار بيزيري (PathModel): مع arcDetect يُخرج G2/G3 حقيقية عبر ملاءمة biarc
+  // (تفاوت 0.01mm)؛ وإلا — أو مع جسور/انعكاس حيث يلزم تعديل Z أو قلب الترتيب —
+  // يفلَّط متكيّفاً 0.02mm ويُقطع كبولي‑خط.
   _genPath(s, depth) {
     if (!PathModel) return this.config.addComments ? ['; PathModel غير محمّل — تخطّي مسار بيزيري'] : [];
+
+    const tabs = this._shapeTabs(s);
+    const tabsActive = tabs && s.closed && depth < -(this.config.totalDepth - tabs.height) - 1e-6;
+    if (this.config.arcDetect && !tabsActive && !s.reversed && PathModel.toArcs) {
+      const prims = PathModel.toArcs(s, 0.01);
+      if (prims.length) return this._genPathArcs(s, prims, depth);
+    }
+
     const f = PathModel.flatten(s, 0.02);
     if (!f.points || f.points.length < 2) return [];
     return this._genPolyline({ ...s, type: 'polyline', points: f.points, closed: f.closed }, depth);
+  }
+
+  // قطع سلسلة أقواس/خطوط متصلة (ناتج PathModel.toArcs) بعمق واحد
+  _genPathArcs(s, prims, depth) {
+    const lines = [];
+    const feed = s.feedRate || this.config.feedRateXY;
+    const first = prims[0];
+    lines.push(...this._rapidTo(first.x1, first.y1));
+
+    // تلميح الهبوط المائل: اتجاه بداية أول عنصر (مماس القوس أو اتجاه الخط)
+    let hint = null;
+    if (first.kind === 'line') {
+      hint = this._hintFromPts({ x: first.x1, y: first.y1 }, { x: first.x2, y: first.y2 });
+    } else {
+      const rx = first.x1 - first.cx, ry = first.y1 - first.cy;
+      const rl = Math.hypot(rx, ry) || 1;
+      const sgn = first.cw ? -1 : 1;                 // مماس ccw = عمودي نصف القطر
+      hint = { dx: -sgn * ry / rl, dy: sgn * rx / rl, len: Math.min(first.r * first.sweep, 25) };
+    }
+    lines.push(...this._plunge(depth, s, hint));
+
+    if (this.config.addComments) lines.push(`; مسار بيزيري: ${prims.length} عنصر G1/G2/G3`);
+    for (const p of prims) {
+      if (p.kind === 'line') lines.push(...this._feedTo(p.x2, p.y2, depth, '', feed));
+      else lines.push(...this._arcTo(p, feed));
+    }
+    lines.push(...this._retract());
+    return lines;
+  }
+
+  // حركة قوسية G2/G3 بصيغة I/J (إزاحة المركز عن نقطة البداية)
+  _arcTo(p, feed) {
+    const chord = geometry.distance(this.pos.x, this.pos.y, p.x2, p.y2);
+    if (chord < 0.001 && p.sweep < 1e-3) return [];
+    const code = p.cw ? 'G02' : 'G03';
+    const i = p.cx - this.pos.x, j = p.cy - this.pos.y;
+    const ln = `${code} X${this._f(p.x2)} Y${this._f(p.y2)} I${this._f(i)} J${this._f(j)} F${feed}`;
+    this.stats.moves++; this.stats.arcs++;
+    this.stats.totalXY += p.r * p.sweep;
+    this.pos.x = p.x2; this.pos.y = p.y2;
+    return [this._addComment(ln, '')];
   }
 
   // مسار مركّب (ناتج العمليات المنطقية): كل مسار مغلق يُقطع كحلقة مستقلّة.
