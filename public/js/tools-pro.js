@@ -205,6 +205,19 @@
           for (let i = 1; i < pts.length; i++) push((pts[i - 1].x + pts[i].x) / 2, (pts[i - 1].y + pts[i].y) / 2, 'mid');
           break;
         }
+        case 'path': {
+          const PM = window.DQ && window.DQ.PathModel;
+          (s.anchors || []).forEach(a => push(a.x, a.y, 'end'));
+          if (PM) {
+            for (const seg of PM.segments(s)) {
+              const m = PM.evalSeg(seg, 0.5);
+              push(m.x, m.y, 'mid');
+            }
+            const b = PM.bounds(s);
+            push((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, 'center');
+          }
+          break;
+        }
         case 'text':
           push(s.x, s.y, 'end');
           break;
@@ -444,6 +457,19 @@
             ? { type: 'polygon', cx: s.cx, cy: s.cy, r: (s.r || 0) + d, sides: s.sides, points: off }
             : { type: 'polyline', points: off, closed: true };
         }
+        break;
+      }
+      case 'path': {
+        const PM = window.DQ && window.DQ.PathModel;
+        if (!PM || !s.closed) {
+          window.app?.toast?.('الإزاحة تعمل على المسارات المغلقة فقط', 'warn');
+          document.getElementById('dlg-offset')?.close();
+          return;
+        }
+        // فلّط المنحنى بدقة ثم أزح المضلع الناتج — النتيجة محيط قطع مغلق
+        const f = PM.flatten(s, 0.05);
+        const off = f.points.length >= 3 ? offsetPolygon(f.points, d) : null;
+        if (off && off.length >= 3) result = { type: 'polyline', points: off, closed: true };
         break;
       }
       default:
