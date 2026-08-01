@@ -177,6 +177,10 @@
   }
 
   let dock, ghost, reopen, objList, objCount;
+  /* مراجع الألواح الثلاثة — تُحفظ لأن workspace-dock قد ينقلها خارج `.odk`
+     فلا يعود `dock.querySelector` يجدها. كل ما يخاطبها يمرّ من هنا. */
+  const panes = {};
+  let adopted = false;
   const side = () => (st().side === 'left' ? 'left' : 'right');
 
   const MINW = 200, MAXW = 400;
@@ -233,6 +237,7 @@
 
     objList = dock.querySelector('#odk-obj-list');
     objCount = dock.querySelector('#odk-obj-count');
+    dock.querySelectorAll('.odk-pane').forEach(p => { panes[p.dataset.pane] = p; });
 
     renderTools();
     applySide(side());
@@ -271,8 +276,10 @@
   }
 
   function activate(pane) {
-    dock.querySelectorAll('.odk-tab[data-pane]').forEach(t => t.classList.toggle('on', t.dataset.pane === pane));
-    dock.querySelectorAll('.odk-pane').forEach(p => p.classList.toggle('on', p.dataset.pane === pane));
+    if (!adopted) {
+      dock.querySelectorAll('.odk-tab[data-pane]').forEach(t => t.classList.toggle('on', t.dataset.pane === pane));
+      Object.values(panes).forEach(p => p.classList.toggle('on', p.dataset.pane === pane));
+    }
     save({ pane });
     if (pane === 'objects') renderObjects();
     if (pane === 'tools') syncActiveTool();
@@ -286,7 +293,7 @@
 
   /* ══ تبويب الأدوات ══ */
   function renderTools() {
-    const host = dock.querySelector('#odk-tools');
+    const host = panes.tools || dock.querySelector('#odk-tools');
     if (!host) return;
     if (!TOOL_GROUPS.length) {
       host.innerHTML = '<div class="odk-obj-empty">شريط الأدوات غير متاح على هذه الصفحة.</div>';
@@ -304,7 +311,7 @@
 
   function syncActiveTool() {
     const cur = ed()?.tool;
-    dock?.querySelectorAll('.odk-tbtn').forEach(b => b.classList.toggle('on', b.dataset.tool === cur));
+    panes.tools?.querySelectorAll('.odk-tbtn').forEach(b => b.classList.toggle('on', b.dataset.tool === cur));
   }
 
   /* ══ الأسلاك ══ */
@@ -328,7 +335,7 @@
     reopen.addEventListener('click', () => setHidden(false));
 
     document.addEventListener('keydown', e => {
-      if (e.key !== 'F7') return;
+      if (e.key !== 'F7' || adopted) return;   // بعد التبنّي: workspace-dock يملك F7
       const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
       if (inInput) return;
       e.preventDefault();
@@ -479,8 +486,10 @@
     const P = CanvasEditor.prototype;
     let sig = '';
     const maybeRender = self => {
-      if (!dock || dock.style.display === 'none') return;
-      if (!dock.querySelector('.odk-pane[data-pane="objects"]').classList.contains('on')) return;
+      const p = panes.objects;
+      // يعمل في الوضعين: داخل `.odk` أو بعد تبنّي workspace-dock للألواح
+      if (!p || !p.isConnected || !p.classList.contains('on') || p.classList.contains('dqw-hidden')) return;
+      if (!adopted && dock.style.display === 'none') return;
       const sel = selSet(self);
       const s = self.shapes.map((sh, i) => `${i}${sh.type}${sh.disabled ? 'd' : ''}${sh.locked ? 'l' : ''}`).join('|')
         + '#' + [...sel].join(',');
@@ -507,5 +516,35 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
-  window.ObjectDock = { show: () => setHidden(false), refresh: renderObjects };
+  /* ══ التبنّي: workspace-dock يأخذ الألواح الثلاثة ويصير هو المضيف ══
+     الغلاف `.odk` يُخفى (لا يُحذف) فتبقى الاستعادة عند التفكيك بلا إعادة بناء. */
+  function detachPanes() {
+    if (!dock || !panes.layers) return null;
+    adopted = true;
+    dock.style.display = 'none';
+    reopen?.classList.remove('show');
+    ghost?.classList.remove('show');
+    Object.values(panes).forEach(p => p.classList.add('on'));
+    return { layers: panes.layers, objects: panes.objects, tools: panes.tools };
+  }
+
+  function reattachPanes() {
+    if (!adopted) return;
+    adopted = false;
+    const body = dock.querySelector('.odk-body');
+    ['layers', 'objects', 'tools'].forEach(k => {
+      const p = panes[k];
+      if (p && body) { p.classList.remove('dqw-hidden'); body.appendChild(p); }
+    });
+    dock.style.display = st().hidden ? 'none' : '';
+    reopen?.classList.toggle('show', !!st().hidden);
+    activate(st().pane || 'layers');
+  }
+
+  window.ObjectDock = {
+    show: () => setHidden(false),
+    refresh: renderObjects,
+    detachPanes, reattachPanes,
+    panes: () => panes,
+  };
 })();

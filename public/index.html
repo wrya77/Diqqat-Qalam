@@ -292,6 +292,21 @@
     </div>
 
     <div class="menu">
+      <button class="menu-btn">نافذة</button>
+      <div class="menu-drop" id="menu-window">
+        <div class="mi-label">مساحات العمل</div>
+        <button class="mi" data-ws="ws:design"><span class="ti-ph" data-icon="pencil"></span>رسم</button>
+        <button class="mi" data-ws="ws:cnc"><span class="ti-ph" data-icon="cpu"></span>CNC</button>
+        <button class="mi" data-ws="ws:sim"><span class="ti-ph" data-icon="monitor"></span>محاكاة</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">اللوحات</div>
+        <div id="dqw-panel-items"></div>
+        <div class="mi-sep"></div>
+        <button class="mi" data-ws="reset"><span class="ti-ph" data-icon="history"></span>إعادة ضبط التخطيط</button>
+      </div>
+    </div>
+
+    <div class="menu">
       <button class="menu-btn">إضافات</button>
       <div class="menu-drop">
         <div class="mi-label">أدوات مضمّنة</div>
@@ -1750,6 +1765,7 @@
 <script defer src="js/tools-cnc-invent.js"></script>
 <script defer src="js/layers-panel.js"></script>
 <script defer src="js/object-dock.js"></script>
+<script defer src="js/workspace-dock.js"></script>
 <script defer src="js/color-system.js"></script>
 <script defer src="js/color-tools.js"></script>
 <script defer src="js/color-library.js"></script>
