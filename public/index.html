@@ -59,6 +59,7 @@
   <link rel="stylesheet" href="css/welcome.css">
   <link rel="stylesheet" href="css/redesign.css">
   <link rel="stylesheet" href="css/ui-refine.css">
+  <link rel="stylesheet" href="css/pro-polish.css">
   <!-- Auth gate: hides body until session confirmed, prevents FOUC -->
   <style id="_auth-init-style">
     body > *:not(#_auth-gate) { visibility: hidden; pointer-events: none; }
@@ -1005,13 +1006,38 @@
       <div class="canvas-area" id="canvas-area">
         <canvas id="main-canvas"></canvas>
         <div id="canvas-empty-state" class="canvas-empty">
-          <svg viewBox="0 0 64 64" width="48" height="48" aria-hidden="true">
-            <rect x="6" y="6" width="52" height="52" rx="6" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4" opacity=".5"/>
-            <path d="M20 40 L32 18 L44 40 Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
-          </svg>
-          <p>اختر أداة من الشريط الجانبي وابدأ الرسم</p>
-          <span>أو <b id="empty-import">استورد ملف SVG/DXF</b> · المشروع يُحفظ تلقائياً</span>
-          <p class="ce-hint">يمكنك الوصول إلى أدوات المساعدة (السرعات · عروض الأسعار · الخط العربي) من الشريط الجانبي الأيمن في أي وقت</p>
+          <div class="ce-card">
+            <div class="ce-head">
+              <svg class="ce-logo" viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">
+                <rect x="6" y="6" width="52" height="52" rx="10" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/>
+                <path d="M20 41 L32 19 L44 41 Z" fill="none" stroke="var(--accent-h)" stroke-width="2.6" stroke-linejoin="round"/>
+                <circle cx="32" cy="19" r="2.6" fill="var(--accent-h)"/>
+              </svg>
+              <div class="ce-head-txt">
+                <h2>ابدأ لوحاً جديداً</h2>
+                <p>اختر أداة من الشريط الجانبي وابدأ الرسم — أو استورد تصميماً جاهزاً. المشروع يُحفظ تلقائياً.</p>
+              </div>
+            </div>
+
+            <button class="ce-import" id="empty-import" type="button">
+              <span class="ce-import-ic" aria-hidden="true">⤓</span>
+              <span class="ce-import-t">استورد ملف SVG أو DXF
+                <small>يُحوَّل إلى مسارات قابلة للتحرير فوراً</small>
+              </span>
+            </button>
+
+            <div class="ce-tools">
+              <div class="ce-tools-label">أدوات مساعدة</div>
+              <div class="ce-tools-row">
+                <a class="ce-tool" href="/feeds" target="_blank" rel="noopener">
+                  <span class="ce-tool-ic" aria-hidden="true">⚙</span>حاسبة السرعات والتغذية</a>
+                <a class="ce-tool" href="/quote" target="_blank" rel="noopener">
+                  <span class="ce-tool-ic" aria-hidden="true">₪</span>مولّد عروض الأسعار</a>
+                <a class="ce-tool" href="/calligraphy" target="_blank" rel="noopener">
+                  <span class="ce-tool-ic" aria-hidden="true">✎</span>محرك الخط العربي</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

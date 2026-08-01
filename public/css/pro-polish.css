@@ -1,0 +1,226 @@
+/* ═══════════════════════════════════════════════════════════════
+   pro-polish.css — طبقة التلميع الاحترافي (تُحمَّل أخيراً)
+   ───────────────────────────────────────────────────────────────
+   لا تغيّر أي selector ولا أي بنية DOM — قيم فقط. الهدف: صمت بصري
+   بنمط Illustrator — الكانفس هو البطل، والكروم يتنحّى.
+
+   المبادئ الأربعة:
+     1) الشريط الجانبي للأدوات صامت: أيقونات وفواصل فقط، بلا نصوص.
+     2) إيقاع واحد للارتفاعات (26 / 30 / 34) وللزوايا (6 / 7 / 8).
+     3) الحدود تُرسم مرّة واحدة — لا حدّان متجاوران في أي مكان.
+     4) اللون يُستعمل للدلالة لا للزينة؛ ما عداه رماديات الخلفية.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 0) اشتقاق بدل تثبيت: --accent-soft كانت قيمة rgba مثبّتة تطابق
+       #4f6ef7 يدوياً. تُشتقّ الآن من --accent نفسها بـcolor-mix، فتتبع
+       أي تغيير للسمة بدل أن تتخلّف عنه. ── */
+:root {
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 55%, var(--border));
+  --rail-w: 46px;
+}
+
+/* ═══════════ 1) شريط الأدوات الجانبي — صورة ظلّية نظيفة ═══════════
+   Illustrator لا يكتب أسماء المجموعات داخل الشريط؛ الفاصل وحده
+   يحمل المعنى. النصوص تبقى في الـDOM (object-dock يقرأها لبناء
+   لوحة «الأدوات») لكنها تختفي بصرياً. */
+.tools-rail .tr-group-label { display: none; }
+
+.tools-rail {
+  width: var(--rail-w);
+  padding: 6px 0 12px;
+  gap: 2px;
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg1) 100%);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, .02);
+}
+.canvas-main.dock-right .tools-rail { box-shadow: inset 1px 0 0 rgba(255, 255, 255, .02); }
+
+.tools-rail .tr-sep {
+  width: 20px; height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+/* الوضع الأفقي (رسوّ أعلى/أسفل) يحتفظ بفواصله الرأسية */
+.canvas-main.dock-top .tools-rail,
+.canvas-main.dock-bottom .tools-rail { gap: 2px; padding: 0 8px; background: var(--bg2); }
+.canvas-main.dock-top .tr-sep,
+.canvas-main.dock-bottom .tr-sep { width: 1px; height: 24px; margin: 0 5px; }
+
+/* الأداة الفعّالة: بريق مضبوط بدل هالة عريضة */
+.tr-slot .tr-btn.active,
+.tools-rail .tr-btn.active {
+  background: linear-gradient(180deg, var(--accent-h) 0%, var(--accent) 100%);
+  border-color: color-mix(in srgb, var(--accent) 72%, #000);
+  color: #fff;
+  box-shadow: 0 2px 9px color-mix(in srgb, var(--accent) 42%, transparent),
+              inset 0 1px 0 rgba(255, 255, 255, .22);
+}
+.tr-btn.active svg { stroke-width: 1.6; }
+
+/* مقبض السحب: أهدأ، ويظهر عند المرور فقط */
+.rail-grip { opacity: .35; transition: opacity .15s ease, color .15s ease; }
+.tools-rail:hover .rail-grip { opacity: 1; }
+
+/* تلميح الأداة: بطاقة صغيرة بظلّ القوائم لا مربّع مسطّح */
+.tr-btn::after {
+  background: var(--bg3);
+  border-color: var(--border2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  box-shadow: var(--shadow-menu);
+  transition: opacity .12s ease, transform .12s var(--ease-out);
+  transform: translateY(-50%) translateX(4px);
+}
+.tr-btn:hover::after { transform: translateY(-50%) translateX(0); }
+
+/* ═══════════ 2) شريط الكانفس العلوي — مفاتيح لا مربّعات نظام ═══════════ */
+.canvas-topbar { padding: 4px 10px; gap: 6px; }
+
+.canvas-tools { gap: 5px; }
+
+.canvas-tools > label {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 9px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+.canvas-tools > label:hover { background: var(--bg3); border-color: var(--border2); color: var(--text); }
+.canvas-tools > label:has(input[type="checkbox"]:checked) {
+  background: color-mix(in srgb, var(--accent) 11%, var(--bg1));
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+
+/* مربّع اختيار مرسوم يدوياً — يوافق لغة الأزرار */
+.canvas-tools input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 14px; height: 14px; margin: 0;
+  display: inline-grid; place-content: center;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background .14s ease, border-color .14s ease;
+}
+.canvas-tools input[type="checkbox"]::after {
+  content: '';
+  width: 4px; height: 8px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform .16s var(--ease-out);
+}
+.canvas-tools input[type="checkbox"]:checked {
+  background: linear-gradient(180deg, var(--accent-h), var(--accent));
+  border-color: color-mix(in srgb, var(--accent) 70%, #000);
+}
+.canvas-tools input[type="checkbox"]:checked::after { transform: rotate(45deg) scale(1); }
+
+.canvas-tools .icon-btn { width: 26px; height: 26px; border-radius: 7px; }
+.canvas-tools input[type="number"] { height: 26px; border-radius: 6px; }
+
+/* ═══════════ 3) شريط الألوان — لوح ألوان لا قوس قزح ═══════════
+   المربّعات كانت 15px بحدّ فاتح فتقرأ كزينة. تصغيرها وتهدئة
+   حاويتها يجعلها تُقرأ كصفّ ألوان تحت الكانفس (كـIllustrator). */
+.clr-bar {
+  background: linear-gradient(180deg, var(--bg1), var(--bg2));
+  border-top: 1px solid var(--border);
+  padding: 4px 10px;
+  gap: 3px;
+}
+.clr-bar .clr-sw {
+  width: 12px; height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, .45);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07);
+}
+.clr-bar .clr-sw:hover { transform: scale(1.45); border-color: var(--text); }
+.clr-bar .clr-chip { border-radius: 3px; box-shadow: var(--shadow-1); }
+.clr-bar .clr-hint { opacity: .65; }
+
+/* ═══════════ 4) اللوحات — إيقاع رأسي وحدود مرّة واحدة ═══════════ */
+details.section > summary.sec-title {
+  padding: 9px 12px;
+  transition: background .14s ease, color .14s ease;
+}
+details.section > summary.sec-title:hover { background: var(--bg3); }
+details.section[open] > summary.sec-title { color: var(--text2); }
+
+.sec-group-label {
+  font-size: 10px;
+  letter-spacing: .09em;
+  color: var(--text3);
+  opacity: .75;
+  padding: 12px 12px 4px;
+}
+
+.settings-panel .section { padding: 10px 12px 14px; }
+
+/* لسان اللوحة يسمّيها بالفعل — فلا نكرّر «الشكل المحدد» فوق «الخصائص» */
+#dqw-props-host > .sec-group-label { display: none; }
+
+/* الحقول: ارتفاع واحد وحلقة تركيز واحدة */
+.settings-panel input[type="number"],
+.settings-panel input[type="text"],
+.settings-panel select {
+  height: 28px;
+  border-radius: 6px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  transition: border-color .14s ease, box-shadow .14s ease, background .14s ease;
+}
+.settings-panel input[type="number"]:hover,
+.settings-panel input[type="text"]:hover,
+.settings-panel select:hover { border-color: var(--border2); }
+.settings-panel input[type="number"]:focus,
+.settings-panel input[type="text"]:focus,
+.settings-panel select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  background: var(--bg2);
+  outline: none;
+}
+
+/* ═══════════ 5) ألسنة موحّدة: رسو + إخراج بلغة واحدة ═══════════ */
+.dqw-tabs, .out-tabs {
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg1) 100%);
+  box-shadow: inset 0 1px 0 var(--gloss);
+}
+.otab { padding: 9px 6px; font-size: 12px; }
+.otab.active { background: linear-gradient(180deg, var(--accent-soft), transparent); }
+
+/* حافة المجموعة الفعّالة في الرسو — إشارة خفيفة لمكان التركيز */
+.dqw-group:focus-within > .dqw-tabs { box-shadow: inset 0 1px 0 var(--gloss), inset 0 -2px 0 var(--accent-soft); }
+
+/* المقسّمات: خيط رفيع يتّسع عند المرور بدل شريط سميك دائم */
+.dqw-hsplit, .dqw-vsplit { background: var(--border); }
+.dqw-hsplit::after, .dqw-vsplit::after {
+  content: ''; position: absolute; inset: 0;
+  background: var(--accent); opacity: 0;
+  transition: opacity .14s ease;
+}
+.dqw-hsplit, .dqw-vsplit { position: relative; }
+.dqw-hsplit:hover::after, .dqw-vsplit:hover::after,
+.dqw-hsplit.act::after, .dqw-vsplit.act::after { opacity: 1; }
+
+/* ═══════════ 6) شريط الحالة السفلي — أرقام تُقرأ لا تُزاحم ═══════════ */
+.canvas-footer { padding: 5px 12px; gap: 14px; letter-spacing: .01em; }
+.canvas-footer b, .canvas-footer strong { color: var(--text2); font-weight: 600; }
+#footer-tool { color: var(--accent-h); font-weight: 700; }
+
+/* ═══════════ 7) حلقة تركيز واحدة في التطبيق كلّه ═══════════ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* الحقول تعرض حلقتها الخاصة أعلاه — لا نضاعفها */
+.settings-panel input:focus-visible,
+.settings-panel select:focus-visible { outline: none; }
