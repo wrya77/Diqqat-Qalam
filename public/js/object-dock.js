@@ -168,9 +168,12 @@
       if (el.classList.contains('tr-group-label')) {
         cur = { label: el.textContent.trim(), tools: [] };
         groups.push(cur);
-      } else if (el.classList.contains('tr-btn') && el.dataset.tool) {
+      } else if (el.classList.contains('tr-btn') && (el.dataset.tool || el.dataset.act)) {
         if (!cur) { cur = { label: 'أدوات', tools: [] }; groups.push(cur); }
-        cur.tools.push({ tool: el.dataset.tool, title: el.title || el.dataset.tool, svg: el.innerHTML });
+        cur.tools.push({
+          tool: el.dataset.tool || '', act: el.dataset.act || '',
+          title: el.title || el.dataset.tool || el.dataset.act, svg: el.innerHTML,
+        });
       }
     });
     TOOL_GROUPS = groups.filter(g => g.tools.length);
@@ -301,11 +304,15 @@
     }
     host.innerHTML = TOOL_GROUPS.map(g =>
       `<h4>${g.label}</h4><div class="odk-tgrid">` +
-      g.tools.map(t => `<button class="odk-tbtn" data-tool="${t.tool}" title="${t.title}">${t.svg}</button>`).join('') +
+      g.tools.map(t => `<button class="odk-tbtn"${t.act ? ` data-act="${t.act}"` : ` data-tool="${t.tool}"`}` +
+        ` title="${t.title}">${t.svg}</button>`).join('') +
       '</div>').join('');
 
     host.querySelectorAll('.odk-tbtn').forEach(b =>
-      b.addEventListener('click', () => { ed()?.setTool?.(b.dataset.tool); syncActiveTool(); }));
+      b.addEventListener('click', () => {
+        if (b.dataset.act) { window.DQRunToolAct?.(b.dataset.act); return; }
+        ed()?.setTool?.(b.dataset.tool); syncActiveTool();
+      }));
     syncActiveTool();
   }
 
