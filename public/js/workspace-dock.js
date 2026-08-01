@@ -29,7 +29,9 @@
     tools:    { title: 'الأدوات',   icon: 'wrench'     },
     output:   { title: 'الإخراج',   icon: 'page'       },
   };
-  const IDS = Object.keys(PANELS);
+  /* السجلّ مفتوح: وحدات أخرى تضيف لوحاتها بـWorkspaceDock.register — لذلك
+     تُقرأ المفاتيح عند كل استعمال لا مرّة واحدة عند التحميل. */
+  const ids = () => Object.keys(PANELS);
 
   /* مساحات العمل الجاهزة — دوال لأن «محاكاة» تعتمد على عرض النافذة */
   const WORKSPACES = {
@@ -207,7 +209,7 @@
     els.objects  = odk ? odk.objects : null;
     els.tools    = odk ? odk.tools   : null;
 
-    for (const id of IDS) {
+    for (const id of ids()) {
       const el = els[id];
       if (!el) continue;
       el.__dqwId = id;
@@ -231,7 +233,7 @@
       out.zones[z] = { w: clampW(+src.w || 0), groups };
     }
     // أي لوحة متاحة لم تُذكر تُعتبر مغلقة إن كانت في قائمة المغلق، وإلا تُضاف للعمود اليمين
-    for (const id of IDS) {
+    for (const id of ids()) {
       if (!els[id] || seen.has(id)) continue;
       if ((m.closed || []).includes(id)) { out.closed.push(id); continue; }
       const zr = out.zones.right;
@@ -294,7 +296,7 @@
   function teardown() {
     if (!built) return;
     // أعد كل لوحة لموضعها الأصلي بالترتيب الصحيح
-    for (const id of IDS) {
+    for (const id of ids()) {
       const el = els[id], h = home[id];
       if (!el || !h || !h.parent) continue;
       el.classList.remove('dqw-hidden');
@@ -324,7 +326,7 @@
   function render() {
     if (!built) return;
     // احتفظ بالعناصر (المراجع تبقيها حيّة بعد تفريغ الحاويات)
-    for (const id of IDS) { const el = els[id]; if (el && el.parentNode) el.parentNode.removeChild(el); }
+    for (const id of ids()) { const el = els[id]; if (el && el.parentNode) el.parentNode.removeChild(el); }
     zoneEl.right.innerHTML = ''; zoneEl.left.innerHTML = '';
 
     for (const z of ['right', 'left']) {
@@ -632,7 +634,7 @@
   function syncMenu() {
     const host = document.getElementById('dqw-panel-items');
     if (!host) return;
-    host.innerHTML = IDS.filter(id => els[id]).map(id =>
+    host.innerHTML = ids().filter(id => els[id]).map(id =>
       `<button class="mi${isOpen(id) ? ' checked' : ''}" data-ws="panel:${id}">${PANELS[id].title}</button>`
     ).join('');
     document.querySelectorAll('.mi[data-ws^="ws:"]').forEach(b =>
@@ -664,8 +666,39 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
+  /* ══════════════ تسجيل لوحات من وحدات أخرى ══════════════
+     اللوحة المسجَّلة تبدأ مغلقة (كـWindow > … في Illustrator) فلا تُزعزع
+     تخطيطاً محفوظاً، وتظهر في قائمة «نافذة ← اللوحات» ليفتحها المستخدم.
+     عناصرها من صنعنا لا من الصفحة، فبيتها «العلّية» المخفية عند التفكيك. */
+  function attic() {
+    let a = document.getElementById('dqw-attic');
+    if (!a) {
+      a = mk('div', 'dqw-park');
+      a.id = 'dqw-attic';
+      document.body.appendChild(a);
+    }
+    return a;
+  }
+
+  function register(id, def) {
+    if (!id || !def || !def.el) return false;
+    if (PANELS[id] && els[id]) return false;              // مسجَّلة سلفاً
+    PANELS[id] = { title: def.title || id, icon: def.icon || 'boxes' };
+    const el = def.el;
+    el.__dqwId = id;
+    els[id] = el;
+    home[id] = { parent: attic(), next: null };
+    attic().appendChild(el);
+    if (built) {
+      if (M && !findPanel(id) && !M.closed.includes(id)) M.closed.push(id);
+      render(); persist();
+    }
+    return true;
+  }
+
   window.WorkspaceDock = {
     active: () => built,
+    register,
     mount: build,        // يُستدعى تلقائياً عند تجاوز 1024px — ومتاح للاختبار
     unmount: teardown,   // يعيد اللوحات لمواضعها الأصلية (وضع الأدراج)
     apply: applyWorkspace,

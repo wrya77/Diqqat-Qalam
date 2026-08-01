@@ -1078,7 +1078,8 @@ class CanvasEditor {
     const sel = i===this.selectedIdx;
     const aiHL = this._aiHighlights && this._aiHighlights.has(i);
     if(aiHL){ ctx.shadowColor='rgba(255,211,61,.35)'; ctx.shadowBlur=12; ctx.strokeStyle='#ffd33d'; ctx.lineWidth=3; }
-    else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':(s.stroke||'#2f81f7'); ctx.lineWidth=sel?2:1.5; }
+    // s.sw = سماكة العرض على الشاشة (لوحة «الخط والمظهر») — لا أثر لها في G-Code
+    else { ctx.shadowBlur=0; ctx.strokeStyle=sel?'#f85149':(s.stroke||'#2f81f7'); ctx.lineWidth=sel?2:(+s.sw||1.5); }
     ctx.setLineDash([]);
     this._drawShape(s);
     const o=this._shapeOrigin(s), sp=this._wToS(o.x,o.y);

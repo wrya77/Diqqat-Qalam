@@ -122,6 +122,9 @@
       setTimeout(() => document.getElementById(`il-f-${fields[0].key}`)?.focus(), 30);
     });
   }
+  /* حوار الحقول العام مُعلَن للوحدات الأخرى — الاصطلاح في هذا التطبيق حوار
+     داخل الصفحة لا prompt() الأصلي (المحجوب في Electron وبعض السياقات) */
+  window.DQPrompt = ilPrompt;
 
   /* ═══════════════ التجميع Group ═══════════════ */
   P.groupSelected = function () {

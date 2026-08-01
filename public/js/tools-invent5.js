@@ -301,12 +301,15 @@
 
   P.clearFragility = function () { this._fragile = null; this.render(); };
 
-  P.promptFragility = function () {
-    const v = prompt('أقلّ عرض خامة آمن (مم) — أرقّ من ذلك يُعدّ عنقاً هشّاً:', String(this._fragMin || 2));
-    if (v == null) return;
-    const n = parseFloat(v);
-    if (!(n > 0)) { toast('قيمة غير صالحة', 'error'); return; }
-    this.scanFragility(n);
+  P.promptFragility = async function () {
+    const ask = window.DQPrompt;
+    if (!ask) { this.scanFragility(this._fragMin || 2); return; }
+    const r = await ask('كاشف الهشاشة', [
+      { key: 'min', label: 'أقلّ عرض خامة آمن (مم)', def: this._fragMin || 2, min: 0.1, step: 0.1 },
+    ]);
+    if (!r) return;
+    if (!(r.min > 0)) { toast('قيمة غير صالحة', 'error'); return; }
+    this.scanFragility(r.min);
   };
 
   /* ══════════════ 4) ظلّ النقش ══════════════ */
@@ -363,12 +366,15 @@
     return { factor, kerf };
   };
 
-  P.promptCalibrate = function () {
-    const nom = prompt('المقاس الاسمي في التصميم (مم) — مثلاً ضلع مربّع الاختبار:', '100');
-    if (nom == null) return;
-    const mea = prompt('المقاس كما قِسته على القطعة المقطوعة (مم):', nom);
-    if (mea == null) return;
-    this.calibrateFromMeasured(nom, mea);
+  P.promptCalibrate = async function () {
+    const ask = window.DQPrompt;
+    if (!ask) { toast('حوار الإدخال غير متاح', 'error'); return; }
+    const r = await ask('معايرة الواقع — قِس قطعة اختبار بالقدمة', [
+      { key: 'nominal',  label: 'المقاس الاسمي في التصميم (مم)', def: 100, min: 0.1, step: 0.1 },
+      { key: 'measured', label: 'المقاس كما قِسته فعلياً (مم)',   def: 100, min: 0.1, step: 0.01 },
+    ]);
+    if (!r) return;
+    this.calibrateFromMeasured(r.nominal, r.measured);
   };
 
   /* ══════════════ الرسم الإضافي (هشاشة + ظلّ) ══════════════ */
