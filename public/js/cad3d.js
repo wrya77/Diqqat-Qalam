@@ -456,24 +456,26 @@
          فتبقى اللوحة ظاهرةً دائماً وتنكشف مع بقية الألسنة عند ملء الشاشة. */
       #pane-cad.active{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 
-      /* ── الشريط العلويّ: أزرار أيقونية بعناوين، لا كلمات مزدحمة ── */
-      .c3-top{flex:0 0 auto;display:flex;align-items:center;gap:2px;padding:4px 6px;
-        overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
-        background:var(--bg1,#0d1117);border-bottom:1px solid var(--border,#30363d)}
-      .c3-top::-webkit-scrollbar{height:5px}
-      .c3-top::-webkit-scrollbar-thumb{background:var(--border,#30363d);border-radius:3px}
-      .c3-sep{flex:0 0 auto;width:1px;align-self:stretch;background:var(--border,#30363d);margin:3px 4px}
-      .c3-grow{flex:1 1 auto;min-width:6px}
+      /* ── الشريط العلويّ ──
+         يلتفّ ولا يمرّر: الشريط الممرَّر يُخفي أزراره خلف حافّته فيبدو ناقصاً.
+         وكل زرّ أيقونة **مع نصّ** — الأيقونة وحدها في ٢٨px لا تُقرأ. */
+      .c3-top{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:3px;
+        padding:6px 7px;background:var(--bg1,#0d1117);
+        border-bottom:1px solid var(--border,#30363d)}
+      .c3-sep{flex:0 0 auto;width:1px;align-self:stretch;background:var(--border,#30363d);margin:2px 5px}
+      .c3-grow{flex:1 1 auto;min-width:4px}
 
-      .c3-ic{flex:0 0 auto;width:28px;height:26px;display:inline-flex;align-items:center;
-        justify-content:center;border:1px solid transparent;border-radius:6px;background:none;
-        cursor:pointer;color:var(--text2,#b1bac4);padding:0;
+      .c3-ic{flex:0 0 auto;min-height:28px;display:inline-flex;align-items:center;gap:5px;
+        padding:0 9px;border:1px solid var(--border,#30363d);border-radius:7px;
+        background:var(--bg2,#161b22);cursor:pointer;color:var(--text2,#b1bac4);
+        font-family:inherit;font-size:11.5px;font-weight:600;white-space:nowrap;
         transition:background .14s ease,color .14s ease,border-color .14s ease}
-      .c3-ic:hover{background:var(--bg3,#1c2128);color:var(--text,#e6edf3)}
-      .c3-ic.on{background:color-mix(in srgb,var(--accent,#2f81f7) 20%,transparent);
+      .c3-ic:hover{background:var(--bg3,#1c2128);color:var(--text,#e6edf3);
+        border-color:var(--text3,#8b949e)}
+      .c3-ic.on{background:color-mix(in srgb,var(--accent,#2f81f7) 22%,transparent);
         border-color:var(--accent,#2f81f7);color:var(--accent-h,#58a6ff)}
-      .c3-ic svg{width:15px;height:15px}
-      .c3-ic .lbl{font-size:10px;font-weight:800;letter-spacing:.2px}
+      .c3-ic svg{width:14px;height:14px;flex:0 0 auto}
+      .c3-ic .lbl{font-size:11.5px;font-weight:600}
 
       /* ── الريل الجانبيّ: مجموعات أدوات بمثلّث انبثاق ── */
       .c3-main{flex:1 1 auto;min-height:0;display:flex}
@@ -610,7 +612,8 @@
       if (it.grow) { const s = document.createElement('span'); s.className = 'c3-grow'; top.appendChild(s); continue; }
       const b = document.createElement('button');
       b.className = 'c3-ic'; b.type = 'button';
-      b.innerHTML = it.icon ? ico(it.icon) : `<span class="lbl">${it.lbl}</span>`;
+      b.innerHTML = (it.icon ? ico(it.icon) : '') +
+                    (it.lbl ? `<span class="lbl">${it.lbl}</span>` : '');
       b.setAttribute('aria-label', it.name);
       if (it.id) b.id = it.id;
       tipFor(b, it.name);
@@ -1321,25 +1324,25 @@
     ] });
 
     /* الشريط العلويّ */
-    topItem({ icon: 'rot-left', name: 'تراجع (Ctrl+Z)', id: 'c3-undo', fn: opUndo });
-    topItem({ icon: 'rot-right', name: 'إعادة (Ctrl+Y)', id: 'c3-redo', fn: opRedo });
+    topItem({ icon: 'rot-left', lbl: 'تراجع', name: 'تراجع (Ctrl+Z)', id: 'c3-undo', fn: opUndo });
+    topItem({ icon: 'rot-right', lbl: 'إعادة', name: 'إعادة (Ctrl+Y)', id: 'c3-redo', fn: opRedo });
     topItem({ sep: true });
-    topItem({ icon: 'fit-view', name: 'ملاءمة العرض (F)', fn: () => V().fit() });
-    topItem({ icon: 'zoom-in', name: 'تكبير على التحديد', fn: opZoomSel });
-    topItem({ lbl: '⊥', name: 'إسقاط متعامد / منظور (O)', id: 'c3-ortho', fn: toggleOrtho });
+    topItem({ icon: 'fit-view', lbl: 'ملاءمة', name: 'ملاءمة العرض (F)', fn: () => V().fit() });
+    topItem({ icon: 'zoom-in', lbl: 'تكبير', name: 'تكبير على التحديد', fn: opZoomSel });
+    topItem({ icon: 'ortho', lbl: 'متعامد', name: 'إسقاط متعامد / منظور (O)', id: 'c3-ortho', fn: toggleOrtho });
     topItem({ sep: true });
-    topItem({ icon: 'blend', name: 'وضع الإظهار: مظلّل', id: 'c3-mode', fn: cycleMode });
-    topItem({ icon: 'wood', name: 'الخامة', fn: opMaterial });
-    topItem({ lbl: '#', name: 'الشبكة', id: 'c3-grid', fn: toggleGrid });
-    topItem({ lbl: '⌗', name: 'مستوى المقطع', id: 'c3-sec', fn: toggleSection });
+    topItem({ icon: 'blend', lbl: 'الإظهار', name: 'وضع الإظهار: مظلّل', id: 'c3-mode', fn: cycleMode });
+    topItem({ icon: 'wood', lbl: 'خامة', name: 'الخامة', fn: opMaterial });
+    topItem({ icon: 'grid', lbl: 'الشبكة', name: 'الشبكة', id: 'c3-grid', fn: toggleGrid });
+    topItem({ icon: 'section', lbl: 'مقطع', name: 'مستوى المقطع', id: 'c3-sec', fn: toggleSection });
     topItem({ sep: true });
-    topItem({ icon: 'eye', name: 'إخفاء / إظهار المحدَّد', fn: opToggleHide });
-    topItem({ lbl: '◎', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
-    topItem({ lbl: '✷', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
-    topItem({ lbl: '⧉', name: 'طيّ / بسط شجرة الميزات', id: 'c3-side', fn: toggleSide });
+    topItem({ icon: 'eye', lbl: 'إخفاء', name: 'إخفاء / إظهار المحدَّد', fn: opToggleHide });
+    topItem({ icon: 'isolate', lbl: 'عزل', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
+    topItem({ icon: 'explode', lbl: 'تفجير', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
+    topItem({ icon: 'sidebar', lbl: 'الشجرة', name: 'طيّ / بسط شجرة الميزات', id: 'c3-side', fn: toggleSide });
     topItem({ grow: true });
-    topItem({ icon: 'cpu', name: 'مسار تخشين ثلاثيّ المحاور → G-Code', fn: opRoughing });
-    topItem({ icon: 'download', name: 'تصدير STL', fn: opExportSTL });
+    topItem({ icon: 'cpu', lbl: 'تخشين', name: 'مسار تخشين ثلاثيّ المحاور → G-Code', fn: opRoughing });
+    topItem({ icon: 'download', lbl: 'STL', name: 'تصدير STL', fn: opExportSTL });
   }
 
   function opZoomSel() {
