@@ -1196,6 +1196,7 @@
       <button class="otab active" data-tab="gcode">G-Code</button>
       <button class="otab" data-tab="stats">إحصائيات</button>
       <button class="otab" data-tab="sim">محاكاة</button>
+      <button class="otab" data-tab="cad">ثلاثيّ الأبعاد</button>
       <button class="otab-fs" id="btn-output-fs" title="ملء الشاشة" aria-label="ملء الشاشة"><span class="ti-ph" data-icon="fullscreen"></span></button>
     </div>
 
@@ -1281,6 +1282,9 @@
         </div>
       </div>
     </div>
+
+    <!-- مساحة الكاد ثلاثية الأبعاد — تُبنى بالكامل من cad3d.js عند أوّل فتح -->
+    <div class="out-pane" id="pane-cad3d"></div>
 
   </aside>
 </main>
@@ -1945,6 +1949,10 @@
 <script defer src="js/live-gcode.js"></script>
 <script defer src="js/simulator-2d.js"></script>
 <script defer src="js/simulator-three.js"></script>
+<script defer src="js/cad3d-kernel.js"></script>
+<script defer src="js/cad3d-build.js"></script>
+<script defer src="js/cad3d-view.js"></script>
+<script defer src="js/cad3d.js"></script>
 <script defer src="js/file-importer.js"></script>
 <script defer src="js/ui-controls.js"></script>
 <script defer src="js/machine-control.js"></script>
