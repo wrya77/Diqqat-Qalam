@@ -643,6 +643,18 @@
 
   const isOpen = id => !!findPanel(id) || findFloat(id) >= 0;
 
+  /** يوسّع عمود اللوحة إلى حدٍّ أدنى — للوحات التي تحتاج مساحة كالعرض ثلاثيّ الأبعاد */
+  function widen(id, w) {
+    const at = findPanel(id);
+    if (!at) return false;
+    const z = M.zones[at.z];
+    const want = clampW(Math.max(z.w || 0, +w || 0));
+    if (want === z.w) return false;
+    z.w = want;
+    render(); persist();
+    return true;
+  }
+
   /* ══════════════ اللوحات العائمة ══════════════ */
   function buildFloat(f, fi) {
     const box = mk('div', 'dqw-float' + (f.c ? ' fold' : ''));
@@ -1029,6 +1041,10 @@
     if (!a) {
       a = mk('div', 'dqw-park');
       a.id = 'dqw-attic';
+      // الإخفاء سطريّ لا بالصنف وحده: قواعد dqw-css لا تُحقن إلا داخل build،
+      // وتحت 1025px لا يُبنى النظام أصلاً — فكانت اللوحات المسجَّلة كلّها
+      // تنسكب في الصفحة عموداً طوله آلاف البكسلات.
+      a.style.display = 'none';
       document.body.appendChild(a);
     }
     return a;
@@ -1059,6 +1075,7 @@
     open: openPanel,
     close: closePanel,
     isOpen,
+    widen,
     fold: toggleFold,
     foldAll,
     icons: toggleIcons,

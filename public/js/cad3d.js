@@ -452,7 +452,9 @@
     const s = document.createElement('style');
     s.id = 'cad3d-css';
     s.textContent = `
-      #pane-cad3d{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+      /* لا بدّ من .active — مُحدِّد المُعرِّف يتغلّب على قاعدة .out-pane المخفية
+         فتبقى اللوحة ظاهرةً دائماً وتنكشف مع بقية الألسنة عند ملء الشاشة. */
+      #pane-cad.active{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 
       /* ── الشريط العلويّ: أزرار أيقونية بعناوين، لا كلمات مزدحمة ── */
       .c3-top{flex:0 0 auto;display:flex;align-items:center;gap:2px;padding:4px 6px;
@@ -476,7 +478,7 @@
       /* ── الريل الجانبيّ: مجموعات أدوات بمثلّث انبثاق ── */
       .c3-main{flex:1 1 auto;min-height:0;display:flex}
       .c3-rail{flex:0 0 auto;width:40px;display:flex;flex-direction:column;gap:2px;
-        padding:5px 3px;overflow-y:auto;overflow-x:visible;
+        padding:5px 3px;overflow-y:auto;overflow-x:hidden;
         background:var(--bg1,#0d1117);border-inline-end:1px solid var(--border,#30363d)}
       .c3-slot{position:relative;flex:0 0 auto}
       .c3-t{width:34px;height:32px;display:flex;align-items:center;justify-content:center;
@@ -489,8 +491,11 @@
       .c3-arw{position:absolute;inset-block-end:2px;inset-inline-end:2px;width:0;height:0;
         border-inline-start:4px solid transparent;border-block-end:4px solid var(--text3,#8b949e);
         pointer-events:none}
-      .c3-fly{position:absolute;inset-inline-start:38px;inset-block-start:0;z-index:60;display:none;
-        min-width:172px;padding:4px;border-radius:9px;background:var(--bg2,#161b22);
+      /* الانبثاق مثبَّت بالنافذة لا بالريل: الريل له overflow-y:auto، والـCSS
+         يحوّل عندها overflow-x من visible إلى auto قسراً — فأي ابن يخرج عن
+         عرضه الأربعين بكسلاً يُقصّ ويختفي. لهذا كانت الأدوات «لا تفتح». */
+      .c3-fly{position:fixed;z-index:2500;display:none;min-width:186px;padding:4px;
+        border-radius:9px;background:var(--bg2,#161b22);
         border:1px solid var(--border,#30363d);box-shadow:0 16px 40px rgba(0,0,0,.55)}
       .c3-slot.open .c3-fly{display:block}
       .c3-fi{display:flex;align-items:center;gap:7px;width:100%;padding:6px 8px;border:none;
@@ -554,7 +559,9 @@
         color:var(--text3,#8b949e);border-top:1px solid var(--border,#30363d)}
       .c3-info b{color:var(--text2,#b1bac4);font-weight:600}
       .c3-empty{padding:14px 10px;font-size:11.5px;color:var(--text3,#8b949e);line-height:1.8}
-      @media (max-width:820px){.c3-side{flex-basis:0;display:none}}
+      /* الطيّ يُقاس على عرض اللوحة نفسها لا على النافذة — استعلام الوسائط
+         يقيس النافذة فلا يُجدي داخل عمودٍ ضيّق في شاشةٍ عريضة. */
+      .c3-side.hid{display:none}
     `;
     document.head.appendChild(s);
   }
@@ -636,7 +643,9 @@
           e.stopPropagation();
           const was = slot.classList.contains('open');
           closeFlyouts();
-          if (!was) slot.classList.add('open');
+          if (was) return;
+          slot.classList.add('open');
+          placeFly(b, fly);
         });
       } else {
         b.addEventListener('click', () => g.items[0].fn());
@@ -690,10 +699,50 @@
     main.append(rail, view, side);
     pane.append(top, main);
     host = view;
+    sideEl = side;
+
+    /* الشجرة تنطوي تلقائياً حين يضيق العمود، وتعود حين يتّسع — ما لم يفرض
+       المستخدم حالةً بنفسه من زرّ الشريط. */
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        if (sidePinned) return;
+        const w = pane.clientWidth;
+        side.classList.toggle('hid', w < 520);
+        syncSideBtn();
+      });
+      ro.observe(pane);
+    }
+  }
+
+  let sideEl = null, sidePinned = false;
+  function toggleSide() {
+    if (!sideEl) return;
+    sidePinned = true;
+    sideEl.classList.toggle('hid');
+    syncSideBtn();
+    setTimeout(() => { V().resize(); V().render(); }, 60);
+  }
+  function syncSideBtn() {
+    const b = document.getElementById('c3-side');
+    if (b && sideEl) b.classList.toggle('on', sideEl.classList.contains('hid'));
+  }
+
+  /** يضع الانبثاق بجانب الزرّ ويبقيه كاملاً داخل النافذة */
+  function placeFly(btn, fly) {
+    const r = btn.getBoundingClientRect();
+    fly.style.top = '0px'; fly.style.left = '0px';   // قياس قبل التموضع
+    const w = fly.offsetWidth, h = fly.offsetHeight;
+    const rtl = getComputedStyle(document.documentElement).direction === 'rtl';
+    let left = rtl ? r.left - w - 6 : r.right + 6;
+    if (left < 4 || left + w > window.innerWidth - 4) left = rtl ? r.right + 6 : r.left - w - 6;
+    left = Math.max(4, Math.min(window.innerWidth - w - 4, left));
+    const top = Math.max(4, Math.min(window.innerHeight - h - 4, r.top));
+    fly.style.left = left + 'px';
+    fly.style.top = top + 'px';
   }
 
   function closeFlyouts() {
-    document.querySelectorAll('#pane-cad3d .c3-slot.open').forEach(s => s.classList.remove('open'));
+    document.querySelectorAll('#pane-cad .c3-slot.open').forEach(s => s.classList.remove('open'));
   }
 
   function renderTree() {
@@ -1277,6 +1326,7 @@
     topItem({ icon: 'eye', name: 'إخفاء / إظهار المحدَّد', fn: opToggleHide });
     topItem({ lbl: '◎', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
     topItem({ lbl: '✷', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
+    topItem({ lbl: '⧉', name: 'طيّ / بسط شجرة الميزات', id: 'c3-side', fn: toggleSide });
     topItem({ grow: true });
     topItem({ icon: 'cpu', name: 'مسار تخشين ثلاثيّ المحاور → G-Code', fn: opRoughing });
     topItem({ icon: 'download', name: 'تصدير STL', fn: opExportSTL });
@@ -1298,7 +1348,7 @@
   /* ══════════════ الإقلاع ══════════════ */
 
   async function open() {
-    const pane = document.getElementById('pane-cad3d');
+    const pane = document.getElementById('pane-cad');
     if (!pane) return;
     if (!booted) {
       const ok = await ensureThree();
@@ -1332,7 +1382,7 @@
   /** اختصارات تعمل فقط حين تكون مساحة الثري دي هي الظاهرة */
   function wireKeys3D() {
     document.addEventListener('keydown', e => {
-      const pane = document.getElementById('pane-cad3d');
+      const pane = document.getElementById('pane-cad');
       if (!pane || !pane.classList.contains('active')) return;
       const t = e.target;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
@@ -1373,10 +1423,11 @@
     const needOpen = W && W.active && W.active() && !W.isOpen('output');
     // عمودٌ خاصّ بعرض نصف الشاشة تقريباً — العرض ثلاثيّ الأبعاد داخل عمود
     // جانبيّ ضيّق يخرج بكانفس بعرض عشرات البكسلات، أي بلا فائدة
-    if (needOpen) W.open('output', {
-      zone: 'left',
-      w: Math.round(Math.min(860, Math.max(520, window.innerWidth * 0.5))),
-    });
+    const want = Math.round(Math.min(900, Math.max(560, window.innerWidth * 0.46)));
+    if (needOpen) W.open('output', { zone: 'left', w: want });
+    // مفتوحة سلفاً لكن ضيّقة (عمود «CNC» ٤٠٠px): بعد الريل والشجرة لا يبقى
+    // للعرض إلا ~١٦٠px — فنوسّعها إلى حدّ صالح للعمل بدل تركها مخنوقة
+    else if (W) W.widen('output', want);
     setTimeout(() => {
       const tab = document.querySelector('.otab[data-tab="cad"]');
       if (tab) { tab.click(); tab.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
