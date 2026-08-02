@@ -65,6 +65,7 @@
     'chevron-right': '<path d="M6 3.5L10.5 8 6 12.5"/>',
     'chevron-down': '<path d="M3.5 6L8 10.5 12.5 6"/>',
     pin: '<path d="M6 2h4l-.6 3.4 2.1 2.1H4.5l2.1-2.1z"/><path d="M8 7.5V14"/>',
+    cube: '<path d="M8 1.8l5.5 3v6.4L8 14.2 2.5 11.2V4.8z"/><path d="M2.5 4.8L8 7.9l5.5-3.1M8 7.9v6.3"/>',
     'mirror-h': '<path d="M8 2v12" stroke-dasharray="2 2"/><path d="M6 5L3 8l3 3zM10 5l3 3-3 3"/>',
     'mirror-v': '<path d="M2 8h12" stroke-dasharray="2 2"/><path d="M5 6L8 3l3 3zM5 10l3 3 3-3"/>',
     rotate: '<path d="M13 8A5 5 0 1 0 12 11"/><path d="M13 3.5V7h-3.5"/>',

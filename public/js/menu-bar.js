@@ -9,6 +9,10 @@
 
   /* سجل الإجراءات: اسم → دالة */
   const ACTIONS = {
+    // مساحة الكاد ثلاثيّ الأبعاد — لا بدّ من التسجيل هنا لا بمستمع على
+    // document: هذا الموزّع يوقف انتشار نقر .mi فلا يصل إلى أي مستمع أعلى
+    'cad3d-open':   () => window.CAD3D?.reveal?.(),
+
     // ملف
     'file-new':     () => window.app?.newProject(),
     'file-open':    () => document.getElementById('btn-load-project')?.click(),
