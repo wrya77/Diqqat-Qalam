@@ -251,6 +251,48 @@
         <button class="mi" data-act="il-tool-wand"><span class="ti-ph" data-icon="wand"></span>العصا السحرية <span class="mi-key">Shift+W</span></button>
         <button class="mi" data-act="il-tool-builder"><span class="ti-ph" data-icon="shapes"></span>منشئ الأشكال <span class="mi-key">Shift+M</span></button>
         <button class="mi" data-act="il-tool-reshape"><span class="ti-ph" data-icon="hand"></span>إعادة التشكيل <span class="mi-key">Shift+R</span></button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">مكتشف المسارات</div>
+        <button class="mi" data-act="pf-divide"><span class="ti-ph" data-icon="boxes"></span>تقسيم</button>
+        <button class="mi" data-act="pf-trim"><span class="ti-ph" data-icon="scissors"></span>محاصرة (يمنع القطع المزدوج)</button>
+        <button class="mi" data-act="pf-merge"><span class="ti-ph" data-icon="merge"></span>دمج</button>
+        <button class="mi" data-act="pf-crop"><span class="ti-ph" data-icon="bbox"></span>قصّ</button>
+        <button class="mi" data-act="pf-outline"><span class="ti-ph" data-icon="rect"></span>مخطّط</button>
+        <button class="mi" data-act="pf-minusback"><span class="ti-ph" data-icon="send-back"></span>طرح خلفي</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">مسارات وأقنعة</div>
+        <button class="mi" data-act="pf-compound"><span class="ti-ph" data-icon="donut"></span>مسار مركّب (ثقوب حقيقية) <span class="mi-key">Ctrl+8</span></button>
+        <button class="mi" data-act="pf-uncompound"><span class="ti-ph" data-icon="ungroup"></span>فكّ المسار المركّب <span class="mi-key">Alt+Ctrl+8</span></button>
+        <button class="mi" data-act="pf-clip"><span class="ti-ph" data-icon="bbox"></span>قناع قصّ <span class="mi-key">Ctrl+7</span></button>
+        <button class="mi" data-act="pf-unclip"><span class="ti-ph" data-icon="ungroup"></span>فكّ القناع <span class="mi-key">Alt+Ctrl+7</span></button>
+        <button class="mi" data-act="pf-expand"><span class="ti-ph" data-icon="shapes"></span>تمديد المظهر</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">العرض والغلاف</div>
+        <button class="mi" data-act="wd-tool"><span class="ti-ph" data-icon="pen"></span>أداة العرض المتغيّر <span class="mi-key">Shift+W</span></button>
+        <button class="mi" data-act="wd-profile"><span class="ti-ph" data-icon="smooth"></span>بروفايل العرض…</button>
+        <button class="mi" data-act="wd-outline"><span class="ti-ph" data-icon="offset"></span>تحويل العرض المتغيّر إلى شكل</button>
+        <button class="mi" data-act="env-distort"><span class="ti-ph" data-icon="wave"></span>تشويه الغلاف… <span class="mi-key">Alt+Ctrl+W</span></button>
+        <button class="mi" data-act="persp-grid"><span class="ti-ph" data-icon="box"></span>شبكة المنظور <span class="mi-key">Shift+P</span></button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">رموز وأنماط</div>
+        <button class="mi" data-act="sym-define"><span class="ti-ph" data-icon="star"></span>عرِّف رمزاً من التحديد</button>
+        <button class="mi" data-act="sym-spray"><span class="ti-ph" data-icon="sparkles"></span>رشّاش الرموز <span class="mi-key">Shift+S</span></button>
+        <button class="mi" data-act="fx-pattern"><span class="ti-ph" data-icon="grid"></span>محرّر الأنماط…</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">تحويلات متقدّمة</div>
+        <button class="mi" data-act="fx-livepaint"><span class="ti-ph" data-icon="palette"></span>بناء التلوين المباشر</button>
+        <button class="mi" data-act="fx-mosaic"><span class="ti-ph" data-icon="hash"></span>فسيفساء الكائنات…</button>
+        <button class="mi" data-act="fx-mesh"><span class="ti-ph" data-icon="grid"></span>شبكة التدرّج…</button>
+        <button class="mi" data-act="fx-extrude"><span class="ti-ph" data-icon="box"></span>بثق ثلاثي الأبعاد…</button>
+        <button class="mi" data-act="fx-recolor"><span class="ti-ph" data-icon="palette"></span>إعادة تلوين العمل…</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">ألواح وأتمتة</div>
+        <button class="mi" data-act="ab-new"><span class="ti-ph" data-icon="boxes"></span>لوح فنّ جديد… <span class="mi-key">Shift+O</span></button>
+        <button class="mi" data-act="ab-select"><span class="ti-ph" data-icon="bbox"></span>حدّد محتوى اللوح النشط</button>
+        <button class="mi" data-act="ab-trim"><span class="ti-ph" data-icon="crosshair"></span>علامات القطع…</button>
+        <button class="mi" data-act="ab-tiling"><span class="ti-ph" data-icon="grid"></span>الطباعة المبلّطة…</button>
+        <button class="mi" data-act="ab-find"><span class="ti-ph" data-icon="search"></span>بحث واستبدال… <span class="mi-key">Ctrl+H</span></button>
+        <button class="mi" data-act="ab-script"><span class="ti-ph" data-icon="cpu"></span>تشغيل سكربت…</button>
       </div>
     </div>
 
@@ -1046,6 +1088,25 @@
         </button>
         <button class="tr-btn" data-tool="zoom" title="تكبير [Z] — نقرة تكبير، Alt+نقرة تصغير">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4M6 8.5h5M8.5 6v5"/></svg>
+        </button>
+
+        <!-- ── أدوات إليستريتور المتقدّمة ── -->
+        <div class="tr-sep"></div>
+        <div class="tr-group-label">متقدّمة</div>
+        <button class="tr-btn" data-tool="width" title="أداة العرض [Shift+W] — اسحب على مسار لتغيير سماكة حدّه عند تلك النقطة">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10c4 0 5-5 8-5s4 5 8 5"/><path d="M2 10c4 0 5 5 8 5s4-5 8-5"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="perspective" title="شبكة المنظور [Shift+P] — يُسقط الأشكال على مستوى بنقطة تلاشٍ">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 7h18"/><path d="M10 7L2 18M10 7l8 11M10 7v11M10 7L5.5 18M10 7l4.5 11"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="artboard" title="لوح الفنّ [Shift+O] — اسحب لإنشاء منطقة رسم مستقلة">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="4.5" width="9" height="7" rx="1"/><rect x="9" y="8.5" width="9" height="7" rx="1" stroke-dasharray="2.5 2"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="symbol-sprayer" title="رشّاش الرموز [Shift+S] — يبعثر نسخاً من رمز محفوظ">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 13.5V8a2 2 0 012-2h2v9.5a1.5 1.5 0 01-3 0z"/><path d="M7 6V4h3v2"/><circle cx="13.5" cy="5" r="1"/><circle cx="16.5" cy="8" r="1"/><circle cx="13" cy="10" r="1"/><circle cx="17" cy="12.5" r="1"/></svg>
+        </button>
+        <button class="tr-btn" data-tool="live-paint" title="دلو التلوين المباشر — يُسند عمقاً لمنطقة مغلقة">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8.5 2.5l7 7-6 6-7-7z"/><path d="M2.5 8.5h12"/><path d="M17 13c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.5 2-3.5S17 11.9 17 13z"/></svg>
         </button>
 
         <!-- ── ابتكار دقة قلم: أدوات لا توجد في أي برنامج تصميم ── -->
@@ -1893,6 +1954,11 @@
 <script defer src="js/tools-liquify.js"></script>
 <script defer src="js/tools-type-pro.js"></script>
 <script defer src="js/tools-warp-pro.js"></script>
+<script defer src="js/tools-pathfinder.js"></script>
+<script defer src="js/tools-width-envelope.js"></script>
+<script defer src="js/tools-illustrator-fx.js"></script>
+<script defer src="js/tools-artboards.js"></script>
+<script defer src="js/panels-illustrator.js"></script>
 <script defer src="js/interaction-pro.js"></script>
 <script defer src="js/interaction-motion.js"></script>
 <script defer src="js/app.js"></script>

@@ -72,6 +72,55 @@
     'il-tool-wand':     () => ed()?.setTool('magic-wand'),
     'il-tool-builder':  () => ed()?.setTool('shape-builder'),
     'il-tool-reshape':  () => ed()?.setTool('reshape'),
+    /* ── مكتشف المسارات الكامل + الأقنعة + التمديد ── */
+    'pf-divide':      () => ed()?.pfDivide(),
+    'pf-trim':        () => ed()?.pfTrim(),
+    'pf-merge':       () => ed()?.pfMerge(),
+    'pf-crop':        () => ed()?.pfCrop(),
+    'pf-outline':     () => ed()?.pfOutline(),
+    'pf-minusback':   () => ed()?.pfMinusBack(),
+    'pf-compound':    () => ed()?.makeCompoundPath(),
+    'pf-uncompound':  () => ed()?.releaseCompoundPath(),
+    'pf-clip':        () => ed()?.makeClipMask(),
+    'pf-unclip':      () => ed()?.releaseClipMask(),
+    'pf-expand':      () => ed()?.expandAppearance(),
+
+    /* ── العرض المتغيّر والغلاف والمنظور ── */
+    'wd-tool':        () => ed()?.setTool('width'),
+    'wd-profile':     async () => {
+      const e = ed(); if (!e) return;
+      const PR = window.DQWidthProfiles || {};
+      if (!window.DQPrompt) return e.applyWidthProfile('tapered');
+      const r = await window.DQPrompt('بروفايل العرض', [
+        { key: 'k', label: 'التوزيع', type: 'select', value: 'tapered',
+          options: Object.entries(PR).map(([k, v]) => ({ value: k, label: v.name })) },
+      ]);
+      if (r) e.applyWidthProfile(r.k);
+    },
+    'wd-outline':     () => ed()?.outlineVariableWidth(),
+    'env-distort':    () => ed()?.promptEnvelope(),
+    'persp-grid':     () => ed()?.togglePerspectiveGrid(),
+
+    /* ── رموز وأنماط ── */
+    'sym-define':     () => ed()?.defineSymbol(),
+    'sym-spray':      () => ed()?.setTool('symbol-sprayer'),
+    'fx-pattern':     () => ed()?.makePattern(),
+
+    /* ── تحويلات متقدّمة ── */
+    'fx-livepaint':   () => ed()?.livePaintBuild(),
+    'fx-mosaic':      () => ed()?.objectMosaic(),
+    'fx-mesh':        () => ed()?.gradientMesh(),
+    'fx-extrude':     () => ed()?.extrude3D(),
+    'fx-recolor':     () => ed()?.recolorArtwork(),
+
+    /* ── ألواح الفنّ والأتمتة ── */
+    'ab-new':         () => ed()?.addArtboard(),
+    'ab-select':      () => ed()?.selectArtboardContents(),
+    'ab-trim':        () => ed()?.createTrimMarks(),
+    'ab-tiling':      () => ed()?.printTiling(),
+    'ab-find':        () => ed()?.findReplace(),
+    'ab-script':      () => ed()?.promptScript(),
+
     'cv-dogbone':    () => ed()?.dogboneCorners(),
     'cv-cutcheck':   () => ed()?.cutFeasibility(),
     'cv-autonumber': () => ed()?.autoNumberParts(),
