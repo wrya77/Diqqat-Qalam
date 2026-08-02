@@ -96,11 +96,14 @@
 
   /* ── 2) أي تغيير في إعدادات القطع (عمق/تغذية/أداة…) ── */
   function bindSettings() {
-    const panel = document.querySelector('.settings-panel');
-    if (!panel) return;
-    panel.addEventListener('change', schedule);
-    panel.addEventListener('input', e => {
-      if (e.target.matches('input[type="number"], input[type="range"]')) schedule();
+    // قد تصير لوحتين بعد فصل «الخصائص» في نظام الرسو — اربط كل ما يحمل الصنف
+    const panels = document.querySelectorAll('.settings-panel');
+    if (!panels.length) return;
+    panels.forEach(panel => {
+      panel.addEventListener('change', schedule);
+      panel.addEventListener('input', e => {
+        if (e.target.matches('input[type="number"], input[type="range"]')) schedule();
+      });
     });
   }
 

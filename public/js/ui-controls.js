@@ -97,6 +97,8 @@ class UIControls {
      الخطأ. هنا حالة واحدة تدير العمودين معاً فلا يكتب أحدهما فوق الآخر.)
      الكانفس يتقلّص/يتمدّد تلقائياً عبر ResizeObserver القائم في canvas-editor. */
   _initPanelsLayout() {
+    // نظام الرسو (workspace-dock) يملك تخطيط الأعمدة عند تفعيله — لا تتدخّل
+    if (window.WorkspaceDock?.active?.()) return;
     const settings = document.querySelector('.settings-panel');
     const output   = document.querySelector('.output-panel');
     const layout   = document.querySelector('.app-layout');
