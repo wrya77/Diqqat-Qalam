@@ -17,8 +17,19 @@
 :root {
   --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
   --accent-line: color-mix(in srgb, var(--accent) 55%, var(--border));
-  --rail-w: 46px;
+  --rail-w: 52px;
 }
+
+/* ── 0b) أزرار الأدوات أكبر قليلاً: 38px كانت أصغر من هدف اللمس المريح
+       (Illustrator ≈ 44px). ui-refine.css يعرّف المقاسات بالمُحدِّدات نفسها
+       وهذا الملفّ يُحمَّل بعده، فتفوز هذه القواعد بلا !important. ── */
+.tr-slot { width: 46px; }
+.tr-slot .tr-btn,
+.tr-flyout .tr-btn { width: 42px; height: 42px; border-radius: 9px; }
+.tr-btn svg { width: 20px; height: 20px; }
+/* الوضع الأفقي: الشريط يعلو/يسفل فالارتفاع هو ما يُقيَّد */
+.canvas-main.dock-top .tr-slot,
+.canvas-main.dock-bottom .tr-slot { width: auto; height: 46px; }
 
 /* ═══════════ 1) شريط الأدوات الجانبي — صورة ظلّية نظيفة ═══════════
    Illustrator لا يكتب أسماء المجموعات داخل الشريط؛ الفاصل وحده
@@ -42,7 +53,7 @@
 }
 /* الوضع الأفقي (رسوّ أعلى/أسفل) يحتفظ بفواصله الرأسية */
 .canvas-main.dock-top .tools-rail,
-.canvas-main.dock-bottom .tools-rail { gap: 2px; padding: 0 8px; background: var(--bg2); }
+.canvas-main.dock-bottom .tools-rail { gap: 2px; padding: 0 8px; height: 54px; background: var(--bg2); }
 .canvas-main.dock-top .tr-sep,
 .canvas-main.dock-bottom .tr-sep { width: 1px; height: 24px; margin: 0 5px; }
 
