@@ -135,6 +135,13 @@
       'magic-wand':'عصا سحرية', 'shape-builder':'منشئ الأشكال', reshape:'إعادة تشكيل',
       'depth-paint':'رسّام العمق', 'puzzle-joint':'مفصل أحجية', 'clamp-zone':'منطقة كلامب',
       scissors:'مقص', 'mirror-line':'انعكاس حول محور', eyedropper:'قطّارة', ruler:'مسطرة',
+      // فرش التسييل وأدوات النصّ والالتفاف (إليستريتور)
+      warp:'تشويه', twirl:'دوّامة', pucker:'تقبيض', bloat:'انتفاخ',
+      scallop:'تخريم', crystallize:'تبلور', wrinkle:'تجعيد',
+      'type-path':'نص على مسار', 'vertical-type':'نص عمودي',
+      'vertical-type-path':'نص عمودي على مسار', 'area-type':'نص في منطقة',
+      'vertical-area':'نص عمودي في منطقة', 'touch-type':'نوع اللمس',
+      'shear-tool':'قصّ Shear', 'puppet-warp':'التفاف الدُّمية',
     };
     const origSetTool = P.setTool;
     P.setTool = function (t) {
