@@ -40,9 +40,17 @@
 
     let activeFlyout = null;
 
+    // مصدر واحد لفتح/إغلاق القائمة الطائرة — يبقي aria-expanded على السهم
+    // متزامناً مع العرض؛ كتابة display مباشرةً في عشرة مواضع كانت تُفقد المزامنة.
+    function setFly(fl, open) {
+      if (!fl) return;
+      fl.style.display = open ? 'flex' : 'none';
+      if (fl.__arrow) fl.__arrow.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
     function closeAll() {
       if (activeFlyout) {
-        activeFlyout.style.display = 'none';
+        setFly(activeFlyout, false);
         activeFlyout = null;
       }
     }
@@ -78,11 +86,18 @@
         const arrow = document.createElement('button');
         arrow.className = 'tr-arrow';
         arrow.type = 'button';
+        // بلا نصّ مرئيّ (مثلّث CSS فقط) — فيلزم اسم للقارئ الشاشيّ وحالة الفتح
+        const gname = g.label || (primary.title || '').split(' ')[0] || 'الأدوات';
+        arrow.setAttribute('aria-label', `أدوات ${gname} الإضافية`);
+        arrow.setAttribute('aria-haspopup', 'true');
+        arrow.setAttribute('aria-expanded', 'false');
+        arrow.title = `المزيد — ${gname}`;
         slot.appendChild(arrow);
 
         const flyout = document.createElement('div');
         flyout.className = 'tr-flyout';
-        flyout.style.display = 'none';
+        flyout.__arrow = arrow;
+        setFly(flyout, false);
         g.buttons.forEach(btn => flyout.appendChild(btn.cloneNode(true)));
         document.body.appendChild(flyout);
 
@@ -90,14 +105,14 @@
           e.preventDefault();
           e.stopPropagation();
           if (activeFlyout && activeFlyout !== flyout) {
-            activeFlyout.style.display = 'none';
+            setFly(activeFlyout, false);
           }
           if (flyout.style.display === 'none') {
             positionFlyout(flyout, slot);
-            flyout.style.display = 'flex';
+            setFly(flyout, true);
             activeFlyout = flyout;
           } else {
-            flyout.style.display = 'none';
+            setFly(flyout, false);
             activeFlyout = null;
           }
         }
@@ -115,15 +130,15 @@
         let openTimer = null, closeTimer = null;
         function openHover() {
           clearTimeout(closeTimer);
-          if (activeFlyout && activeFlyout !== flyout) activeFlyout.style.display = 'none';
+          if (activeFlyout && activeFlyout !== flyout) setFly(activeFlyout, false);
           positionFlyout(flyout, slot);
-          flyout.style.display = 'flex';
+          setFly(flyout, true);
           activeFlyout = flyout;
         }
         function scheduleClose() {
           clearTimeout(openTimer);
           closeTimer = setTimeout(function () {
-            if (activeFlyout === flyout) { flyout.style.display = 'none'; activeFlyout = null; }
+            if (activeFlyout === flyout) { setFly(flyout, false); activeFlyout = null; }
           }, 280);
         }
         slot.addEventListener('mouseenter', function () {
@@ -139,7 +154,7 @@
           e.stopPropagation();
           const btn = e.target.closest('.tr-btn');
           if (!btn) return;
-          flyout.style.display = 'none';
+          setFly(flyout, false);
           activeFlyout = null;
           // زرّ فعل: نفّذ وانصرف — لا يستبدل الزرّ الرئيسي ولا يغيّر الأداة
           if (btn.dataset.act) { runAct(btn.dataset.act); return; }

@@ -125,6 +125,29 @@
     dashed: '<path d="M2 8h2M6 8h2M10 8h2M14 8h.5" stroke-dasharray="0" stroke-linecap="round"/>',
     shadow: '<rect x="3" y="3" width="7" height="7" rx="1"/><path d="M6.5 10.5h3.5a1 1 0 001-1V6" opacity=".5"/>',
     tabs: '<path d="M2.5 12.5V8h11v4.5z"/><path d="M5.5 8V5.5h2V8M8.5 8V5.5h2V8"/>',
+
+    // ── أشرطة الكانفس: التحويل والتكبير ──
+    'zoom-in': '<circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4l3.1 3.1M4.9 7h4.2M7 4.9v4.2"/>',
+    'zoom-out': '<circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4l3.1 3.1M4.9 7h4.2"/>',
+    'fit-view': '<rect x="2.5" y="3.5" width="11" height="9" rx="1" stroke-dasharray="2.4 2"/><path d="M6 7V6h1.6M10 6v1M10 6H8.4M6 9v1h1.6M10 10V9M10 10H8.4"/>',
+    paste: '<rect x="3.5" y="3" width="9" height="11" rx="1.5"/><rect x="6" y="1.6" width="4" height="2.6" rx=".8"/><path d="M6 8h4M6 10.5h4"/>',
+    duplicate: '<rect x="2.2" y="2.2" width="8" height="8" rx="1.2"/><path d="M5.6 13.8h7.2a1 1 0 001-1V5.6"/>',
+    'rot-left': '<path d="M3 8a5 5 0 104.2-4.94"/><path d="M3 4.6V8h3.4"/>',
+    'rot-right': '<path d="M13 8a5 5 0 10-4.2 4.94"/><path d="M13 4.6V8H9.6"/>',
+    reverse: '<path d="M2.5 5.5h9M9 3l2.6 2.5L9 8"/><path d="M13.5 10.5h-9M7 8l-2.6 2.5L7 13"/>',
+    disable: '<circle cx="8" cy="8" r="5.6"/><path d="M4 12l8-8"/>',
+    info: '<circle cx="8" cy="8" r="5.8"/><path d="M8 7.3v4M8 4.8h.01"/>',
+    play: '<path d="M5.2 3.2l7.4 4.8-7.4 4.8z"/>',
+    pause: '<path d="M6 3.4v9.2M10 3.4v9.2"/>',
+    'step-fwd': '<path d="M4 3.5l6.2 4.5L4 12.5z"/><path d="M12.2 3.4v9.2"/>',
+    'step-back': '<path d="M12 3.5L5.8 8 12 12.5z"/><path d="M3.8 3.4v9.2"/>',
+    stop: '<rect x="4.2" y="4.2" width="7.6" height="7.6" rx="1.2"/>',
+    refresh: '<path d="M13.4 8a5.4 5.4 0 11-1.6-3.85"/><path d="M13.6 2.2v3.2h-3.2"/>',
+    plug: '<path d="M6 2v3.4M10 2v3.4"/><path d="M4.2 5.4h7.6v2a3.8 3.8 0 01-7.6 0z"/><path d="M8 11.2V14"/>',
+    'plug-off': '<path d="M4.2 5.4h7.6v2a3.8 3.8 0 01-7.6 0z"/><path d="M8 11.2V14M6 2v3.4M10 2v3.4"/><path d="M2.4 2.4l11.2 11.2"/>',
+    home: '<path d="M2.4 7.6L8 2.4l5.6 5.2"/><path d="M4 7.2v6.4h8V7.2"/><path d="M6.7 13.6V9.9h2.6v3.7"/>',
+    antenna: '<path d="M4.3 3.9a5.5 5.5 0 000 8.2M11.7 3.9a5.5 5.5 0 010 8.2"/><path d="M6.3 6.1a2.7 2.7 0 000 3.8M9.7 6.1a2.7 2.7 0 010 3.8"/><circle cx="8" cy="8" r="1.1"/>',
+    wood: '<rect x="2.4" y="4" width="11.2" height="8" rx="1.2"/><path d="M5.2 4v8M8 4v8M10.8 4v8"/>',
   };
 
   function svg(name) {

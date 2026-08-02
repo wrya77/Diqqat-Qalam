@@ -765,9 +765,11 @@ details.section select option { background: var(--bg2); }
 .ai-box li { margin-bottom: 4px; color: var(--text3); }
 
 /* ════ Sim tab ════ */
+/* بلا `display:flex` هنا عمداً: هذه القاعدة تلي `.out-pane{display:none}`
+   بالوزن نفسه، فكانت تتغلّب عليها وتُبقي لوح المحاكاة ظاهراً دائماً —
+   مستطيل أسود فارغ أسفل الكود عند كل فتح. العرض تتكفّل به
+   `.out-pane.active`، والاتجاه العموديّ تُعطيه `.out-pane` أصلاً. */
 .sim-pane {
-  display: flex;
-  flex-direction: column;
   height: 100%;
   overflow: hidden;
 }

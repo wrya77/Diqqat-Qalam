@@ -135,6 +135,10 @@
       'magic-wand':'عصا سحرية', 'shape-builder':'منشئ الأشكال', reshape:'إعادة تشكيل',
       'depth-paint':'رسّام العمق', 'puzzle-joint':'مفصل أحجية', 'clamp-zone':'منطقة كلامب',
       scissors:'مقص', 'mirror-line':'انعكاس حول محور', eyedropper:'قطّارة', ruler:'مسطرة',
+      // الأدوات المتقدّمة (إليستريتور)
+      'zoom-out':'تصغير',
+      width:'أداة العرض', perspective:'شبكة المنظور', artboard:'لوح الفنّ',
+      'symbol-sprayer':'رشّاش الرموز', 'live-paint':'التلوين المباشر',
       // فرش التسييل وأدوات النصّ والالتفاف (إليستريتور)
       warp:'تشويه', twirl:'دوّامة', pucker:'تقبيض', bloat:'انتفاخ',
       scallop:'تخريم', crystallize:'تبلور', wrinkle:'تجعيد',
