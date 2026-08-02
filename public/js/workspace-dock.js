@@ -618,10 +618,21 @@
     render(); persist();
   }
 
-  function openPanel(id) {
+  /**
+   * @param opt {zone:'right'|'left', w:number} — لوحة تحتاج مساحة (عرض ثلاثيّ
+   * الأبعاد مثلاً) تُفتح في عمودها الخاصّ بعرض كافٍ، لا مضغوطةً مع غيرها.
+   */
+  function openPanel(id, opt) {
     if (!els[id]) return;
     M.closed = M.closed.filter(x => x !== id);
     if (findPanel(id) || findFloat(id) >= 0) return;
+    if (opt && opt.zone && M.zones[opt.zone]) {
+      const z = M.zones[opt.zone];
+      z.w = clampW(Math.max(z.w || 0, +opt.w || 264));
+      z.groups.push({ p: [id], a: id, f: 1 });
+      render(); persist();
+      return;
+    }
     const zone = M.zones.right.groups.length ? M.zones.right
                : (M.zones.left.groups.length ? M.zones.left : M.zones.right);
     if (!zone.w) zone.w = 264;

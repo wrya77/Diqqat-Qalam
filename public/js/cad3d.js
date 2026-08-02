@@ -681,19 +681,43 @@
       const t = e.target.closest && e.target.closest('.otab[data-tab="cad"]');
       if (t) setTimeout(open, 30);
     });
-    document.addEventListener('click', e => {
-      const mi = e.target.closest && e.target.closest('.mi[data-act="cad3d-open"]');
-      if (!mi) return;
-      const tab = document.querySelector('.otab[data-tab="cad"]');
-      if (tab) tab.click();
+    // بند القائمة يُوزَّع من جدول ACTIONS في menu-bar.js (يوقف الانتشار هناك)
+    // اختصار: Ctrl+Shift+D
+    document.addEventListener('keydown', e => {
+      if (!e.ctrlKey || !e.shiftKey || (e.key || '').toLowerCase() !== 'd') return;
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      reveal();
     });
+  }
+
+  /**
+   * التبويب يسكن لوحة الإخراج، وهي مغلقة في مساحة «رسم» — فالنقر على اللسان
+   * وحده لا يكفي: نفتح اللوحة أوّلاً ثم ننتظر إعادة الرسم قبل تفعيل اللسان.
+   */
+  function reveal() {
+    const W = window.WorkspaceDock;
+    const needOpen = W && W.active && W.active() && !W.isOpen('output');
+    // عمودٌ خاصّ بعرض نصف الشاشة تقريباً — العرض ثلاثيّ الأبعاد داخل عمود
+    // جانبيّ ضيّق يخرج بكانفس بعرض عشرات البكسلات، أي بلا فائدة
+    if (needOpen) W.open('output', {
+      zone: 'left',
+      w: Math.round(Math.min(860, Math.max(520, window.innerWidth * 0.5))),
+    });
+    setTimeout(() => {
+      const tab = document.querySelector('.otab[data-tab="cad"]');
+      if (tab) { tab.click(); tab.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+      else open();
+      setTimeout(() => { if (window.CAD3DView?.ready()) { CAD3DView.resize(); CAD3DView.render(); } }, 260);
+    }, needOpen ? 160 : 0);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
   else wire();
 
   window.CAD3D = {
-    open, rebuild,
+    open, reveal, rebuild,
     features: () => feats.map(f => ({ id: f.id, kind: f.kind, name: f.name, src: f.src.slice(), error: f.error || null })),
     add: (kind, params, src) => { const f = addFeature(kind, params, src); rebuild(); return f.id; },
     remove: opDelete,
