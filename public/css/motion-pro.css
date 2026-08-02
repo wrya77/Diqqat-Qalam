@@ -1,0 +1,331 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   motion-pro.css — نظام الحركة والتفاعل بمعايير إليستريتور
+
+   المبدأ الحاكم: **الحركة تشرح، لا تُزيّن**. كل انتقال هنا يجيب سؤالاً
+   يطرحه المستخدم لحظتها — من أين جاءت هذه اللوحة؟ ما الذي سأصيبه إن أفلتُّ
+   هنا؟ هل استُقبلت نقرتي؟ ما ليس له جواب لا حركةَ له.
+
+   ولهذا الملف ثلاثة قيود صارمة:
+     • لا حركة على خصائص تُعيد التخطيط (width/height/top/left) إلا مع
+       `will-change` ومسافة قصيرة — الحركة على transform/opacity فقط ما أمكن.
+     • كل مدّة أقلّ من 200ms. ما زاد يُشعر بالبطء لا بالفخامة.
+     • `prefers-reduced-motion` يُلغي كل شيء — لا استثناء. الحركة راحةٌ لمن
+       أرادها، وأذًى لمن لم يُردها.
+
+   يُحمَّل بعد pro-polish.css فيفوز بالمُحدِّدات المتطابقة بلا !important.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* المدد: ثلاث درجات لا أكثر — التنوّع الزائد يُفقد الإيقاع */
+  --m-fast: 110ms;    /* ارتجاع فوري: ضغطة زرّ، تبديل حالة */
+  --m-base: 160ms;    /* الافتراضي: فتح قائمة، تبديل تبويب */
+  --m-slow: 220ms;    /* حركة مكانية أوسع: طيّ لوحة، رسوّ */
+
+  /* المنحنيات: خروج حادّ للدخول، ولين مزدوج للحركة المكانية */
+  --m-out:    cubic-bezier(.22, 1, .36, 1);      /* يبدأ سريعاً ويهدأ — إحساس «وصل» */
+  --m-inout:  cubic-bezier(.65, 0, .35, 1);
+  --m-spring: cubic-bezier(.34, 1.56, .64, 1);   /* تجاوز طفيف: للأداة المفعَّلة فقط */
+
+  --m-lift:   0 6px 18px rgba(0, 0, 0, .34);
+  --m-ring:   0 0 0 2px var(--bg1), 0 0 0 4px var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --m-fast: 1ms; --m-base: 1ms; --m-slow: 1ms; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════ ١) حلقة تركيز واحدة للتطبيق كلّه ═══════════════
+   كانت `outline: none` مع عرض 3px — أي لا حلقة أصلاً. التنقّل بلوحة
+   المفاتيح كان أعمى تماماً. و`:focus-visible` يُظهرها للوحة المفاتيح
+   دون أن تومض عند كل نقرة فأر. */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+.tr-btn:focus-visible,
+.tbf-b:focus-visible,
+.mi:focus-visible {
+  outline-offset: -2px;
+}
+
+/* ═══════════════ ٢) القوائم: تنبثق من حافّتها لا من العدم ═══════════════ */
+.menu-drop {
+  transform-origin: top right;
+  /* الظلّ يُبنى طبقتين: حدٌّ حادّ يفصلها عمّا تحتها، وعمقٌ ناعم يرفعها */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, .5),
+    0 2px 6px rgba(0, 0, 0, .28),
+    0 16px 40px -8px rgba(0, 0, 0, .55);
+}
+.menu.open > .menu-drop {
+  animation: mpMenuIn var(--m-base) var(--m-out);
+}
+@keyframes mpMenuIn {
+  from { opacity: 0; transform: translateY(-6px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.menu-btn {
+  position: relative;
+  transition: background var(--m-fast) ease, color var(--m-fast) ease;
+}
+/* الخطّ السفلي ينمو من المنتصف — إشارةُ «هذه القائمة نشطة» */
+.menu-btn::after {
+  content: '';
+  position: absolute;
+  inset-inline: 10px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform var(--m-base) var(--m-out);
+}
+.menu.open > .menu-btn::after { transform: scaleX(1); }
+
+.mi {
+  transition: background var(--m-fast) ease, color var(--m-fast) ease,
+              padding-inline-start var(--m-fast) var(--m-out);
+}
+/* الإزاحة عند المرور تُبيّن أي سطر تحت المؤشر دون قراءة اللون */
+.mi:hover, .mi.mp-cursor {
+  background: var(--accent);
+  color: #fff;
+  padding-inline-start: 14px;
+}
+.mi.mp-cursor .mi-key, .mi:hover .mi-key { color: rgba(255, 255, 255, .78); }
+.mi:active { transform: scale(.985); }
+.mi[aria-disabled="true"] {
+  opacity: .38;
+  pointer-events: none;
+}
+/* عمود الاختصارات مُحاذًى: عينٌ واحدة تمسحه كلّه */
+.mi-key {
+  margin-inline-start: auto;
+  padding-inline-start: 22px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+/* «…» تعني حواراً سيُفتح — نُبرزها بلونٍ أهدأ كما في إليستريتور */
+.mi-sep { transition: background var(--m-fast) ease; }
+
+/* ═══════════════ ٣) الأزرار: ارتجاع مادّي ═══════════════
+   الزرّ يرتفع قليلاً عند المرور وينضغط عند النقر. الفارق ٢ بكسل لا أكثر —
+   ما يكفي ليقول «استُقبلت» ولا يكفي ليُلاحَظ بوصفه حركة. */
+:where(.tbtn, .tr-btn, .tbf-b, .icon-btn, .st-btn, .dqp-b, .odk-tbtn, .otab) {
+  transition:
+    transform var(--m-fast) var(--m-out),
+    background var(--m-fast) ease,
+    border-color var(--m-fast) ease,
+    color var(--m-fast) ease,
+    box-shadow var(--m-fast) ease;
+}
+:where(.tbtn, .icon-btn, .st-btn, .dqp-b):hover:not(:disabled) { transform: translateY(-1px); }
+:where(.tbtn, .icon-btn, .st-btn, .dqp-b):active:not(:disabled) {
+  transform: translateY(0) scale(.97);
+  transition-duration: 60ms;
+}
+:where(.tbtn, .icon-btn, .st-btn, .dqp-b):disabled,
+:where(.tbtn, .icon-btn, .st-btn, .dqp-b)[data-disabled="true"] {
+  opacity: .42;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* الأداة المفعَّلة ترتدّ ارتدادة واحدة — الحدث الوحيد الذي يستحقّ نابضاً */
+.tr-btn.active { animation: mpToolPop var(--m-slow) var(--m-spring); }
+@keyframes mpToolPop {
+  0%   { transform: scale(.86); }
+  100% { transform: scale(1); }
+}
+
+/* ═══════════════ ٤) الطيّ: ارتفاع محسوب لا قفزة ═══════════════
+   `<details>` الأصلي يظهر ويختفي فجأة. الطيّ الناعم يحتاج ارتفاعاً معلوماً،
+   ويضبطه interaction-motion.js في `--mp-h` قبل كل تبديل. */
+details.section > summary { list-style: none; cursor: pointer; }
+details.section > summary::-webkit-details-marker { display: none; }
+
+.sec-title {
+  position: relative;
+  padding-inline-end: 22px;
+  transition: color var(--m-fast) ease, background var(--m-fast) ease;
+}
+/* السهم يدور — علامةُ الحالة الوحيدة التي لا تحتاج نصّاً */
+.sec-title::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 8px;
+  top: 50%;
+  width: 6px; height: 6px;
+  margin-top: -4px;
+  border-inline-end: 1.6px solid currentColor;
+  border-block-end: 1.6px solid currentColor;
+  opacity: .55;
+  transform: rotate(45deg);
+  transform-origin: 60% 60%;
+  transition: transform var(--m-base) var(--m-out), opacity var(--m-fast) ease;
+}
+details.section[open] > .sec-title::after { transform: rotate(-135deg); opacity: .9; }
+.sec-title:hover::after { opacity: 1; }
+
+details.section.mp-anim > *:not(summary) {
+  overflow: hidden;
+  animation: mpFold var(--m-slow) var(--m-out);
+}
+@keyframes mpFold {
+  from { opacity: 0; transform: translateY(-4px); max-height: 0; }
+  to   { opacity: 1; transform: none; max-height: var(--mp-h, 1200px); }
+}
+
+/* ═══════════════ ٥) السحب والإفلات ═══════════════ */
+/* الطيف المسحوب يميل قليلاً — كأنك تحمله بيدك لا تدفعه على مستوٍ */
+.dqw-drag-ghost, .mp-ghost {
+  transform: rotate(1.5deg) scale(1.02);
+  box-shadow: var(--m-lift);
+  opacity: .9;
+  pointer-events: none;
+  transition: transform var(--m-fast) var(--m-out);
+}
+/* مؤشّر الإدراج: خطّ ينبض ليقول «هنا سيستقرّ» */
+.dqw-drop-line, .mp-dropline {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--bg1), 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: mpPulse 1.1s ease-in-out infinite;
+}
+@keyframes mpPulse { 50% { opacity: .55; } }
+
+/* المنطقة المستقبِلة تُضيء وتنكمش قليلاً — تأكيدٌ بلا نصّ */
+.dqw-zone.dqw-over, .mp-dropzone.mp-over {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  outline: 1.5px dashed var(--accent);
+  outline-offset: -3px;
+  transition: background var(--m-fast) ease, outline-color var(--m-fast) ease;
+}
+/* أثناء السحب: لا يلتقط شيءٌ المؤشر إلا مناطق الإفلات */
+body.mp-dragging { cursor: grabbing !important; user-select: none; }
+body.mp-dragging .tr-btn, body.mp-dragging .mi { pointer-events: none; }
+
+/* ═══════════════ ٦) التبويبات: مؤشّر ينزلق ═══════════════ */
+.out-tabs, .dqw-tabs { position: relative; }
+.otab, .dqw-tab {
+  position: relative;
+  transition: color var(--m-fast) ease, background var(--m-fast) ease;
+}
+.otab::after, .dqw-tab::after {
+  content: '';
+  position: absolute;
+  inset-inline: 6px;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--m-base) var(--m-out);
+}
+.otab.active::after, .dqw-tab.dqw-on::after { transform: scaleX(1); }
+
+/* ═══════════════ ٧) الحوارات: تنزل من أعلى قليلاً ═══════════════ */
+dialog[open] {
+  animation: mpDlgIn var(--m-slow) var(--m-out);
+}
+@keyframes mpDlgIn {
+  from { opacity: 0; transform: translateY(-10px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+dialog::backdrop {
+  background: rgba(1, 4, 9, .62);
+  backdrop-filter: blur(2px);
+  animation: mpFade var(--m-base) ease;
+}
+@keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ═══════════════ ٨) أشرطة التمرير: نحيلة وتظهر عند الحاجة ═══════════════ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 6px;
+  transition: background var(--m-fast) ease;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text3); background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ═══════════════ ٩) التلميحات: تأخيرٌ ثم ظهور ═══════════════
+   التلميح الفوري ضوضاء؛ تلميحٌ بعد نصف ثانية إجابةٌ عن سؤال. */
+.tr-btn::after {
+  transition-delay: 420ms;
+  transition-property: opacity, transform;
+  transition-duration: var(--m-fast);
+}
+.tr-btn:not(:hover)::after { transition-delay: 0ms; }
+
+/* ═══════════════ ١٠) اللوحات: حدٌّ نشط عند التركيز ═══════════════ */
+.settings-panel, .output-panel, .dqw-group {
+  transition: box-shadow var(--m-base) ease;
+}
+.dqw-group:focus-within {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+
+/* الحقول: الحدّ يتلوّن ويهبط ظلٌّ خفيف — لا وميض ولا قفز */
+:where(.section input, .section select, .dqp input, .dqp select, input[type="number"], input[type="text"]) {
+  transition: border-color var(--m-fast) ease, box-shadow var(--m-fast) ease, background var(--m-fast) ease;
+}
+:where(.section input, .section select, .dqp input, input[type="number"], input[type="text"]):focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  outline: none;
+}
+
+/* ═══════════════ ١١) الحالة الفارغة والتحميل ═══════════════ */
+.ce-card { animation: mpRise var(--m-slow) var(--m-out); }
+@keyframes mpRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.mp-busy {
+  position: relative;
+  pointer-events: none;
+}
+.mp-busy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 14%, transparent), transparent);
+  background-size: 200% 100%;
+  animation: mpShimmer 1.1s linear infinite;
+}
+@keyframes mpShimmer { to { background-position: -200% 0; } }
+
+/* ═══════════════ ١٢) الرسائل المنبثقة (toast) ═══════════════ */
+.toast, .dq-toast {
+  animation: mpToastIn var(--m-slow) var(--m-out);
+}
+@keyframes mpToastIn {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ═══════════════ ١٣) الشريط المتنقّل: يستقرّ بنعومة ═══════════════ */
+.tbf:not(.dragging) {
+  transition: top var(--m-slow) var(--m-out), left var(--m-slow) var(--m-out),
+              right var(--m-slow) var(--m-out), bottom var(--m-slow) var(--m-out),
+              opacity var(--m-fast) ease;
+}
+.tbf-grip { transition: color var(--m-fast) ease, background var(--m-fast) ease; }

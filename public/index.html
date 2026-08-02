@@ -60,6 +60,8 @@
   <link rel="stylesheet" href="css/redesign.css">
   <link rel="stylesheet" href="css/ui-refine.css">
   <link rel="stylesheet" href="css/pro-polish.css">
+  <link rel="stylesheet" href="css/motion-pro.css">
+  <link rel="stylesheet" href="css/bars-pro.css">
   <!-- Auth gate: hides body until session confirmed, prevents FOUC -->
   <style id="_auth-init-style">
     body > *:not(#_auth-gate) { visibility: hidden; pointer-events: none; }
@@ -141,7 +143,7 @@
         <button class="mi" data-act="sel-invert">عكس التحديد</button>
         <button class="mi" data-act="sel-none">إلغاء التحديد <span class="mi-key">Esc</span></button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="delete-all"><span class="ti-ph" data-icon="trash"></span>ذف كل الأشكال <span class="mi-key">Ctrl+Del</span></button>
+        <button class="mi" data-act="delete-all"><span class="ti-ph" data-icon="trash"></span>حذف كل الأشكال <span class="mi-key">Ctrl+Del</span></button>
       </div>
     </div>
 
@@ -157,8 +159,8 @@
         <button class="mi" data-act="view-snap"  data-check="snap-grid">التقاط الشبكة</button>
         <button class="mi" data-act="view-osnap" data-check="snap-objects">التقاط الكائنات</button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="view-order"><span class="ti-ph" data-icon="list-ordered"></span>رقام تسلسل القطع</button>
-        <button class="mi" data-act="view-dir"><span class="ti-ph" data-icon="arrow-cut"></span>سهم اتجاه القطع</button>
+        <button class="mi" data-act="view-order"><span class="ti-ph" data-icon="list-ordered"></span>أرقام تسلسل القطع</button>
+        <button class="mi" data-act="view-dir"><span class="ti-ph" data-icon="arrow-cut"></span>أسهم اتجاه القطع</button>
       </div>
     </div>
 
@@ -166,60 +168,60 @@
       <button class="menu-btn">كائن</button>
       <div class="menu-drop">
         <button class="mi" data-act="obj-precise">شكل بأبعاد دقيقة…</button>
-        <button class="mi" data-act="obj-topath"><span class="ti-ph" data-icon="chain"></span>حويل إلى مسار (لتحرير العُقَد)</button>
+        <button class="mi" data-act="obj-topath"><span class="ti-ph" data-icon="chain"></span>تحويل إلى مسار (لتحرير العُقَد)</button>
         <button class="mi" data-act="obj-pocket">وضع حفر الجيوب</button>
         <div class="mi-sep"></div>
         <div class="mi-label">مسار احترافي</div>
-        <button class="mi" data-act="vp-offset"><span class="ti-ph" data-icon="offset"></span>زاحة الكفاف (تعويض الأداة)…</button>
-        <button class="mi" data-act="vp-outline"><span class="ti-ph" data-icon="rect"></span>فريغ الخط إلى شريط…</button>
-        <button class="mi" data-act="vp-fillet"><span class="ti-ph" data-icon="corner-round"></span>دوير كل الزوايا…</button>
-        <button class="mi" data-act="vp-chamfer"><span class="ti-ph" data-icon="corner-chamfer"></span>طب كل الزوايا…</button>
-        <button class="mi" data-act="vp-blend"><span class="ti-ph" data-icon="blend"></span>زج بين شكلين…</button>
-        <button class="mi" data-act="vp-polar"><span class="ti-ph" data-icon="polar"></span>صفوفة قطبية…</button>
+        <button class="mi" data-act="vp-offset"><span class="ti-ph" data-icon="offset"></span>إزاحة الكفاف (تعويض الأداة)…</button>
+        <button class="mi" data-act="vp-outline"><span class="ti-ph" data-icon="rect"></span>تفريغ الخط إلى شريط…</button>
+        <button class="mi" data-act="vp-fillet"><span class="ti-ph" data-icon="corner-round"></span>تدوير كل الزوايا…</button>
+        <button class="mi" data-act="vp-chamfer"><span class="ti-ph" data-icon="corner-chamfer"></span>شطب كل الزوايا…</button>
+        <button class="mi" data-act="vp-blend"><span class="ti-ph" data-icon="blend"></span>مزج بين شكلين…</button>
+        <button class="mi" data-act="vp-polar"><span class="ti-ph" data-icon="polar"></span>مصفوفة قطبية…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">محاذاة</div>
-        <button class="mi" data-act="align-left"><span class="ti-ph" data-icon="align-left"></span>سار</button>
-        <button class="mi" data-act="align-hcenter"><span class="ti-ph" data-icon="align-hcenter"></span>سط أفقي</button>
-        <button class="mi" data-act="align-right"><span class="ti-ph" data-icon="align-right"></span>مين</button>
-        <button class="mi" data-act="align-top"><span class="ti-ph" data-icon="align-top"></span>على</button>
-        <button class="mi" data-act="align-vcenter"><span class="ti-ph" data-icon="align-vcenter"></span>نتصف رأسي</button>
-        <button class="mi" data-act="align-bottom"><span class="ti-ph" data-icon="align-bottom"></span>سفل</button>
+        <button class="mi" data-act="align-left"><span class="ti-ph" data-icon="align-left"></span>يسار</button>
+        <button class="mi" data-act="align-hcenter"><span class="ti-ph" data-icon="align-hcenter"></span>وسط أفقي</button>
+        <button class="mi" data-act="align-right"><span class="ti-ph" data-icon="align-right"></span>يمين</button>
+        <button class="mi" data-act="align-top"><span class="ti-ph" data-icon="align-top"></span>أعلى</button>
+        <button class="mi" data-act="align-vcenter"><span class="ti-ph" data-icon="align-vcenter"></span>منتصف رأسي</button>
+        <button class="mi" data-act="align-bottom"><span class="ti-ph" data-icon="align-bottom"></span>أسفل</button>
         <div class="mi-sep"></div>
         <div class="mi-label">توزيع</div>
-        <button class="mi" data-act="dist-h"><span class="ti-ph" data-icon="dist-h"></span>فقي متساوٍ</button>
-        <button class="mi" data-act="dist-v"><span class="ti-ph" data-icon="dist-v"></span>أسي متساوٍ</button>
+        <button class="mi" data-act="dist-h"><span class="ti-ph" data-icon="dist-h"></span>أفقي متساوٍ</button>
+        <button class="mi" data-act="dist-v"><span class="ti-ph" data-icon="dist-v"></span>رأسي متساوٍ</button>
         <div class="mi-sep"></div>
         <div class="mi-label">ترتيب القطع</div>
-        <button class="mi" data-act="order-front"><span class="ti-ph" data-icon="bring-front"></span>لقطع أخيراً (للمقدمة)</button>
-        <button class="mi" data-act="order-forward"><span class="ti-ph" data-icon="arrow-up"></span>أخير خطوة</button>
-        <button class="mi" data-act="order-backward"><span class="ti-ph" data-icon="arrow-down"></span>قديم خطوة</button>
-        <button class="mi" data-act="order-back"><span class="ti-ph" data-icon="send-back"></span>لقطع أولاً (للخلفية)</button>
+        <button class="mi" data-act="order-front"><span class="ti-ph" data-icon="bring-front"></span>القطع أخيراً (للمقدمة)</button>
+        <button class="mi" data-act="order-forward"><span class="ti-ph" data-icon="arrow-up"></span>تأخير خطوة</button>
+        <button class="mi" data-act="order-backward"><span class="ti-ph" data-icon="arrow-down"></span>تقديم خطوة</button>
+        <button class="mi" data-act="order-back"><span class="ti-ph" data-icon="send-back"></span>القطع أولاً (للخلفية)</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تحويل</div>
-        <button class="mi" data-act="tr-mirror-h"><span class="ti-ph" data-icon="mirror-h"></span>رآة أفقية</button>
-        <button class="mi" data-act="tr-mirror-v"><span class="ti-ph" data-icon="mirror-v"></span>رآة عمودية</button>
-        <button class="mi" data-act="tr-rotate"><span class="ti-ph" data-icon="rotate"></span>دوير…</button>
-        <button class="mi" data-act="tr-scale"><span class="ti-ph" data-icon="scale"></span>غيير الحجم…</button>
-        <button class="mi" data-act="tr-array"><span class="ti-ph" data-icon="grid"></span>صفوفة…</button>
-        <button class="mi" data-act="tr-offset"><span class="ti-ph" data-icon="offset"></span>زاحة المسار…</button>
+        <button class="mi" data-act="tr-mirror-h"><span class="ti-ph" data-icon="mirror-h"></span>مرآة أفقية</button>
+        <button class="mi" data-act="tr-mirror-v"><span class="ti-ph" data-icon="mirror-v"></span>مرآة عمودية</button>
+        <button class="mi" data-act="tr-rotate"><span class="ti-ph" data-icon="rotate"></span>تدوير…</button>
+        <button class="mi" data-act="tr-scale"><span class="ti-ph" data-icon="scale"></span>تغيير الحجم…</button>
+        <button class="mi" data-act="tr-array"><span class="ti-ph" data-icon="grid"></span>مصفوفة…</button>
+        <button class="mi" data-act="tr-offset"><span class="ti-ph" data-icon="offset"></span>إزاحة المسار…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تجهيز للقطع</div>
-        <button class="mi" data-act="cnc-nesting"><span class="ti-ph" data-icon="grid"></span>صف على الخامة…</button>
-        <button class="mi" data-act="cnc-bolt"><span class="ti-ph" data-icon="bolt-circle"></span>ائرة براغي…</button>
-        <button class="mi" data-act="cnc-join"><span class="ti-ph" data-icon="merge"></span>مج المسارات المحددة</button>
-        <button class="mi" data-act="cnc-centermark"><span class="ti-ph" data-icon="crosshair"></span>لامة مركز للمحدد</button>
-        <button class="mi" data-act="cnc-bbox"><span class="ti-ph" data-icon="bbox"></span>ستطيل إحاطة</button>
-        <button class="mi" data-act="cnc-unlock"><span class="ti-ph" data-icon="unlock"></span>ك قفل الكل</button>
+        <button class="mi" data-act="cnc-nesting"><span class="ti-ph" data-icon="grid"></span>رصف على الخامة…</button>
+        <button class="mi" data-act="cnc-bolt"><span class="ti-ph" data-icon="bolt-circle"></span>دائرة براغي…</button>
+        <button class="mi" data-act="cnc-join"><span class="ti-ph" data-icon="merge"></span>دمج المسارات المحددة</button>
+        <button class="mi" data-act="cnc-centermark"><span class="ti-ph" data-icon="crosshair"></span>علامة مركز للمحدد</button>
+        <button class="mi" data-act="cnc-bbox"><span class="ti-ph" data-icon="bbox"></span>مستطيل إحاطة</button>
+        <button class="mi" data-act="cnc-unlock"><span class="ti-ph" data-icon="unlock"></span>فك قفل الكل</button>
         <div class="mi-sep"></div>
         <div class="mi-label">CNC+ (دقة قلم)</div>
-        <button class="mi" data-act="cv-dogbone"><span class="ti-ph" data-icon="dogbone"></span>فريغ الزوايا Dogbone…</button>
-        <button class="mi" data-act="cv-cutcheck"><span class="ti-ph" data-icon="search"></span>احص قابلية القطع…</button>
-        <button class="mi" data-act="cv-autonumber"><span class="ti-ph" data-icon="hash"></span>رقيم القطع تلقائياً…</button>
-        <button class="mi" data-act="cv-distribute"><span class="ti-ph" data-icon="dots-path"></span>وزيع على مسار…</button>
-        <button class="mi" data-act="cv-kerf"><span class="ti-ph" data-icon="eye"></span>عاينة عرض القاطع</button>
-        <button class="mi" data-act="cv-clampcheck"><span class="ti-ph" data-icon="clamp"></span>حص تصادم الكلامب</button>
-        <button class="mi" data-act="cv-time"><span class="ti-ph" data-icon="clock"></span>قدير زمن القطع…</button>
-        <button class="mi" data-act="cv-sheet"><span class="ti-ph" data-icon="grid"></span>قرير استغلال اللوح…</button>
+        <button class="mi" data-act="cv-dogbone"><span class="ti-ph" data-icon="dogbone"></span>تفريغ الزوايا Dogbone…</button>
+        <button class="mi" data-act="cv-cutcheck"><span class="ti-ph" data-icon="search"></span>فاحص قابلية القطع…</button>
+        <button class="mi" data-act="cv-autonumber"><span class="ti-ph" data-icon="hash"></span>ترقيم القطع تلقائياً…</button>
+        <button class="mi" data-act="cv-distribute"><span class="ti-ph" data-icon="dots-path"></span>توزيع على مسار…</button>
+        <button class="mi" data-act="cv-kerf"><span class="ti-ph" data-icon="eye"></span>معاينة عرض القاطع</button>
+        <button class="mi" data-act="cv-clampcheck"><span class="ti-ph" data-icon="clamp"></span>فحص تصادم الكلامب</button>
+        <button class="mi" data-act="cv-time"><span class="ti-ph" data-icon="clock"></span>تقدير زمن القطع…</button>
+        <button class="mi" data-act="cv-sheet"><span class="ti-ph" data-icon="grid"></span>تقرير استغلال اللوح…</button>
       </div>
     </div>
 
@@ -227,28 +229,28 @@
       <button class="menu-btn">Illustrator</button>
       <div class="menu-drop">
         <div class="mi-label">تحديد وتجميع</div>
-        <button class="mi" data-act="il-group"><span class="ti-ph" data-icon="group"></span>جميع <span class="mi-key">Ctrl+G</span></button>
-        <button class="mi" data-act="il-ungroup"><span class="ti-ph" data-icon="ungroup"></span>ك التجميع <span class="mi-key">Ctrl+Shift+G</span></button>
-        <button class="mi" data-act="il-same"><span class="ti-ph" data-icon="star"></span>حديد المتشابه (عصا سحرية)</button>
+        <button class="mi" data-act="il-group"><span class="ti-ph" data-icon="group"></span>تجميع <span class="mi-key">Ctrl+G</span></button>
+        <button class="mi" data-act="il-ungroup"><span class="ti-ph" data-icon="ungroup"></span>فك التجميع <span class="mi-key">Ctrl+Shift+G</span></button>
+        <button class="mi" data-act="il-same"><span class="ti-ph" data-icon="star"></span>تحديد المتشابه (عصا سحرية)</button>
         <div class="mi-sep"></div>
         <div class="mi-label">المسار Path</div>
-        <button class="mi" data-act="il-join"><span class="ti-ph" data-icon="arc-join"></span>بط / إغلاق المسار <span class="mi-key">Ctrl+J</span></button>
-        <button class="mi" data-act="il-reverse"><span class="ti-ph" data-icon="swap"></span>كس اتجاه المسار</button>
-        <button class="mi" data-act="il-addanchors"><span class="ti-ph" data-icon="plus-node"></span>ضافة نقاط ربط (منتصفات)</button>
-        <button class="mi" data-act="il-cleanup"><span class="ti-ph" data-icon="broom"></span>نظيف المسار (نقاط زائدة)</button>
+        <button class="mi" data-act="il-join"><span class="ti-ph" data-icon="arc-join"></span>ربط / إغلاق المسار <span class="mi-key">Ctrl+J</span></button>
+        <button class="mi" data-act="il-reverse"><span class="ti-ph" data-icon="swap"></span>عكس اتجاه المسار</button>
+        <button class="mi" data-act="il-addanchors"><span class="ti-ph" data-icon="plus-node"></span>إضافة نقاط ربط (منتصفات)</button>
+        <button class="mi" data-act="il-cleanup"><span class="ti-ph" data-icon="broom"></span>تنظيف المسار (نقاط زائدة)</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تحويل</div>
-        <button class="mi" data-act="il-transformeach"><span class="ti-ph" data-icon="boxes"></span>حويل كل عنصر حول مركزه…</button>
-        <button class="mi" data-act="il-shear"><span class="ti-ph" data-icon="shear"></span>ص / إمالة Shear…</button>
+        <button class="mi" data-act="il-transformeach"><span class="ti-ph" data-icon="boxes"></span>تحويل كل عنصر حول مركزه…</button>
+        <button class="mi" data-act="il-shear"><span class="ti-ph" data-icon="shear"></span>قص / إمالة Shear…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">نص</div>
         <button class="mi" data-act="il-typepath">〰 نص على مسار…</button>
-        <button class="mi" data-act="il-vtype"><span class="ti-ph" data-icon="text-vertical"></span>ص عمودي…</button>
+        <button class="mi" data-act="il-vtype"><span class="ti-ph" data-icon="text-vertical"></span>نص عمودي…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">أدوات تفاعلية</div>
-        <button class="mi" data-act="il-tool-wand"><span class="ti-ph" data-icon="wand"></span>لعصا السحرية <span class="mi-key">Shift+W</span></button>
-        <button class="mi" data-act="il-tool-builder"><span class="ti-ph" data-icon="shapes"></span>نشئ الأشكال <span class="mi-key">Shift+M</span></button>
-        <button class="mi" data-act="il-tool-reshape"><span class="ti-ph" data-icon="hand"></span>عادة التشكيل <span class="mi-key">Shift+R</span></button>
+        <button class="mi" data-act="il-tool-wand"><span class="ti-ph" data-icon="wand"></span>العصا السحرية <span class="mi-key">Shift+W</span></button>
+        <button class="mi" data-act="il-tool-builder"><span class="ti-ph" data-icon="shapes"></span>منشئ الأشكال <span class="mi-key">Shift+M</span></button>
+        <button class="mi" data-act="il-tool-reshape"><span class="ti-ph" data-icon="hand"></span>إعادة التشكيل <span class="mi-key">Shift+R</span></button>
       </div>
     </div>
 
@@ -258,37 +260,37 @@
         <div class="mi-label">تشويه فني</div>
         <button class="mi" data-act="fx-wave">〰 تموج</button>
         <button class="mi" data-act="fx-roughen">〜 خشونة</button>
-        <button class="mi" data-act="fx-twirl"><span class="ti-ph" data-icon="spiral"></span>وامة</button>
-        <button class="mi" data-act="fx-bloat"><span class="ti-ph" data-icon="circle"></span>نتفاخ</button>
-        <button class="mi" data-act="fx-stair"><span class="ti-ph" data-icon="stairs"></span>دريج</button>
+        <button class="mi" data-act="fx-twirl"><span class="ti-ph" data-icon="spiral"></span>دوامة</button>
+        <button class="mi" data-act="fx-bloat"><span class="ti-ph" data-icon="circle"></span>انتفاخ</button>
+        <button class="mi" data-act="fx-stair"><span class="ti-ph" data-icon="stairs"></span>تدريج</button>
         <div class="mi-sep"></div>
         <div class="mi-label">تحسين المسار</div>
-        <button class="mi" data-act="fx-smooth"><span class="ti-ph" data-icon="smooth"></span>نعيم</button>
-        <button class="mi" data-act="fx-simplify"><span class="ti-ph" data-icon="simplify"></span>بسيط النقاط</button>
+        <button class="mi" data-act="fx-smooth"><span class="ti-ph" data-icon="smooth"></span>تنعيم</button>
+        <button class="mi" data-act="fx-simplify"><span class="ti-ph" data-icon="simplify"></span>تبسيط النقاط</button>
         <div class="mi-sep"></div>
         <div class="mi-label">للقطع والنقش</div>
-        <button class="mi" data-act="fx-perforate"><span class="ti-ph" data-icon="dashed"></span>خريم (قص متقطع)</button>
-        <button class="mi" data-act="fx-hatchfill"><span class="ti-ph" data-icon="hatch"></span>عبئة هاشير</button>
-        <button class="mi" data-act="fx-shadow"><span class="ti-ph" data-icon="shadow"></span>ل مزدوج</button>
+        <button class="mi" data-act="fx-perforate"><span class="ti-ph" data-icon="dashed"></span>تخريم (قص متقطع)</button>
+        <button class="mi" data-act="fx-hatchfill"><span class="ti-ph" data-icon="hatch"></span>تعبئة هاشير</button>
+        <button class="mi" data-act="fx-shadow"><span class="ti-ph" data-icon="shadow"></span>ظل مزدوج</button>
       </div>
     </div>
 
     <div class="menu">
       <button class="menu-btn">أدوات</button>
       <div class="menu-drop">
-        <button class="mi" data-act="cmd-palette"><span class="ti-ph" data-icon="search"></span>وحة الأوامر <span class="mi-key">Ctrl+K</span></button>
+        <button class="mi" data-act="cmd-palette"><span class="ti-ph" data-icon="search"></span>لوحة الأوامر <span class="mi-key">Ctrl+K</span></button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="tpl-open"><span class="ti-ph" data-icon="box"></span>كتبة القوالب الجاهزة…</button>
-        <button class="mi" data-act="tour-start"><span class="ti-ph" data-icon="cap"></span>ولة تعريفية</button>
+        <button class="mi" data-act="tpl-open"><span class="ti-ph" data-icon="box"></span>مكتبة القوالب الجاهزة…</button>
+        <button class="mi" data-act="tour-start"><span class="ti-ph" data-icon="cap"></span>جولة تعريفية</button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="tool-preflight"><span class="ti-ph" data-icon="check-circle"></span>حص الجاهزية قبل التشغيل…</button>
+        <button class="mi" data-act="tool-preflight"><span class="ti-ph" data-icon="check-circle"></span>فحص الجاهزية قبل التشغيل…</button>
         <button class="mi" data-act="tool-validate">التحقق من G-Code</button>
         <div class="mi-sep"></div>
         <button class="mi" data-act="tool-library">مكتبة أدوات القطع…</button>
-        <button class="mi" data-act="tool-presets"><span class="ti-ph" data-icon="monitor"></span>لفات الآلات المحفوظة…</button>
+        <button class="mi" data-act="tool-presets"><span class="ti-ph" data-icon="monitor"></span>ملفات الآلات المحفوظة…</button>
         <button class="mi" data-act="tool-machine">لوحة التحكم بالآلة…</button>
         <div class="mi-sep"></div>
-        <button class="mi" data-act="tool-upgrade"><span class="ti-ph" data-icon="star"></span>رقية الاشتراك…</button>
+        <button class="mi" data-act="tool-upgrade"><span class="ti-ph" data-icon="star"></span>ترقية الاشتراك…</button>
       </div>
     </div>
 
@@ -311,25 +313,25 @@
       <button class="menu-btn">إضافات</button>
       <div class="menu-drop">
         <div class="mi-label">أدوات مضمّنة</div>
-        <button class="mi" data-act="ext-feeds"><span class="ti-ph" data-icon="zap"></span>اسبة السرعات والتغذية</button>
-        <button class="mi" data-act="ext-quote"><span class="ti-ph" data-icon="receipt"></span>ولّد عروض الأسعار</button>
-        <button class="mi" data-act="ext-calligraphy"><span class="ti-ph" data-icon="pen"></span>حرك الخط العربي</button>
+        <button class="mi" data-act="ext-feeds"><span class="ti-ph" data-icon="zap"></span>حاسبة السرعات والتغذية</button>
+        <button class="mi" data-act="ext-quote"><span class="ti-ph" data-icon="receipt"></span>مولّد عروض الأسعار</button>
+        <button class="mi" data-act="ext-calligraphy"><span class="ti-ph" data-icon="pen"></span>محرك الخط العربي</button>
         <div class="mi-sep"></div>
         <div class="mi-label">إنتاجية CNC</div>
-        <button class="mi" data-act="ext-stats"><span class="ti-ph" data-icon="bar-chart"></span>حصاءات التصميم</button>
-        <button class="mi" data-act="ext-runtime"><span class="ti-ph" data-icon="clock"></span>قدير زمن التشغيل</button>
-        <button class="mi" data-act="ext-cost"><span class="ti-ph" data-icon="coin"></span>قدير التكلفة السريع</button>
-        <button class="mi" data-act="ext-optimize"><span class="ti-ph" data-icon="shuffle"></span>حسين ترتيب القطع</button>
-        <button class="mi" data-act="ext-intersect"><span class="ti-ph" data-icon="alert"></span>شف تقاطعات المسارات</button>
-        <button class="mi" data-act="ext-units"><span class="ti-ph" data-icon="ruler"></span>حوّل الوحدات</button>
-        <button class="mi" data-act="ext-preflight"><span class="ti-ph" data-icon="check-circle"></span>حص الجاهزية قبل التشغيل…</button>
+        <button class="mi" data-act="ext-stats"><span class="ti-ph" data-icon="bar-chart"></span>إحصاءات التصميم</button>
+        <button class="mi" data-act="ext-runtime"><span class="ti-ph" data-icon="clock"></span>تقدير زمن التشغيل</button>
+        <button class="mi" data-act="ext-cost"><span class="ti-ph" data-icon="coin"></span>تقدير التكلفة السريع</button>
+        <button class="mi" data-act="ext-optimize"><span class="ti-ph" data-icon="shuffle"></span>تحسين ترتيب القطع</button>
+        <button class="mi" data-act="ext-intersect"><span class="ti-ph" data-icon="alert"></span>كشف تقاطعات المسارات</button>
+        <button class="mi" data-act="ext-units"><span class="ti-ph" data-icon="ruler"></span>محوّل الوحدات</button>
+        <button class="mi" data-act="ext-preflight"><span class="ti-ph" data-icon="check-circle"></span>فحص الجاهزية قبل التشغيل…</button>
         <div class="mi-sep"></div>
         <div class="mi-label">ابتكار دقة قلم</div>
-        <button class="mi" data-act="inv-balance"><span class="ti-ph" data-icon="target"></span>قطة الاتزان — ثقب تعليق مستوٍ</button>
-        <button class="mi" data-act="inv-stretch"><span class="ti-ph" data-icon="dimensions"></span>لشدّ الموضعي (كشيدة بالمليمتر)</button>
-        <button class="mi" data-act="inv-fragility"><span class="ti-ph" data-icon="alert"></span>اشف الهشاشة — أعناق الخامة…</button>
+        <button class="mi" data-act="inv-balance"><span class="ti-ph" data-icon="target"></span>نقطة الاتزان — ثقب تعليق مستوٍ</button>
+        <button class="mi" data-act="inv-stretch"><span class="ti-ph" data-icon="dimensions"></span>الشدّ الموضعي (كشيدة بالمليمتر)</button>
+        <button class="mi" data-act="inv-fragility"><span class="ti-ph" data-icon="alert"></span>كاشف الهشاشة — أعناق الخامة…</button>
         <button class="mi" data-act="inv-shadow"><span class="ti-ph" data-icon="monitor"></span>ظلّ النقش</button>
-        <button class="mi" data-act="inv-calibrate"><span class="ti-ph" data-icon="ruler"></span>عايرة الواقع بالقدمة…</button>
+        <button class="mi" data-act="inv-calibrate"><span class="ti-ph" data-icon="ruler"></span>معايرة الواقع بالقدمة…</button>
       </div>
     </div>
   </nav>
@@ -462,10 +464,10 @@
 
         <div class="props-sub">إجراءات سريعة</div>
         <div class="props-quick">
-          <button class="qbtn" data-act="group">⧉ تجميع</button>
-          <button class="qbtn" data-act="ungroup">⧉̸ فك</button>
-          <button class="qbtn" data-act="duplicate">⧉+ تكرار</button>
-          <button class="qbtn qbtn-danger" data-act="delete">🗑 حذف</button>
+          <button class="qbtn" data-act="group"><span class="ti-ph" data-icon="group"></span> تجميع</button>
+          <button class="qbtn" data-act="ungroup"><span class="ti-ph" data-icon="ungroup"></span> فك</button>
+          <button class="qbtn" data-act="duplicate"><span class="ti-ph" data-icon="duplicate"></span> تكرار</button>
+          <button class="qbtn qbtn-danger" data-act="delete"><span class="ti-ph" data-icon="trash"></span> حذف</button>
         </div>
       </div>
     </details>
@@ -634,7 +636,7 @@
       <summary class="sec-title"><span class="ti-ph" data-icon="history"></span>سجل النسخ</summary>
       <div class="ver-toolbar">
         <span class="ver-hint">لقطات تلقائية + يدوية — استرجعها بنقرة</span>
-        <button id="ver-save" type="button">💾 احفظ نسخة</button>
+        <button id="ver-save" type="button"><span class="ti-ph" data-icon="save"></span> احفظ نسخة</button>
       </div>
       <div id="versions-list"></div>
     </details>
@@ -719,41 +721,41 @@
         <label><input type="checkbox" id="snap-grid" checked> التقاط</label>
         <label title="التقاط نهايات ومراكز الأشكال"><input type="checkbox" id="snap-objects" checked> كائنات</label>
         <label><input type="number" id="grid-size" value="10" min="1" max="100">mm</label>
-        <button class="icon-btn" id="btn-precise" title="إنشاء شكل بأبعاد دقيقة" style="width:auto;padding:0 8px;font-size:11px">📐 دقيق</button>
-        <button class="icon-btn" id="btn-zoom-in"  title="تكبير">+</button>
-        <button class="icon-btn" id="btn-zoom-out" title="تصغير">−</button>
-        <button class="icon-btn" id="btn-zoom-fit" title="ملاءمة">⊞</button>
+        <button class="icon-btn" id="btn-precise" title="إنشاء شكل بأبعاد دقيقة" style="width:auto;padding:0 8px;font-size:11px"><span class="ti-ph" data-icon="dimensions"></span> دقيق</button>
+        <button class="icon-btn" id="btn-zoom-in"  title="تكبير"><span class="ti-ph" data-icon="zoom-in"></span></button>
+        <button class="icon-btn" id="btn-zoom-out" title="تصغير"><span class="ti-ph" data-icon="zoom-out"></span></button>
+        <button class="icon-btn" id="btn-zoom-fit" title="ملاءمة"><span class="ti-ph" data-icon="fit-view"></span></button>
       </span>
     </div>
 
     <!-- Shape Transform Toolbar (visible when shape selected) -->
     <div class="shape-toolbar" id="shape-toolbar" style="display:none">
       <span class="st-label">تحويل:</span>
-      <button class="st-btn" id="st-copy"     title="نسخ Ctrl+C">📋</button>
-      <button class="st-btn" id="st-paste"    title="لصق Ctrl+V">📌</button>
-      <button class="st-btn" id="st-duplicate" title="تكرار Ctrl+D">⊕</button>
+      <button class="st-btn" id="st-copy"     title="نسخ Ctrl+C"><span class="ti-ph" data-icon="clipboard"></span></button>
+      <button class="st-btn" id="st-paste"    title="لصق Ctrl+V"><span class="ti-ph" data-icon="paste"></span></button>
+      <button class="st-btn" id="st-duplicate" title="تكرار Ctrl+D"><span class="ti-ph" data-icon="duplicate"></span></button>
       <span class="st-sep"></span>
-      <button class="st-btn" id="st-mirror-h" title="مرآة أفقي">⇔</button>
-      <button class="st-btn" id="st-mirror-v" title="مرآة عمودي">⇕</button>
-      <button class="st-btn" id="st-rotate"   title="تدوير">↻</button>
-      <button class="st-btn" id="st-scale"    title="تغيير الحجم">⇲</button>
+      <button class="st-btn" id="st-mirror-h" title="مرآة أفقي"><span class="ti-ph" data-icon="mirror-h"></span></button>
+      <button class="st-btn" id="st-mirror-v" title="مرآة عمودي"><span class="ti-ph" data-icon="mirror-v"></span></button>
+      <button class="st-btn" id="st-rotate"   title="تدوير"><span class="ti-ph" data-icon="rotate"></span></button>
+      <button class="st-btn" id="st-scale"    title="تغيير الحجم"><span class="ti-ph" data-icon="scale"></span></button>
       <span class="st-sep"></span>
-      <button class="st-btn" id="st-array"    title="مصفوفة الأشكال">⊞</button>
-      <button class="st-btn" id="st-offset"   title="إزاحة المسار (مخطط داخلي/خارجي)">⊚</button>
+      <button class="st-btn" id="st-array"    title="مصفوفة الأشكال"><span class="ti-ph" data-icon="boxes"></span></button>
+      <button class="st-btn" id="st-offset"   title="إزاحة المسار (مخطط داخلي/خارجي)"><span class="ti-ph" data-icon="offset"></span></button>
       <span class="st-sep"></span>
-      <button class="st-btn" id="st-rot90l"   title="تدوير 90° يسار">⟲</button>
-      <button class="st-btn" id="st-rot90r"   title="تدوير 90° يمين">⟳</button>
-      <button class="st-btn" id="st-fillet"   title="تدوير الزوايا (Fillet)">⌒</button>
+      <button class="st-btn" id="st-rot90l"   title="تدوير 90° يسار"><span class="ti-ph" data-icon="rot-left"></span></button>
+      <button class="st-btn" id="st-rot90r"   title="تدوير 90° يمين"><span class="ti-ph" data-icon="rot-right"></span></button>
+      <button class="st-btn" id="st-fillet"   title="تدوير الزوايا (Fillet)"><span class="ti-ph" data-icon="corner-round"></span></button>
       <span class="st-sep"></span>
-      <button class="st-btn" id="st-tabs"     title="جسور تثبيت (تمنع طيران القطعة)">⊥</button>
-      <button class="st-btn" id="st-reverse"  title="عكس اتجاه القطع">⮂</button>
-      <button class="st-btn" id="st-startpoint" title="تحريك نقطة بداية القطع">◉</button>
+      <button class="st-btn" id="st-tabs"     title="جسور تثبيت (تمنع طيران القطعة)"><span class="ti-ph" data-icon="tabs"></span></button>
+      <button class="st-btn" id="st-reverse"  title="عكس اتجاه القطع"><span class="ti-ph" data-icon="reverse"></span></button>
+      <button class="st-btn" id="st-startpoint" title="تحريك نقطة بداية القطع"><span class="ti-ph" data-icon="crosshair"></span></button>
       <span class="st-sep"></span>
-      <button class="st-btn" id="st-lock"     title="قفل (يمنع التحريك بالخطأ)">🔒</button>
-      <button class="st-btn" id="st-disable"  title="تعطيل من G-Code">⊘</button>
-      <button class="st-btn" id="st-info"     title="معلومات وموضع دقيق">ⓘ</button>
+      <button class="st-btn" id="st-lock"     title="قفل (يمنع التحريك بالخطأ)"><span class="ti-ph" data-icon="lock"></span></button>
+      <button class="st-btn" id="st-disable"  title="تعطيل من G-Code"><span class="ti-ph" data-icon="disable"></span></button>
+      <button class="st-btn" id="st-info"     title="معلومات وموضع دقيق"><span class="ti-ph" data-icon="info"></span></button>
       <span class="st-sep"></span>
-      <button class="st-btn st-danger" id="st-delete" title="حذف Del">🗑</button>
+      <button class="st-btn st-danger" id="st-delete" title="حذف Del"><span class="ti-ph" data-icon="trash"></span></button>
     </div>
 
     <div class="canvas-main">
@@ -1150,7 +1152,7 @@
         <pre class="gc-pre" id="gc-pre"></pre>
       </div>
       <div class="gc-search">
-        <input type="text" id="gc-search" placeholder="🔍 بحث في الكود...">
+        <input type="search" id="gc-search" placeholder="بحث في الكود…" title="بحث في G-Code" aria-label="بحث في G-Code">
         <span id="gc-search-info"></span>
       </div>
     </div>
@@ -1179,8 +1181,8 @@
       <div class="sim-canvas-wrap" id="sim3d-wrap" style="display:none;position:relative">
         <div id="sim3d-canvas-host" style="position:absolute;inset:0"></div>
         <div class="sim3d-hud">
-          <button class="sim-btn" id="sim3d-play" title="تشغيل المحاكاة">▶</button>
-          <button class="sim-btn" id="sim3d-fit"  title="ملاءمة العرض">⊞</button>
+          <button class="sim-btn" id="sim3d-play" title="تشغيل المحاكاة"><span class="ti-ph" data-icon="play"></span></button>
+          <button class="sim-btn" id="sim3d-fit"  title="ملاءمة العرض"><span class="ti-ph" data-icon="fit-view"></span></button>
           <span id="sim3d-progress">--</span>
           <span class="sim3d-hint">سحب: تدوير · يمين: تحريك · عجلة: تكبير</span>
         </div>
@@ -1192,14 +1194,14 @@
           <span><span class="ld arc"></span>قوس</span>
         </div>
         <div class="sim-ctrl">
-          <button class="sim-btn" id="sim-play"  title="تشغيل">▶</button>
-          <button class="sim-btn" id="sim-pause" title="إيقاف مؤقت">⏸</button>
-          <button class="sim-btn" id="sim-step"  title="خطوة واحدة">⏭</button>
-          <button class="sim-btn" id="sim-reset" title="إعادة للبداية">⏮</button>
-          <button class="sim-btn" id="sim-fit"   title="ملاءمة الشاشة">⊞</button>
-          <button class="sim-btn active" id="sim-material" title="إظهار/إخفاء الخامة المنحوتة">🪵</button>
+          <button class="sim-btn" id="sim-play"  title="تشغيل"><span class="ti-ph" data-icon="play"></span></button>
+          <button class="sim-btn" id="sim-pause" title="إيقاف مؤقت"><span class="ti-ph" data-icon="pause"></span></button>
+          <button class="sim-btn" id="sim-step"  title="خطوة واحدة"><span class="ti-ph" data-icon="step-fwd"></span></button>
+          <button class="sim-btn" id="sim-reset" title="إعادة للبداية"><span class="ti-ph" data-icon="step-back"></span></button>
+          <button class="sim-btn" id="sim-fit"   title="ملاءمة الشاشة"><span class="ti-ph" data-icon="fit-view"></span></button>
+          <button class="sim-btn active" id="sim-material" title="إظهار/إخفاء الخامة المنحوتة"><span class="ti-ph" data-icon="wood"></span></button>
           <button class="sim-btn" id="sim-3d-toggle" title="عرض ثلاثي الأبعاد">3D</button>
-          <input type="range" id="sim-speed" min="1" max="500" value="60">
+          <input type="range" id="sim-speed" min="1" max="500" value="60" title="سرعة المحاكاة" aria-label="سرعة المحاكاة">
           <span id="sim-spd-lbl" class="sim-spd">×60</span>
         </div>
         <div class="sim-prog-track"><div class="sim-prog-fill" id="sim-prog-fill"></div></div>
@@ -1227,7 +1229,7 @@
   </div>
   <div id="import-preview-area"></div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-import-ok" disabled><span class="ti-ph" data-icon="check"></span>ستيراد</button>
+    <button class="btn-pri" id="btn-import-ok" disabled><span class="ti-ph" data-icon="check"></span>استيراد</button>
     <button class="btn-cnl" id="btn-import-cancel">إلغاء</button>
   </div>
 </dialog>
@@ -1251,7 +1253,7 @@
   <label class="toggle-row"><input type="checkbox" id="exp-comments" checked><span>تضمين التعليقات</span></label>
   <label class="toggle-row"><input type="checkbox" id="exp-linenums"><span>أرقام الأسطر</span></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-export-ok"><span class="ti-ph" data-icon="save"></span>حميل</button>
+    <button class="btn-pri" id="btn-export-ok"><span class="ti-ph" data-icon="save"></span>تحميل</button>
     <button class="btn-cnl" id="btn-export-cancel">إلغاء</button>
   </div>
 </dialog>
@@ -1273,9 +1275,9 @@
     </table>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-ai-apply-all"><span class="ti-ph" data-icon="check"></span>طبيق الكل</button>
-    <button class="btn-pri" id="btn-ai-apply-feeds"><span class="ti-ph" data-icon="settings"></span>طبيق التغذيات</button>
-    <button class="btn-sec" id="btn-ai-ignore"><span class="ti-ph" data-icon="close"></span>جاهل</button>
+    <button class="btn-pri" id="btn-ai-apply-all"><span class="ti-ph" data-icon="check"></span>تطبيق الكل</button>
+    <button class="btn-pri" id="btn-ai-apply-feeds"><span class="ti-ph" data-icon="settings"></span>تطبيق التغذيات</button>
+    <button class="btn-sec" id="btn-ai-ignore"><span class="ti-ph" data-icon="close"></span>تجاهل</button>
   </div>
 </dialog>
 
@@ -1302,11 +1304,11 @@
         <option value="57600">57600</option>
         <option value="250000">250000</option>
       </select>
-      <button class="icon-btn" id="btn-refresh-ports" title="تحديث">🔄</button>
+      <button class="icon-btn" id="btn-refresh-ports" title="تحديث"><span class="ti-ph" data-icon="refresh"></span></button>
     </div>
     <div class="mc-row">
-      <button class="tbtn primary" id="btn-cnc-connect">🔌 اتصال</button>
-      <button class="tbtn danger"  id="btn-cnc-disconnect" style="display:none">⛔ قطع</button>
+      <button class="tbtn primary" id="btn-cnc-connect"><span class="ti-ph" data-icon="plug"></span> اتصال</button>
+      <button class="tbtn danger"  id="btn-cnc-disconnect" style="display:none"><span class="ti-ph" data-icon="plug-off"></span> قطع</button>
     </div>
   </div>
 
@@ -1325,7 +1327,7 @@
   <div class="mc-section">
     <button id="btn-estop" class="estop-btn" disabled>⛔ EMERGENCY STOP</button>
     <div class="mc-row" style="margin-top:8px">
-      <button class="tbtn" id="btn-home">🏠 Home</button>
+      <button class="tbtn" id="btn-home"><span class="ti-ph" data-icon="home"></span> Home</button>
       <button class="tbtn" id="btn-home-xy">Home XY</button>
       <button class="tbtn" id="btn-zero-work">Zero Work</button>
     </div>
@@ -1360,8 +1362,8 @@
 
   <div class="mc-section">
     <div class="stream-ctrl">
-      <button class="tbtn primary" id="btn-send-gcode" disabled>📡 إرسال G-Code للآلة</button>
-      <button class="tbtn danger"  id="btn-stop-stream" style="display:none">⏹ إيقاف</button>
+      <button class="tbtn primary" id="btn-send-gcode" disabled><span class="ti-ph" data-icon="antenna"></span> إرسال G-Code للآلة</button>
+      <button class="tbtn danger"  id="btn-stop-stream" style="display:none"><span class="ti-ph" data-icon="stop"></span> إيقاف</button>
     </div>
     <div id="stream-progress" style="display:none;margin-top:6px">
       <div class="stream-prog-track"><div class="stream-prog-fill" id="stream-prog-fill" style="width:0%"></div></div>
@@ -1408,7 +1410,7 @@
   <label>تغذية Z (mm/min)<input type="number" id="tool-edit-feed-z" value="300"></label>
   <label>ملاحظات<input type="text" id="tool-edit-notes"></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-tool-save"><span class="ti-ph" data-icon="check"></span>فظ</button>
+    <button class="btn-pri" id="btn-tool-save"><span class="ti-ph" data-icon="check"></span>حفظ</button>
     <button class="btn-cnl" id="btn-tool-cancel">إلغاء</button>
   </div>
 </dialog>
@@ -1419,7 +1421,7 @@
   <h3>📁 المشاريع المحفوظة</h3>
   <div style="display:flex;gap:8px;margin-bottom:8px">
     <input type="text" id="save-project-name" placeholder="اسم المشروع..." style="flex:1">
-    <button class="tbtn primary" id="btn-project-save-ok">💾 حفظ الحالي</button>
+    <button class="tbtn primary" id="btn-project-save-ok"><span class="ti-ph" data-icon="save"></span> حفظ الحالي</button>
   </div>
   <div id="project-list" class="project-list"></div>
 </dialog>
@@ -1452,7 +1454,7 @@
           <span>العتبة (Threshold)</span>
           <input type="range" id="trace-threshold" min="0" max="255" value="128">
           <span class="trace-val" id="trace-threshold-val">128</span>
-          <button class="btn-sec" id="btn-trace-auto" title="تحليل الصورة واختيار العتبة المثلى (Otsu)" style="padding:3px 10px;font-size:11px"><span class="ti-ph" data-icon="sparkles"></span>لقائي</button>
+          <button class="btn-sec" id="btn-trace-auto" title="تحليل الصورة واختيار العتبة المثلى (Otsu)" style="padding:3px 10px;font-size:11px"><span class="ti-ph" data-icon="sparkles"></span>تلقائي</button>
         </label>
         <label class="toggle-row" style="padding:0;margin-top:2px">
           <input type="checkbox" id="trace-smooth" checked>
@@ -1483,8 +1485,8 @@
   </div>
 
   <div class="mdl-foot">
-    <button class="btn-pri"  id="btn-trace-run"><span class="ti-ph" data-icon="zap"></span>تبع الآن</button>
-    <button class="btn-pri"  id="btn-trace-import" disabled><span class="ti-ph" data-icon="check"></span>ستيراد للرسم</button>
+    <button class="btn-pri"  id="btn-trace-run"><span class="ti-ph" data-icon="zap"></span>تتبع الآن</button>
+    <button class="btn-pri"  id="btn-trace-import" disabled><span class="ti-ph" data-icon="check"></span>استيراد للرسم</button>
     <button class="btn-cnl"  id="btn-trace-cancel">إلغاء</button>
   </div>
 </dialog>
@@ -1503,7 +1505,7 @@
     <input type="number" id="rotate-angle" value="45" min="-360" max="360" step="1">
   </label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-rotate-apply"><span class="ti-ph" data-icon="rotate"></span>طبيق</button>
+    <button class="btn-pri" id="btn-rotate-apply"><span class="ti-ph" data-icon="rotate"></span>تطبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-rotate').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1520,7 +1522,7 @@
     <input type="number" id="scale-y" value="100" min="1" max="1000" step="5">
   </label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-scale-apply"><span class="ti-ph" data-icon="scale"></span>طبيق</button>
+    <button class="btn-pri" id="btn-scale-apply"><span class="ti-ph" data-icon="scale"></span>تطبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-scale').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1544,7 +1546,7 @@
     <label>نصف القطر (mm) <input type="number" id="arr-radius" value="30" min="1" step="1"></label>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-array-apply"><span class="ti-ph" data-icon="grid"></span>نشاء</button>
+    <button class="btn-pri" id="btn-array-apply"><span class="ti-ph" data-icon="grid"></span>إنشاء</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-array').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1557,8 +1559,8 @@
     لديك تصميم مفتوح — ماذا تريد أن تفعل به؟
   </p>
   <div style="display:flex;flex-direction:column;gap:8px">
-    <button class="btn-pri" id="np-save"><span class="ti-ph" data-icon="save"></span>فظ المشروع ثم البدء بجديد</button>
-    <button class="btn-sec" id="np-discard"><span class="ti-ph" data-icon="page"></span>دء جديد بدون حفظ</button>
+    <button class="btn-pri" id="np-save"><span class="ti-ph" data-icon="save"></span>حفظ المشروع ثم البدء بجديد</button>
+    <button class="btn-sec" id="np-discard"><span class="ti-ph" data-icon="page"></span>بدء جديد بدون حفظ</button>
     <button class="btn-cnl" id="np-cancel">إلغاء — البقاء على الحالي</button>
   </div>
 </dialog>
@@ -1570,7 +1572,7 @@
   <div id="preflight-verdict" class="pf-verdict">…</div>
   <div id="preflight-list" class="pf-list"></div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="pf-proceed"><span class="ti-ph" data-icon="zap"></span>تابعة التوليد</button>
+    <button class="btn-pri" id="pf-proceed"><span class="ti-ph" data-icon="zap"></span>متابعة التوليد</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-preflight').close()">إغلاق</button>
   </div>
 </dialog>
@@ -1582,7 +1584,7 @@
   <p style="font-size:12px;color:var(--text3);margin-bottom:8px">احفظ كل إعدادات آلتك (المتحكم، الأداة، السرعات، الحدود) وبدّل بينها بنقرة.</p>
   <div style="display:flex;gap:8px;margin-bottom:10px">
     <input type="text" id="preset-name" placeholder="اسم الآلة (مثال: راوتر 6090 الورشة)" style="flex:1">
-    <button class="tbtn primary" id="btn-preset-save">💾 حفظ الحالي</button>
+    <button class="tbtn primary" id="btn-preset-save"><span class="ti-ph" data-icon="save"></span> حفظ الحالي</button>
   </div>
   <div id="preset-list" class="preset-list"></div>
 </dialog>
@@ -1596,7 +1598,7 @@
   <label>ارتفاع الجسر (mm)<input type="number" id="tabs-height" value="1" min="0.2" max="20" step="0.1"></label>
   <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">جسور بارتفاع جزئي: ترتفع الأداة فوق مكان الجسر بعمق أقل فيبقى جسر رقيق يُبقي القطعة متصلة فلا تطير — يُكسر يدوياً بعد التشغيل</div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-tabs-apply"><span class="ti-ph" data-icon="tabs"></span>طبيق</button>
+    <button class="btn-pri" id="btn-tabs-apply"><span class="ti-ph" data-icon="tabs"></span>تطبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-tabs').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1606,7 +1608,7 @@
   <h3>⌒ تدوير الزوايا</h3>
   <label>نصف القطر (mm)<input type="number" id="fillet-radius" value="5" min="0.2" max="100" step="0.5"></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-fillet-apply"><span class="ti-ph" data-icon="arc-join"></span>طبيق</button>
+    <button class="btn-pri" id="btn-fillet-apply"><span class="ti-ph" data-icon="arc-join"></span>تطبيق</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-fillet').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1621,7 +1623,7 @@
   <label>المسافة بين القطع (mm)<input type="number" id="nest-gap" value="5" min="0" step="0.5"></label>
   <div style="font-size:11px;color:var(--text3);margin:4px 0 8px">يرصّ الأشكال المحددة (أو الكل) تلقائياً لتقليل هدر الخامة</div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-nesting-apply"><span class="ti-ph" data-icon="grid"></span>صف</button>
+    <button class="btn-pri" id="btn-nesting-apply"><span class="ti-ph" data-icon="grid"></span>رصف</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-nesting').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1639,7 +1641,7 @@
   </div>
   <label>⌀ الثقب (mm)<input type="number" id="bolt-hole" value="6" min="0.2" step="0.5"></label>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-bolt-apply"><span class="ti-ph" data-icon="bolt-circle"></span>نشاء</button>
+    <button class="btn-pri" id="btn-bolt-apply"><span class="ti-ph" data-icon="bolt-circle"></span>إنشاء</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-boltcircle').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1657,7 +1659,7 @@
     <label style="flex:1">الموضع Y (mm)<input type="number" id="si-y" step="0.1"></label>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-si-apply"><span class="ti-ph" data-icon="check"></span>طبيق الموضع</button>
+    <button class="btn-pri" id="btn-si-apply"><span class="ti-ph" data-icon="check"></span>تطبيق الموضع</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-shapeinfo').close()">إغلاق</button>
   </div>
 </dialog>
@@ -1677,7 +1679,7 @@
     الموضع: <b id="text-pos-label" style="color:var(--cyan)">--</b>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-text-ok"><span class="ti-ph" data-icon="check"></span>دراج</button>
+    <button class="btn-pri" id="btn-text-ok"><span class="ti-ph" data-icon="check"></span>إدراج</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-text').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1697,7 +1699,7 @@
     ينشئ مساراً موازياً للشكل المحدد — مفيد لتعويض قطر الأداة أو جدران الجيوب
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-offset-apply"><span class="ti-ph" data-icon="offset"></span>نشاء المسار</button>
+    <button class="btn-pri" id="btn-offset-apply"><span class="ti-ph" data-icon="offset"></span>إنشاء المسار</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-offset').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1730,7 +1732,7 @@
     <label style="flex:1">Y2 (mm)<input type="number" id="precise-y2" value="0" step="0.1"></label>
   </div>
   <div class="mdl-foot">
-    <button class="btn-pri" id="btn-precise-ok"><span class="ti-ph" data-icon="check"></span>نشاء</button>
+    <button class="btn-pri" id="btn-precise-ok"><span class="ti-ph" data-icon="check"></span>إنشاء</button>
     <button class="btn-cnl" onclick="document.getElementById('dlg-precise').close()">إلغاء</button>
   </div>
 </dialog>
@@ -1892,6 +1894,7 @@
 <script defer src="js/tools-type-pro.js"></script>
 <script defer src="js/tools-warp-pro.js"></script>
 <script defer src="js/interaction-pro.js"></script>
+<script defer src="js/interaction-motion.js"></script>
 <script defer src="js/app.js"></script>
 <script>
 // PWA: تسجيل Service Worker للعمل دون اتصال + تحديث تلقائي فوري
