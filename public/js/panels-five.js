@@ -148,10 +148,19 @@
     s4.appendChild(el('div', 'dqp-h', '<span>أدوات اللون</span>'));
     const g = el('div', 'dqp-grid dqp-g3');
     const mk = (label, fn, title) => { const b = el('button', 'dqp-b', label); b.title = title || label; b.addEventListener('click', fn); return b; };
+    // لا تُشتقّ الإتاحة من قيمة الإرجاع — هذه الدوالّ تُعيد undefined عند النجاح،
+    // فكان `fn() || toast(...)` يُطلق تحذير «غير متاح» بعد كل نقرة ناجحة
+    // الحامل يُقرأ عند النقر لا عند بناء اللوحة، فقد تُبنى قبل تحميل الوحدة
+    const call = (holder, fn, warn) => () => {
+      const obj = window[holder];
+      const f = obj && obj[fn];
+      if (typeof f !== 'function') { toast(warn, 'warn'); return; }
+      f.call(obj);
+    };
     g.append(
-      mk('قطّارة', () => window.ColorTools?.eyedropper?.() || toast('أداة القطّارة غير متاحة', 'warn'), 'التقط لوناً من الكانفس'),
-      mk('تدرّج', () => window.ColorTools?.gradient?.() || toast('محرّر التدرّج غير متاح', 'warn'), 'تعبئة متدرّجة'),
-      mk('مكتبة', () => window.ColorLibrary?.open?.() || toast('مكتبة الألوان غير متاحة', 'warn'), 'مكتبة الألوان'),
+      mk('قطّارة', call('ColorTools', 'eyedropper', 'أداة القطّارة غير متاحة'), 'التقط لوناً من الكانفس'),
+      mk('تدرّج', call('ColorTools', 'gradient', 'محرّر التدرّج غير متاح'), 'تعبئة متدرّجة'),
+      mk('مكتبة', call('ColorLibrary', 'open', 'مكتبة الألوان غير متاحة'), 'مكتبة الألوان'),
     );
     s4.appendChild(g);
 

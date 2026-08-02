@@ -164,10 +164,16 @@
   function openPop(btn) {
     if (!pop) buildPopover();
     refreshPreview();
-    const r = btn.getBoundingClientRect();
-    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 296)) + 'px';
-    pop.style.top = Math.max(8, r.top - 300) + 'px';
+    // قد يُستدعى بلا وسيط (لوحة الألوان تنادي gradient() مجرّدة) — فنرتدّ إلى
+    // زرّ الشريط، ثم إلى وسط النافذة، بدل الانكسار على getBoundingClientRect
+    const anchor = btn && btn.getBoundingClientRect ? btn : document.getElementById('clr-gradient');
+    const r = anchor ? anchor.getBoundingClientRect() : null;
+    const left = r ? r.left : (window.innerWidth - 288) / 2;
+    const top = r ? r.top - 300 : (window.innerHeight - 292) / 2;
+    pop.style.left = Math.max(8, Math.min(left, window.innerWidth - 296)) + 'px';
+    pop.style.top = Math.max(8, top) + 'px';
     pop.classList.add('open');
+    return true;
   }
   function closePop() { pop && pop.classList.remove('open'); }
 
