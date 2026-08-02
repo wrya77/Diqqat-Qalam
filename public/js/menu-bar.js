@@ -147,6 +147,13 @@
     'ext-intersect': () => window.Extras?.intersect(),
     'ext-optimize':  () => window.Extras?.optimizeOrder(),
     'ext-preflight': () => window.app?.preflight(),
+
+    // ابتكار دقة قلم — أدوات لا توجد في أي برنامج تصميم (tools-invent5.js)
+    'inv-balance':   () => ed()?.placeHangHole(5),
+    'inv-stretch':   () => ed()?.setTool('stretch-band'),
+    'inv-fragility': () => ed()?.promptFragility(),
+    'inv-shadow':    () => ed()?.toggleEngraveShadow(),
+    'inv-calibrate': () => ed()?.promptCalibrate(),
   };
 
   function toggleCheck(id) {

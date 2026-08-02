@@ -278,7 +278,10 @@
     root.appendChild(park);
 
     const saved = store();
-    wsName = (saved && WORKSPACES[saved.ws]) ? saved.ws : 'cnc';
+    // الافتراضي يتبع عرض الشاشة: عمودان يخنقان الكانفس تحت 1440px
+    // (كان يبقى له ~34% فقط) — فتبدأ الشاشات الأضيق بمساحة «رسم».
+    wsName = (saved && WORKSPACES[saved.ws]) ? saved.ws
+           : (window.innerWidth >= 1440 ? 'cnc' : 'design');
     M = sanitize(saved && saved.M) || sanitize(WORKSPACES[wsName].make());
 
     built = true;

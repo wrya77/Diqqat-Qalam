@@ -1,4 +1,20 @@
 (function () {
+  /* أفعال داخل الشريط: أزرار تحمل data-act بدل data-tool — فعل يُنفَّذ فوراً
+     ولا يصير «الأداة الفعّالة» ولا يحلّ محلّ الزرّ الرئيسي للمجموعة.
+     مُعلَنة عالمياً ليستعملها object-dock في لوحة «الأدوات» أيضاً. */
+  const ACTS = {
+    'sel-all': () => {
+      const ed = window.app && window.app.editor;
+      if (!ed) return;
+      // setTool أولاً: تبديل الأداة يستدعي _cancelDraw فيمسح أي تحديد قبله
+      if (ed.tool !== 'select') ed.setTool('select');
+      ed.selectAll();
+    },
+  };
+  window.DQToolAct = ACTS;
+  function runAct(name) { try { ACTS[name] && ACTS[name](); } catch (e) { console.error('[rail act] ' + name, e); } }
+  window.DQRunToolAct = runAct;
+
   function init() {
     const rail = document.getElementById('tools-rail');
     if (!rail || rail.dataset.flyoutReady === '1') return;
@@ -123,9 +139,11 @@
           e.stopPropagation();
           const btn = e.target.closest('.tr-btn');
           if (!btn) return;
-          const tool = btn.dataset.tool;
           flyout.style.display = 'none';
           activeFlyout = null;
+          // زرّ فعل: نفّذ وانصرف — لا يستبدل الزرّ الرئيسي ولا يغيّر الأداة
+          if (btn.dataset.act) { runAct(btn.dataset.act); return; }
+          const tool = btn.dataset.tool;
           if (primary.dataset.tool !== tool) {
             primary.innerHTML = btn.innerHTML;
             primary.title = btn.title;
