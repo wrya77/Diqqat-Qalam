@@ -22,7 +22,8 @@
   let booted = false, threeReady = false, loading = null;
   let feats = [];              // شجرة الميزات
   let seq = 1;
-  let host = null, treeEl = null, infoEl = null;
+  let host = null, treeEl = null, infoEl = null, statEl = null;
+  const undoStack = [], redoStack = [];
 
   /* ══════════════ تحميل Three كسولاً ══════════════ */
 
@@ -91,6 +92,30 @@
       case 'sweep':   return b.sweep(f.params.rings || [], f.params.path || [], f.params);
       case 'loft':    return b.loft(f.params.ringsA || [], f.params.ringsB || [], f.params);
       case 'import':  return f.params.geometry || null;
+      case 'op': {
+        const S = geomOf(f.src[0]);
+        if (!S) return null;
+        const O = window.CAD3DOps;
+        if (!O) return null;
+        // تُخبز مصفوفة المصدر في الرؤوس أوّلاً، وإلّا عملت المرآة والمصفوفة
+        // حول الأصل لا حول موضع المجسّم الفعليّ
+        const g = S.geometry.clone().applyMatrix4(S.matrix);
+        const P = f.params;
+        switch (P.op) {
+          case 'shell':   return O.shell(g, P.t);
+          case 'offset':  return O.offsetSurface(g, P.d);
+          case 'mirror':  return O.mirror(g, P.axis);
+          case 'linear':  return O.linearPattern(g, P);
+          case 'circular':return O.circularPattern(g, P);
+          case 'hull':    return O.convexHull(g);
+          case 'decimate':return O.decimate(g, P.cell);
+          case 'center':  return O.centerOrigin(g, P.mode);
+          case 'splitA':  { const r = O.splitByPlane(g, P.axis, P.offset); return r && r.a; }
+          case 'splitB':  { const r = O.splitByPlane(g, P.axis, P.offset); return r && r.b; }
+          case 'copy':    return g;
+          default: return null;
+        }
+      }
       case 'boolean': {
         const A = geomOf(f.src[0]), Bg = geomOf(f.src[1]);
         if (!A || !Bg) return null;
@@ -121,7 +146,12 @@
 
     const built = new Map();               // id → {geometry, matrix}
     const consumed = new Set();
-    for (const f of feats) if (f.kind === 'boolean') f.src.forEach(id => consumed.add(id));
+    // أي ميزة تستهلك مصادرها — إلا «نسخة» فهي تُبقي الأصل ظاهراً
+    for (const f of feats) {
+      if (f.kind === 'op' && f.params.op === 'copy') continue;
+      if (f.kind === 'op' && String(f.params.op).startsWith('split') && f.params.keepSrc) continue;
+      f.src.forEach(id => consumed.add(id));
+    }
 
     for (const f of feats) {
       let g = null;
@@ -423,23 +453,90 @@
     s.id = 'cad3d-css';
     s.textContent = `
       #pane-cad3d{display:flex;flex-direction:column;min-height:0;overflow:hidden}
-      .c3-bar{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:3px;padding:5px 6px;
+
+      /* ── الشريط العلويّ: أزرار أيقونية بعناوين، لا كلمات مزدحمة ── */
+      .c3-top{flex:0 0 auto;display:flex;align-items:center;gap:2px;padding:4px 6px;
+        overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
         background:var(--bg1,#0d1117);border-bottom:1px solid var(--border,#30363d)}
-      .c3-sep{width:1px;align-self:stretch;background:var(--border,#30363d);margin:2px 3px}
-      .c3-b{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;
-        border:1px solid transparent;background:none;cursor:pointer;color:var(--text2,#b1bac4);
-        font-family:inherit;font-size:11.5px;font-weight:600;white-space:nowrap;
+      .c3-top::-webkit-scrollbar{height:5px}
+      .c3-top::-webkit-scrollbar-thumb{background:var(--border,#30363d);border-radius:3px}
+      .c3-sep{flex:0 0 auto;width:1px;align-self:stretch;background:var(--border,#30363d);margin:3px 4px}
+      .c3-grow{flex:1 1 auto;min-width:6px}
+
+      .c3-ic{flex:0 0 auto;width:28px;height:26px;display:inline-flex;align-items:center;
+        justify-content:center;border:1px solid transparent;border-radius:6px;background:none;
+        cursor:pointer;color:var(--text2,#b1bac4);padding:0;
         transition:background .14s ease,color .14s ease,border-color .14s ease}
-      .c3-b:hover{background:var(--bg3,#1c2128);color:var(--text,#e6edf3)}
-      .c3-b.on{background:color-mix(in srgb,var(--accent,#2f81f7) 18%,transparent);
+      .c3-ic:hover{background:var(--bg3,#1c2128);color:var(--text,#e6edf3)}
+      .c3-ic.on{background:color-mix(in srgb,var(--accent,#2f81f7) 20%,transparent);
         border-color:var(--accent,#2f81f7);color:var(--accent-h,#58a6ff)}
-      .c3-b svg{width:13px;height:13px}
+      .c3-ic svg{width:15px;height:15px}
+      .c3-ic .lbl{font-size:10px;font-weight:800;letter-spacing:.2px}
+
+      /* ── الريل الجانبيّ: مجموعات أدوات بمثلّث انبثاق ── */
       .c3-main{flex:1 1 auto;min-height:0;display:flex}
+      .c3-rail{flex:0 0 auto;width:40px;display:flex;flex-direction:column;gap:2px;
+        padding:5px 3px;overflow-y:auto;overflow-x:visible;
+        background:var(--bg1,#0d1117);border-inline-end:1px solid var(--border,#30363d)}
+      .c3-slot{position:relative;flex:0 0 auto}
+      .c3-t{width:34px;height:32px;display:flex;align-items:center;justify-content:center;
+        border:1px solid transparent;border-radius:7px;background:none;cursor:pointer;padding:0;
+        color:var(--text2,#b1bac4);transition:background .14s ease,color .14s ease,border-color .14s ease}
+      .c3-t:hover{background:var(--bg3,#1c2128);color:var(--text,#e6edf3)}
+      .c3-t.on{background:color-mix(in srgb,var(--accent,#2f81f7) 20%,transparent);
+        border-color:var(--accent,#2f81f7);color:var(--accent-h,#58a6ff)}
+      .c3-t svg{width:17px;height:17px}
+      .c3-arw{position:absolute;inset-block-end:2px;inset-inline-end:2px;width:0;height:0;
+        border-inline-start:4px solid transparent;border-block-end:4px solid var(--text3,#8b949e);
+        pointer-events:none}
+      .c3-fly{position:absolute;inset-inline-start:38px;inset-block-start:0;z-index:60;display:none;
+        min-width:172px;padding:4px;border-radius:9px;background:var(--bg2,#161b22);
+        border:1px solid var(--border,#30363d);box-shadow:0 16px 40px rgba(0,0,0,.55)}
+      .c3-slot.open .c3-fly{display:block}
+      .c3-fi{display:flex;align-items:center;gap:7px;width:100%;padding:6px 8px;border:none;
+        border-radius:6px;background:none;cursor:pointer;color:var(--text2,#b1bac4);
+        font-family:inherit;font-size:12px;font-weight:600;text-align:start;white-space:nowrap;
+        transition:background .12s ease,color .12s ease}
+      .c3-fi:hover{background:var(--bg3,#1c2128);color:var(--text,#e6edf3)}
+      .c3-fi svg{width:14px;height:14px;flex:0 0 auto;opacity:.85}
+      .c3-fi .k{margin-inline-start:auto;font-size:10px;opacity:.55;font-weight:700}
+
+      /* تلميح عائم — الأسماء لا تُزحم الشريط بل تظهر عند المرور */
+      .c3-tip{position:fixed;z-index:2600;pointer-events:none;padding:4px 9px;border-radius:6px;
+        font-size:11.5px;font-weight:600;white-space:nowrap;opacity:0;
+        background:#0d1117;color:#e6edf3;border:1px solid var(--accent,#2f81f7);
+        box-shadow:0 8px 22px rgba(0,0,0,.5);transition:opacity .12s ease}
+      .c3-tip.on{opacity:1}
+
+      /* ── الكانفس وطبقة الـHUD فوقه ── */
       .c3-view{flex:1 1 auto;min-width:0;position:relative;background:#0b1016}
-      .c3-side{flex:0 0 190px;display:flex;flex-direction:column;min-height:0;
+      .c3-hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+      .c3-hud > *{pointer-events:auto}
+      .c3-cube{position:absolute;inset-block-start:8px;inset-inline-end:8px;
+        display:grid;grid-template-columns:repeat(3,22px);grid-template-rows:repeat(3,22px);gap:2px}
+      .c3-cb{border:1px solid var(--border,#30363d);border-radius:5px;cursor:pointer;padding:0;
+        background:color-mix(in srgb,#0d1117 78%,transparent);color:var(--text3,#8b949e);
+        font-family:inherit;font-size:9.5px;font-weight:800;
+        transition:background .14s ease,color .14s ease,border-color .14s ease}
+      .c3-cb:hover{background:var(--accent,#2f81f7);color:#fff;border-color:var(--accent,#2f81f7)}
+      .c3-cb.mid{background:color-mix(in srgb,var(--accent,#2f81f7) 24%,#0d1117);
+        color:var(--accent-h,#58a6ff)}
+      .c3-stat{position:absolute;inset-block-end:8px;inset-inline-start:8px;display:flex;gap:6px;
+        align-items:center;padding:4px 9px;border-radius:7px;font-size:11px;font-weight:600;
+        background:color-mix(in srgb,#0d1117 82%,transparent);color:var(--text3,#8b949e);
+        border:1px solid var(--border,#30363d)}
+      .c3-stat b{color:var(--accent-h,#58a6ff);font-weight:800}
+      .c3-hint{position:absolute;inset-block-end:8px;inset-inline-end:8px;padding:4px 9px;
+        border-radius:7px;font-size:10.5px;background:color-mix(in srgb,#0d1117 82%,transparent);
+        color:var(--text3,#8b949e);border:1px solid var(--border,#30363d);max-width:52%;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+      /* ── لوحة الشجرة ── */
+      .c3-side{flex:0 0 200px;display:flex;flex-direction:column;min-height:0;
         background:var(--bg2,#161b22);border-inline-start:1px solid var(--border,#30363d)}
-      .c3-h{flex:0 0 auto;padding:6px 9px;font-size:11px;font-weight:700;color:var(--text3,#8b949e);
-        border-bottom:1px solid var(--border,#30363d)}
+      .c3-h{flex:0 0 auto;display:flex;align-items:center;gap:5px;padding:6px 9px;font-size:11px;
+        font-weight:700;color:var(--text3,#8b949e);border-bottom:1px solid var(--border,#30363d)}
+      .c3-h .c3-ic{width:22px;height:20px;margin-inline-start:auto}
       .c3-tree{flex:1 1 auto;overflow-y:auto;padding:4px}
       .c3-row{display:flex;align-items:center;gap:5px;padding:5px 7px;border-radius:6px;
         cursor:pointer;font-size:12px;color:var(--text2,#b1bac4);
@@ -448,102 +545,155 @@
       .c3-row.on{background:color-mix(in srgb,var(--accent,#2f81f7) 20%,transparent);
         color:var(--accent-h,#58a6ff)}
       .c3-row.bad{color:#f85149}
+      .c3-row.off{opacity:.42}
       .c3-row .n{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .c3-row .e{flex:0 0 auto;width:18px;text-align:center;opacity:.6}
-      .c3-row .e:hover{opacity:1}
+      .c3-row .a{flex:0 0 auto;width:17px;text-align:center;opacity:.55;font-size:11px}
+      .c3-row .a:hover{opacity:1}
+      .c3-row svg{width:13px;height:13px;flex:0 0 auto;opacity:.8}
       .c3-info{flex:0 0 auto;padding:7px 9px;font-size:11px;line-height:1.75;
         color:var(--text3,#8b949e);border-top:1px solid var(--border,#30363d)}
       .c3-info b{color:var(--text2,#b1bac4);font-weight:600}
       .c3-empty{padding:14px 10px;font-size:11.5px;color:var(--text3,#8b949e);line-height:1.8}
-      @media (max-width:900px){.c3-side{flex-basis:150px}}
+      @media (max-width:820px){.c3-side{flex-basis:0;display:none}}
     `;
     document.head.appendChild(s);
   }
 
   const ico = n => { try { return window.DQIcon ? window.DQIcon(n) : ''; } catch (_) { return ''; } };
 
+  /* تلميح عائم واحد يخدم كل الأزرار — أرخص من عنوان لكل زرّ */
+  let tipEl = null;
+  function tipFor(el, text) {
+    el.addEventListener('mouseenter', () => {
+      if (!tipEl) { tipEl = document.createElement('div'); tipEl.className = 'c3-tip'; document.body.appendChild(tipEl); }
+      tipEl.textContent = text;
+      const r = el.getBoundingClientRect();
+      tipEl.style.insetInlineStart = 'auto';
+      tipEl.classList.add('on');
+      const tw = tipEl.offsetWidth;
+      let left = r.left + r.width / 2 - tw / 2;
+      left = Math.max(6, Math.min(window.innerWidth - tw - 6, left));
+      tipEl.style.left = left + 'px';
+      tipEl.style.top = (r.bottom + 6) + 'px';
+    });
+    const off = () => tipEl && tipEl.classList.remove('on');
+    el.addEventListener('mouseleave', off);
+    el.addEventListener('click', off);
+  }
+
+  /* ══════════════ سجلّ الأوامر — وحدات أخرى تضيف إليه ══════════════ */
+  const RAIL = [];        // [{icon, name, items:[{t, icon, fn, key}]}]
+  const TOP = [];         // [{icon|lbl, name, fn, id, sep}]
+
+  function railGroup(def) { RAIL.push(def); return def; }
+  function topItem(def) { TOP.push(def); return def; }
+
   function buildUI(pane) {
     injectCSS();
     pane.innerHTML = '';
 
-    const bar = document.createElement('div');
-    bar.className = 'c3-bar';
-    const grp = (items) => {
-      items.forEach(it => {
-        if (it === '|') { const s = document.createElement('span'); s.className = 'c3-sep'; bar.appendChild(s); return; }
-        const b = document.createElement('button');
-        b.className = 'c3-b'; b.type = 'button';
-        b.innerHTML = (it.icon ? ico(it.icon) : '') + `<span>${it.t}</span>`;
-        b.title = it.title || it.t;
-        if (it.id) b.id = it.id;
-        b.addEventListener('click', it.fn);
-        bar.appendChild(b);
-      });
-    };
+    /* الشريط العلويّ */
+    const top = document.createElement('div');
+    top.className = 'c3-top';
+    for (const it of TOP) {
+      if (it.sep) { const s = document.createElement('span'); s.className = 'c3-sep'; top.appendChild(s); continue; }
+      if (it.grow) { const s = document.createElement('span'); s.className = 'c3-grow'; top.appendChild(s); continue; }
+      const b = document.createElement('button');
+      b.className = 'c3-ic'; b.type = 'button';
+      b.innerHTML = it.icon ? ico(it.icon) : `<span class="lbl">${it.lbl}</span>`;
+      b.setAttribute('aria-label', it.name);
+      if (it.id) b.id = it.id;
+      tipFor(b, it.name);
+      b.addEventListener('click', () => it.fn(b));
+      top.appendChild(b);
+    }
 
-    grp([
-      { t: 'صندوق', icon: 'cube', fn: () => opPrimitive('box') },
-      { t: 'أسطوانة', fn: () => opPrimitive('cylinder') },
-      { t: 'كرة', fn: () => opPrimitive('sphere') },
-      { t: 'مخروط', fn: () => opPrimitive('cone') },
-      { t: 'أنبوب', fn: () => opPrimitive('tube') },
-      { t: 'حلقة', fn: () => opPrimitive('torus') },
-      '|',
-      { t: 'بثق', icon: 'arrow-up', title: 'بثق الشكل المحدَّد في لوحة الرسم', fn: opExtrude },
-      { t: 'تدوير', icon: 'rotate', fn: opRevolve },
-      { t: 'كنس', fn: opSweep },
-      { t: 'تجسير', fn: opLoft },
-      '|',
-      { t: 'اتحاد', fn: () => opBoolean('uni') },
-      { t: 'طرح', fn: () => opBoolean('sub') },
-      { t: 'تقاطع', fn: () => opBoolean('int') },
-      '|',
-      { t: 'نقل', id: 'c3-gz-move', fn: () => setGizmo('move') },
-      { t: 'تدوير·', id: 'c3-gz-rotate', fn: () => setGizmo('rotate') },
-      { t: 'تحجيم', id: 'c3-gz-scale', fn: () => setGizmo('scale') },
-      { t: 'دقيق…', fn: opTransform },
-      { t: 'حذف', icon: 'trash', fn: opDelete },
-      '|',
-      { t: 'ملاءمة', icon: 'fit-view', fn: () => V().fit() },
-      { t: 'مجسّم', id: 'c3-ortho', title: 'تبديل بين الإسقاط المتعامد والمنظور', fn: toggleOrtho },
-      { t: 'مظلّل', id: 'c3-mode', title: 'وضع الإظهار', fn: cycleMode },
-      { t: 'مقطع', id: 'c3-sec', fn: toggleSection },
-      { t: 'قياس', id: 'c3-meas', fn: toggleMeasure },
-      '|',
-      { t: 'STL', icon: 'download', title: 'تصدير STL', fn: opExportSTL },
-      { t: 'OBJ', fn: opExportOBJ },
-      { t: 'استيراد', fn: opImportSTL },
-    ]);
-
+    /* الريل الجانبيّ */
     const main = document.createElement('div'); main.className = 'c3-main';
+    const rail = document.createElement('div'); rail.className = 'c3-rail';
+    RAIL.forEach(g => {
+      const slot = document.createElement('div'); slot.className = 'c3-slot';
+      const b = document.createElement('button');
+      b.className = 'c3-t'; b.type = 'button';
+      b.innerHTML = ico(g.icon);
+      b.setAttribute('aria-label', g.name);
+      tipFor(b, g.name + (g.items.length > 1 ? ` (${g.items.length})` : ''));
+      slot.appendChild(b);
+      if (g.items.length > 1) {
+        const arw = document.createElement('span'); arw.className = 'c3-arw';
+        slot.appendChild(arw);
+        const fly = document.createElement('div'); fly.className = 'c3-fly';
+        g.items.forEach(it => {
+          const fi = document.createElement('button');
+          fi.className = 'c3-fi'; fi.type = 'button';
+          fi.innerHTML = (it.icon ? ico(it.icon) : ico(g.icon)) +
+            `<span>${it.t}</span>` + (it.key ? `<span class="k">${it.key}</span>` : '');
+          fi.addEventListener('click', () => { closeFlyouts(); it.fn(); });
+          fly.appendChild(fi);
+        });
+        slot.appendChild(fly);
+        b.addEventListener('click', e => {
+          e.stopPropagation();
+          const was = slot.classList.contains('open');
+          closeFlyouts();
+          if (!was) slot.classList.add('open');
+        });
+      } else {
+        b.addEventListener('click', () => g.items[0].fn());
+      }
+      rail.appendChild(slot);
+    });
+    document.addEventListener('click', closeFlyouts);
+
+    /* الكانفس + الـHUD */
     const view = document.createElement('div'); view.className = 'c3-view'; view.id = 'c3-view';
+    const hud = document.createElement('div'); hud.className = 'c3-hud';
+
+    const cube = document.createElement('div'); cube.className = 'c3-cube';
+    const CUBE = [
+      ['', 'أعلى', ''], ['يسار', 'مجسّم', 'يمين'], ['', 'أسفل', ''],
+    ];
+    const VMAP = { 'أعلى': 'top', 'أسفل': 'bottom', 'يمين': 'right', 'يسار': 'left', 'مجسّم': 'iso' };
+    CUBE.flat().forEach(t => {
+      const b = document.createElement('button');
+      b.className = 'c3-cb' + (t === 'مجسّم' ? ' mid' : '');
+      b.type = 'button';
+      b.textContent = t;
+      if (!t) { b.style.visibility = 'hidden'; b.disabled = true; }
+      else { b.setAttribute('aria-label', 'مسقط ' + t); b.addEventListener('click', () => V().setView(VMAP[t])); }
+      cube.appendChild(b);
+    });
+    const row2 = document.createElement('div');
+    row2.style.cssText = 'position:absolute;inset-block-start:80px;inset-inline-end:8px;display:flex;gap:2px';
+    [['أمام', 'front'], ['خلف', 'back'], ['ملاءمة', 'fit']].forEach(([t, v]) => {
+      const b = document.createElement('button');
+      b.className = 'c3-cb'; b.type = 'button'; b.textContent = t;
+      b.style.width = '38px'; b.style.height = '20px';
+      b.addEventListener('click', () => (v === 'fit' ? V().fit() : V().setView(v)));
+      row2.appendChild(b);
+    });
+
+    statEl = document.createElement('div'); statEl.className = 'c3-stat';
+    const hint = document.createElement('div'); hint.className = 'c3-hint';
+    hint.textContent = 'سحب: تدوير · Shift/يمين: تحريك · عجلة: تكبير · ١-٧ مساقط · F ملاءمة';
+    hud.append(cube, row2, statEl, hint);
+    view.appendChild(hud);
+
+    /* لوحة الشجرة */
     const side = document.createElement('div'); side.className = 'c3-side';
-    const h = document.createElement('div'); h.className = 'c3-h'; h.textContent = 'شجرة الميزات';
+    const h = document.createElement('div'); h.className = 'c3-h';
+    h.innerHTML = '<span>شجرة الميزات</span>';
     treeEl = document.createElement('div'); treeEl.className = 'c3-tree';
     infoEl = document.createElement('div'); infoEl.className = 'c3-info';
     side.append(h, treeEl, infoEl);
-    main.append(view, side);
-    pane.append(bar, main);
-    host = view;
 
-    // المساقط القياسية شريطٌ سفليّ صغير
-    const vbar = document.createElement('div');
-    vbar.className = 'c3-bar';
-    vbar.style.borderTop = '1px solid var(--border,#30363d)';
-    vbar.style.borderBottom = 'none';
-    const views = [['أعلى', 'top'], ['أسفل', 'bottom'], ['أمام', 'front'], ['خلف', 'back'],
-                   ['يمين', 'right'], ['يسار', 'left'], ['متساوي', 'iso']];
-    views.forEach(([t, v]) => {
-      const b = document.createElement('button');
-      b.className = 'c3-b'; b.type = 'button'; b.textContent = t;
-      b.addEventListener('click', () => V().setView(v));
-      vbar.appendChild(b);
-    });
-    const hint = document.createElement('span');
-    hint.style.cssText = 'margin-inline-start:auto;font-size:10.5px;color:var(--text3,#8b949e);align-self:center';
-    hint.textContent = 'سحب: تدوير · Shift+سحب أو يمين: تحريك · عجلة: تكبير · نقر مزدوج: مركز التدوير · ١-٧ مساقط · F ملاءمة';
-    vbar.appendChild(hint);
-    pane.appendChild(vbar);
+    main.append(rail, view, side);
+    pane.append(top, main);
+    host = view;
+  }
+
+  function closeFlyouts() {
+    document.querySelectorAll('#pane-cad3d .c3-slot.open').forEach(s => s.classList.remove('open'));
   }
 
   function renderTree() {
@@ -561,24 +711,35 @@
     treeEl.innerHTML = '';
     feats.forEach(f => {
       const row = document.createElement('div');
-      row.className = 'c3-row' + (sel.has(f.id) ? ' on' : '') + (f.error ? ' bad' : '');
-      const dim = consumed.has(f.id) ? ';opacity:.45' : '';
-      row.style.cssText = dim;
-      row.innerHTML = `<span class="n" title="${f.error || f.name}">${f.name}</span>
-        <span class="e" title="تحرير المعاملات">✎</span>`;
+      row.className = 'c3-row' + (sel.has(f.id) ? ' on' : '') + (f.error ? ' bad' : '') +
+                      (f.off ? ' off' : '');
+      if (consumed.has(f.id)) row.style.cssText = 'opacity:.45';
+      const kind = KINDS[f.kind] || {};
+      row.innerHTML = ico(kind.icon || 'cube') +
+        `<span class="n" title="${f.error || f.name}">${f.name}</span>` +
+        `<span class="a" data-a="eye" title="إخفاء / إظهار">${f.off ? '◌' : '◉'}</span>` +
+        `<span class="a" data-a="edit" title="تحرير المعاملات">✎</span>`;
       row.addEventListener('click', e => {
-        if (e.target.classList.contains('e')) { opEdit(f.id); return; }
+        const a = e.target.dataset && e.target.dataset.a;
+        if (a === 'edit') { opEdit(f.id); return; }
+        if (a === 'eye') { v.setSelection([f.id]); opToggleHide(); return; }
         v.setSelection([f.id]);
         renderTree(); updateInfo();
       });
+      row.addEventListener('dblclick', () => opEdit(f.id));
       treeEl.appendChild(row);
     });
   }
 
   function updateInfo() {
-    if (!infoEl) return;
     const v = V(), k = K();
     const sel = v.getSelection();
+    if (statEl) {
+      const shown = v.all().filter(m => m.visible).length;
+      statEl.innerHTML = `<b>${feats.length}</b> ميزة · <b>${shown}</b> ظاهر` +
+        (sel.length ? ` · <b>${sel.length}</b> محدَّد` : '');
+    }
+    if (!infoEl) return;
     if (sel.length !== 1) {
       infoEl.innerHTML = `<b>${feats.length}</b> ميزة · <b>${v.all().length}</b> مجسّم ظاهر`;
       return;
@@ -644,6 +805,496 @@
     if (measOn) toast('انقر نقطتين على سطح المجسّم لقياس المسافة', 'info');
   }
 
+  /* ══════════════ الثلاثون: عمليات على مجسّم قائم ══════════════ */
+
+  const one = () => {
+    const s = V().getSelection();
+    if (s.length !== 1) { toast('حدّد مجسّماً واحداً في العرض ثلاثيّ الأبعاد', 'warn'); return null; }
+    return s[0];
+  };
+
+  function pushOp(srcId, params, name) {
+    snapshot();
+    const f = addFeature('op', params, [srcId]);
+    f.name = name;
+    rebuild();
+    if (f.error) { feats = feats.filter(x => x !== f); rebuild(); return false; }
+    V().setSelection([f.id]);
+    toast(name + ' ✓', 'success');
+    return true;
+  }
+
+  async function ask(title, fields) {
+    if (!window.DQPrompt) return {};
+    return window.DQPrompt(title, fields);
+  }
+
+  const OPS = {
+    async shell() {
+      const id = one(); if (!id) return;
+      const r = await ask('تفريغ (قشرة)', [{ key: 't', label: 'سماكة الجدار (mm)', def: 2, min: 0.1 }]);
+      if (r) pushOp(id, { op: 'shell', t: r.t }, `تفريغ ${r.t}mm`);
+    },
+    async offset() {
+      const id = one(); if (!id) return;
+      const r = await ask('تسميك السطح', [{ key: 'd', label: 'المقدار (mm، سالب = للداخل)', def: 1 }]);
+      if (r) pushOp(id, { op: 'offset', d: r.d }, `تسميك ${r.d}mm`);
+    },
+    async mirror() {
+      const id = one(); if (!id) return;
+      const r = await ask('مرآة', [{ key: 'axis', label: 'المحور', type: 'select', def: 'x',
+        options: [{ v: 'x', t: 'X' }, { v: 'y', t: 'Y' }, { v: 'z', t: 'Z' }] }]);
+      if (r) pushOp(id, { op: 'mirror', axis: r.axis }, 'مرآة ' + r.axis.toUpperCase());
+    },
+    async linear() {
+      const id = one(); if (!id) return;
+      const r = await ask('مصفوفة خطّية', [
+        { key: 'count', label: 'العدد', def: 4, min: 1, max: 200 },
+        { key: 'dx', label: 'تباعد X', def: 50 }, { key: 'dy', label: 'تباعد Y', def: 0 },
+        { key: 'dz', label: 'تباعد Z', def: 0 }]);
+      if (r) pushOp(id, { op: 'linear', ...r }, `مصفوفة خطّية ×${r.count}`);
+    },
+    async circular() {
+      const id = one(); if (!id) return;
+      const r = await ask('مصفوفة دائرية', [
+        { key: 'count', label: 'العدد', def: 6, min: 1, max: 360 },
+        { key: 'angle', label: 'الزاوية الكلّية (°)', def: 360, min: 1, max: 360 },
+        { key: 'radius', label: 'نصف القطر', def: 0 },
+        { key: 'axis', label: 'المحور', type: 'select', def: 'z',
+          options: [{ v: 'z', t: 'Z' }, { v: 'x', t: 'X' }, { v: 'y', t: 'Y' }] }]);
+      if (r) pushOp(id, { op: 'circular', ...r }, `مصفوفة دائرية ×${r.count}`);
+    },
+    async hull() { const id = one(); if (id) pushOp(id, { op: 'hull' }, 'غلاف محدّب'); },
+    async decimate() {
+      const id = one(); if (!id) return;
+      const r = await ask('تبسيط الشبكة', [{ key: 'cell', label: 'حجم الخليّة (mm)', def: 1, min: 0.05 }]);
+      if (r) pushOp(id, { op: 'decimate', cell: r.cell }, `تبسيط ${r.cell}mm`);
+    },
+    async center() {
+      const id = one(); if (!id) return;
+      const r = await ask('توسيط على الأصل', [{ key: 'mode', label: 'الوضع', type: 'select', def: 'base',
+        options: [{ v: 'base', t: 'القاعدة على Z=0' }, { v: 'mid', t: 'المركز على الأصل' }] }]);
+      if (r) pushOp(id, { op: 'center', mode: r.mode }, 'توسيط');
+    },
+    duplicate() { const id = one(); if (id) pushOp(id, { op: 'copy' }, 'نسخة'); },
+    async split() {
+      const id = one(); if (!id) return;
+      const r = await ask('تقطيع بمستوٍ', [
+        { key: 'axis', label: 'المحور', type: 'select', def: 'z',
+          options: [{ v: 'z', t: 'Z' }, { v: 'x', t: 'X' }, { v: 'y', t: 'Y' }] },
+        { key: 'offset', label: 'الإزاحة (mm)', def: 0 },
+        { key: 'both', label: 'أبقِ الجزأين', type: 'check', def: true }]);
+      if (!r) return;
+      snapshot();
+      const a = addFeature('op', { op: 'splitA', axis: r.axis, offset: r.offset, keepSrc: !!r.both }, [id]);
+      a.name = 'قطعة سفلى';
+      if (r.both) {
+        const b = addFeature('op', { op: 'splitB', axis: r.axis, offset: r.offset, keepSrc: true }, [id]);
+        b.name = 'قطعة عليا';
+      }
+      // المصدر يُستهلك في الحالتين
+      const srcF = featById(id); if (srcF) srcF.hidden = true;
+      rebuild();
+      toast('قُطع المجسّم', 'success');
+    },
+    async helix() {
+      const rings = selectedRings();
+      if (!rings) { toast('حدّد مقطعاً في لوحة الرسم أوّلاً', 'warn'); return; }
+      const r = await ask('لولب / زنبرك', [
+        { key: 'radius', label: 'نصف القطر (mm)', def: 20 },
+        { key: 'pitch', label: 'الخطوة لكل لفّة (mm)', def: 6 },
+        { key: 'turns', label: 'عدد اللفّات', def: 4, min: 0.1 },
+        { key: 'segments', label: 'تقسيم اللفّة', def: 48, min: 8 }]);
+      if (!r) return;
+      snapshot();
+      const path = window.CAD3DOps.helixPath(r);
+      const f = addFeature('sweep', { rings, path, caps: true });
+      f.name = `لولب ${r.turns} لفّة`;
+      rebuild(); V().fit();
+      toast('تمّ اللولب', 'success');
+    },
+  };
+
+  /* ══════════════ عرض · خامات · عزل · تفجير ══════════════ */
+
+  const MATS = {
+    steel:  { name: 'فولاذ',  color: 0xb8c4cf, metalness: 0.85, roughness: 0.32 },
+    brass:  { name: 'نحاس',   color: 0xd6a94a, metalness: 0.9,  roughness: 0.28 },
+    alu:    { name: 'ألمنيوم', color: 0xd9dde2, metalness: 0.78, roughness: 0.4 },
+    wood:   { name: 'خشب',    color: 0xb5813f, metalness: 0.02, roughness: 0.82 },
+    plastic:{ name: 'بلاستيك', color: 0x5aa9e6, metalness: 0.05, roughness: 0.5 },
+    mdf:    { name: 'MDF',    color: 0xc8a67a, metalness: 0,    roughness: 0.95 },
+    clay:   { name: 'افتراضيّ', color: 0x9fb3c8, metalness: 0.15, roughness: 0.55 },
+  };
+
+  async function opMaterial() {
+    const sel = V().getSelection();
+    if (!sel.length) { toast('حدّد مجسّماً أو أكثر', 'warn'); return; }
+    const r = await ask('الخامة', [{ key: 'm', label: 'اختر', type: 'select', def: 'steel',
+      options: Object.entries(MATS).map(([v, o]) => ({ v, t: o.name })) }]);
+    if (!r) return;
+    const M = MATS[r.m];
+    sel.forEach(id => {
+      const f = featById(id), mesh = V().get(id);
+      if (f) f.mat = r.m;
+      if (mesh) {
+        mesh.material.color.setHex(M.color);
+        mesh.material.metalness = M.metalness;
+        mesh.material.roughness = M.roughness;
+        mesh.material.needsUpdate = true;
+      }
+    });
+    V().render();
+    toast('الخامة: ' + M.name, 'success');
+  }
+
+  let isolated = false;
+  function opIsolate() {
+    const sel = new Set(V().getSelection());
+    if (!isolated && !sel.size) { toast('حدّد ما تريد عزله', 'warn'); return; }
+    isolated = !isolated;
+    V().all().forEach(m => { m.visible = !isolated || sel.has(m.userData.id); });
+    V().render();
+    document.getElementById('c3-iso')?.classList.toggle('on', isolated);
+    toast(isolated ? 'عزل التحديد' : 'إظهار الكلّ', 'info');
+  }
+
+  function opToggleHide() {
+    const sel = V().getSelection();
+    if (!sel.length) { toast('حدّد مجسّماً', 'warn'); return; }
+    sel.forEach(id => {
+      const f = featById(id), m = V().get(id);
+      if (f) f.off = !f.off;
+      if (m) m.visible = !(f && f.off);
+    });
+    V().render(); renderTree();
+  }
+
+  let exploded = 0;
+  function opExplode() {
+    const list = V().all();
+    if (list.length < 2) { toast('التفجير يحتاج مجسّمين فأكثر', 'warn'); return; }
+    exploded = exploded ? 0 : 1;
+    const c = new THREE.Vector3();
+    const box = new THREE.Box3();
+    list.forEach(m => box.expandByObject(m));
+    box.getCenter(c);
+    list.forEach(m => {
+      const f = featById(m.userData.id);
+      if (!f) return;
+      if (!f.__ex) {
+        const b = new THREE.Box3().setFromObject(m);
+        f.__ex = b.getCenter(new THREE.Vector3()).sub(c).normalize().multiplyScalar(
+          Math.max(20, box.getSize(new THREE.Vector3()).length() * 0.28));
+      }
+      m.position.set(
+        f.tf.px + (exploded ? f.__ex.x : 0),
+        f.tf.py + (exploded ? f.__ex.y : 0),
+        f.tf.pz + (exploded ? f.__ex.z : 0));
+    });
+    V().render();
+    document.getElementById('c3-exp')?.classList.toggle('on', !!exploded);
+  }
+
+  /* ══════════════ تراجع / إعادة ══════════════ */
+
+  const serialize = () => JSON.stringify(feats.map(f => ({
+    id: f.id, kind: f.kind, name: f.name, src: f.src, color: f.color, mat: f.mat || null,
+    tf: f.tf, hidden: f.hidden, off: !!f.off,
+    params: f.kind === 'import' ? { __imported: true } : f.params,
+  })));
+
+  function snapshot() {
+    undoStack.push(serialize());
+    if (undoStack.length > 40) undoStack.shift();
+    redoStack.length = 0;
+    syncUndo();
+  }
+
+  function restore(json) {
+    const keep = new Map(feats.map(f => [f.id, f]));
+    feats = JSON.parse(json).map(o => {
+      const old = keep.get(o.id);
+      // الهندسة المستوردة لا تُسلسَل — نستعيدها من الميزة القديمة إن بقيت
+      const params = o.params && o.params.__imported && old ? old.params : o.params;
+      return Object.assign({}, o, { params: params || {} });
+    }).filter(f => !(f.kind === 'import' && !f.params.geometry));
+    rebuild();
+  }
+
+  function opUndo() {
+    if (!undoStack.length) { toast('لا تراجع', 'info'); return; }
+    redoStack.push(serialize());
+    restore(undoStack.pop());
+    syncUndo(); toast('تراجع', 'info');
+  }
+  function opRedo() {
+    if (!redoStack.length) { toast('لا إعادة', 'info'); return; }
+    undoStack.push(serialize());
+    restore(redoStack.pop());
+    syncUndo(); toast('إعادة', 'info');
+  }
+  function syncUndo() {
+    const u = document.getElementById('c3-undo'), r = document.getElementById('c3-redo');
+    if (u) u.style.opacity = undoStack.length ? '1' : '.4';
+    if (r) r.style.opacity = redoStack.length ? '1' : '.4';
+  }
+
+  /* ══════════════ مشروع ثلاثيّ · استيراد OBJ · صورة ══════════════ */
+
+  function opSaveProject() {
+    if (!feats.length) { toast('لا شيء لحفظه', 'warn'); return; }
+    const blob = new Blob([JSON.stringify({ v: 1, feats: JSON.parse(serialize()) }, null, 1)],
+      { type: 'application/json' });
+    download(blob, 'diqqat-qalam-3d.json');
+    toast('حُفظ المشروع ثلاثيّ الأبعاد', 'success');
+  }
+
+  function opLoadProject() {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json';
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      const fr = new FileReader();
+      fr.onload = () => {
+        try {
+          const d = JSON.parse(fr.result);
+          if (!d || !Array.isArray(d.feats)) throw new Error('صيغة غير معروفة');
+          snapshot();
+          feats = d.feats.filter(x => x.kind !== 'import');
+          const dropped = d.feats.length - feats.length;
+          rebuild(); V().fit();
+          toast(dropped ? `فُتح المشروع — أُسقطت ${dropped} ميزة مستوردة (هندستها ليست في الملف)`
+                        : 'فُتح المشروع', dropped ? 'warn' : 'success');
+        } catch (e) { toast('تعذّرت قراءة الملف: ' + e.message, 'error'); }
+      };
+      fr.readAsText(f);
+    };
+    inp.click();
+  }
+
+  function opImportOBJ() {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.obj';
+    inp.onchange = () => {
+      const file = inp.files && inp.files[0];
+      if (!file) return;
+      const fr = new FileReader();
+      fr.onload = () => {
+        const V3 = [], pos = [];
+        for (const line of String(fr.result).split('\n')) {
+          const p = line.trim().split(/\s+/);
+          if (p[0] === 'v') V3.push([+p[1], +p[2], +p[3]]);
+          else if (p[0] === 'f' && p.length >= 4) {
+            const idx = p.slice(1).map(t => {
+              const n = parseInt(t.split('/')[0], 10);
+              return n < 0 ? V3.length + n : n - 1;
+            });
+            for (let i = 2; i < idx.length; i++) {          // مروحة للمضلّعات
+              for (const k of [idx[0], idx[i - 1], idx[i]]) {
+                const v = V3[k];
+                if (v) pos.push(v[0], v[1], v[2]);
+              }
+            }
+          }
+        }
+        if (pos.length < 9) { toast('لم أجد أوجهاً في الملف', 'error'); return; }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
+        snapshot();
+        const f = addFeature('import', { geometry: g });
+        f.name = file.name.replace(/\.obj$/i, '');
+        rebuild(); V().fit();
+        toast(`استُورد ${f.name} — ${pos.length / 9} وجهاً`, 'success');
+      };
+      fr.readAsText(file);
+    };
+    inp.click();
+  }
+
+  function opSnapshotPNG() {
+    const d = V().snapshot();
+    if (!d) return;
+    const a = document.createElement('a');
+    a.href = d; a.download = 'diqqat-qalam-3d.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('حُفظت صورة العرض', 'success');
+  }
+
+  /* ══════════════ جسر التصنيع ══════════════ */
+
+  async function opRoughing() {
+    const meshes = V().all().filter(m => m.visible);
+    if (!meshes.length) { toast('لا مجسّم لحساب مساره', 'warn'); return; }
+    const r = await ask('مسار تخشين ثلاثيّ المحاور', [
+      { key: 'step', label: 'خطوة العيّنة (mm)', def: 1, min: 0.2 },
+      { key: 'stepDown', label: 'عمق كل طبقة (mm)', def: 2, min: 0.2 },
+      { key: 'stepOver', label: 'تباعد الممرّات (mm)', def: 2, min: 0.2 },
+      { key: 'stock', label: 'بدل التشطيب (mm)', def: 0.3 },
+      { key: 'feed', label: 'تغذية القطع (mm/min)', def: 800, min: 50 },
+    ]);
+    if (!r) return;
+    toast('جارٍ حساب خريطة الارتفاعات…', 'info');
+    await new Promise(res => setTimeout(res, 30));
+    const O = window.CAD3DOps;
+    const hm = O.heightmap(meshes, r.step);
+    if (!hm) { toast('تعذّر بناء الخريطة', 'error'); return; }
+    if (hm.error) { toast(hm.error, 'error'); return; }
+    const out = O.roughingGCode(hm, r);
+    if (!out) { toast('تعذّر توليد المسار', 'error'); return; }
+    download(new Blob([out.gcode], { type: 'text/plain' }), 'roughing-3axis.nc');
+    toast(`مسار التخشين: ${out.levels} طبقة · ${out.moves.toLocaleString('en')} حركة — نُزّل .nc`, 'success');
+  }
+
+  async function opProject2D() {
+    const e = ed();
+    if (!e) { toast('محرّر الرسم غير متاح', 'error'); return; }
+    const meshes = V().all().filter(m => m.visible);
+    if (!meshes.length) { toast('لا مجسّم لإسقاطه', 'warn'); return; }
+    const r = await ask('إسقاط الظلّ إلى مخطّط ثنائيّ', [
+      { key: 'step', label: 'دقّة العيّنة (mm)', def: 0.8, min: 0.2 }]);
+    if (!r) return;
+    const O = window.CAD3DOps;
+    const hm = O.heightmap(meshes, r.step);
+    if (!hm || hm.error) { toast(hm ? hm.error : 'تعذّر الإسقاط', 'error'); return; }
+    const rings = O.chain(O.silhouette(hm));
+    if (!rings.length) { toast('لم أجد حدوداً للظلّ', 'warn'); return; }
+    e._saveHistory?.();
+    // إحداثيات العالم ثلاثيّ الأبعاد Y للأعلى، والكانفس Y للأسفل — نعكس
+    rings.forEach(ring => e.shapes.push({
+      type: 'polyline', closed: true,
+      points: ring.map(p => ({ x: p.x, y: -p.y })),
+    }));
+    e.render?.();
+    toast(`أُسقط الظلّ — ${rings.length} حلقة في لوحة الرسم`, 'success');
+  }
+
+  /* ══════════════ قياسات إضافية ══════════════ */
+
+  function opBBox() {
+    const sel = V().getSelection();
+    const list = sel.length ? sel.map(id => V().get(id)).filter(Boolean) : V().all();
+    if (!list.length) { toast('لا مجسّم', 'warn'); return; }
+    const box = new THREE.Box3();
+    list.forEach(m => box.expandByObject(m));
+    const s = box.getSize(new THREE.Vector3());
+    const k = K3();
+    let vol = 0;
+    list.forEach(m => { vol += k.volume(k.fromGeometry(m.geometry, m.matrixWorld)); });
+    toast(`المظروف ${s.x.toFixed(2)} × ${s.y.toFixed(2)} × ${s.z.toFixed(2)} mm · ` +
+          `الحجم ${(vol / 1000).toFixed(2)} cm³`, 'success');
+  }
+  const K3 = () => window.CAD3DKernel;
+
+  /* ══════════════ تسجيل الأوامر في الشريط والريل ══════════════ */
+
+  function defineCommands() {
+    if (RAIL.length) return;
+
+    railGroup({ icon: 'cube', name: 'مجسّمات أوّلية', items: [
+      { t: 'صندوق', icon: 'cube', fn: () => opPrimitive('box') },
+      { t: 'أسطوانة', fn: () => opPrimitive('cylinder') },
+      { t: 'كرة', fn: () => opPrimitive('sphere') },
+      { t: 'مخروط', fn: () => opPrimitive('cone') },
+      { t: 'أنبوب مجوّف', fn: () => opPrimitive('tube') },
+      { t: 'حلقة', fn: () => opPrimitive('torus') },
+      { t: 'إسفين', fn: () => opPrimitive('wedge') },
+    ] });
+
+    railGroup({ icon: 'arrow-up', name: 'من لوحة الرسم', items: [
+      { t: 'بثق', icon: 'arrow-up', fn: opExtrude },
+      { t: 'تدوير حول محور', icon: 'rotate', fn: opRevolve },
+      { t: 'كنس على مسار', icon: 'pen', fn: opSweep },
+      { t: 'تجسير بين مقطعين', icon: 'blend', fn: opLoft },
+      { t: 'لولب / زنبرك', icon: 'polar', fn: OPS.helix },
+    ] });
+
+    railGroup({ icon: 'blend', name: 'عمليات منطقية', items: [
+      { t: 'اتحاد', fn: () => opBoolean('uni'), key: 'U' },
+      { t: 'طرح', fn: () => opBoolean('sub'), key: 'S' },
+      { t: 'تقاطع', fn: () => opBoolean('int'), key: 'I' },
+      { t: 'تقطيع بمستوٍ', fn: OPS.split },
+    ] });
+
+    railGroup({ icon: 'duplicate', name: 'تكرار ومرآة', items: [
+      { t: 'نسخة', icon: 'duplicate', fn: OPS.duplicate },
+      { t: 'مرآة', icon: 'mirror-h', fn: OPS.mirror },
+      { t: 'مصفوفة خطّية', icon: 'dist-h', fn: OPS.linear },
+      { t: 'مصفوفة دائرية', icon: 'polar', fn: OPS.circular },
+    ] });
+
+    railGroup({ icon: 'wrench', name: 'تعديل المجسّم', items: [
+      { t: 'تفريغ (قشرة)', fn: OPS.shell },
+      { t: 'تسميك السطح', fn: OPS.offset },
+      { t: 'غلاف محدّب', fn: OPS.hull },
+      { t: 'تبسيط الشبكة', fn: OPS.decimate },
+      { t: 'توسيط على الأصل', fn: OPS.center },
+      { t: 'حذف', icon: 'trash', fn: opDelete },
+    ] });
+
+    railGroup({ icon: 'move', name: 'تحويل', items: [
+      { t: 'نقل', icon: 'move', fn: () => setGizmo('move') },
+      { t: 'تدوير', icon: 'rotate', fn: () => setGizmo('rotate') },
+      { t: 'تحجيم', icon: 'scale', fn: () => setGizmo('scale') },
+      { t: 'قيم دقيقة…', fn: opTransform },
+    ] });
+
+    railGroup({ icon: 'ruler', name: 'قياس', items: [
+      { t: 'مسافة بين نقطتين', icon: 'ruler', fn: toggleMeasure },
+      { t: 'المظروف والحجم', fn: opBBox },
+    ] });
+
+    railGroup({ icon: 'cpu', name: 'تصنيع CNC', items: [
+      { t: 'مسار تخشين ثلاثيّ المحاور', icon: 'cpu', fn: opRoughing },
+      { t: 'إسقاط الظلّ إلى الرسم', icon: 'shapes', fn: opProject2D },
+    ] });
+
+    railGroup({ icon: 'download', name: 'ملفّات', items: [
+      { t: 'تصدير STL', icon: 'download', fn: opExportSTL },
+      { t: 'تصدير OBJ', fn: opExportOBJ },
+      { t: 'صورة PNG للعرض', icon: 'image', fn: opSnapshotPNG },
+      { t: 'استيراد STL', fn: opImportSTL },
+      { t: 'استيراد OBJ', fn: opImportOBJ },
+      { t: 'حفظ مشروع ثلاثيّ', fn: opSaveProject },
+      { t: 'فتح مشروع ثلاثيّ', fn: opLoadProject },
+    ] });
+
+    /* الشريط العلويّ */
+    topItem({ icon: 'rot-left', name: 'تراجع (Ctrl+Z)', id: 'c3-undo', fn: opUndo });
+    topItem({ icon: 'rot-right', name: 'إعادة (Ctrl+Y)', id: 'c3-redo', fn: opRedo });
+    topItem({ sep: true });
+    topItem({ icon: 'fit-view', name: 'ملاءمة العرض (F)', fn: () => V().fit() });
+    topItem({ icon: 'zoom-in', name: 'تكبير على التحديد', fn: opZoomSel });
+    topItem({ lbl: '⊥', name: 'إسقاط متعامد / منظور (O)', id: 'c3-ortho', fn: toggleOrtho });
+    topItem({ sep: true });
+    topItem({ icon: 'blend', name: 'وضع الإظهار: مظلّل', id: 'c3-mode', fn: cycleMode });
+    topItem({ icon: 'wood', name: 'الخامة', fn: opMaterial });
+    topItem({ lbl: '#', name: 'الشبكة', id: 'c3-grid', fn: toggleGrid });
+    topItem({ lbl: '⌗', name: 'مستوى المقطع', id: 'c3-sec', fn: toggleSection });
+    topItem({ sep: true });
+    topItem({ icon: 'eye', name: 'إخفاء / إظهار المحدَّد', fn: opToggleHide });
+    topItem({ lbl: '◎', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
+    topItem({ lbl: '✷', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
+    topItem({ grow: true });
+    topItem({ icon: 'cpu', name: 'مسار تخشين ثلاثيّ المحاور → G-Code', fn: opRoughing });
+    topItem({ icon: 'download', name: 'تصدير STL', fn: opExportSTL });
+  }
+
+  function opZoomSel() {
+    const sel = V().getSelection();
+    if (!sel.length) { V().fit(); return; }
+    V().fitTo(sel);
+  }
+
+  let gridOn = true;
+  function toggleGrid() {
+    gridOn = !gridOn;
+    V().showGrid(gridOn); V().showAxes(gridOn);
+    document.getElementById('c3-grid')?.classList.toggle('on', !gridOn);
+  }
+
   /* ══════════════ الإقلاع ══════════════ */
 
   async function open() {
@@ -652,6 +1303,7 @@
     if (!booted) {
       const ok = await ensureThree();
       if (!ok) { pane.innerHTML = '<div class="c3-empty">تعذّر تحميل محرّك العرض ثلاثيّ الأبعاد.</div>'; return; }
+      defineCommands();
       buildUI(pane);
       const v = V();
       if (!v.mount(host)) { pane.innerHTML = '<div class="c3-empty">تعذّر تهيئة WebGL.</div>'; return; }
@@ -669,10 +1321,30 @@
         `المسافة ${d.d.toFixed(2)} mm — Δx ${d.dx.toFixed(2)} · Δy ${d.dy.toFixed(2)} · Δz ${d.dz.toFixed(2)}`, 'success'));
       setGizmo('move');
       v.setView('iso'); v.fit();
+      wireKeys3D();
       booted = true;
+      syncUndo();
       renderTree(); updateInfo();
     }
     requestAnimationFrame(() => { V().resize(); V().render(); });
+  }
+
+  /** اختصارات تعمل فقط حين تكون مساحة الثري دي هي الظاهرة */
+  function wireKeys3D() {
+    document.addEventListener('keydown', e => {
+      const pane = document.getElementById('pane-cad3d');
+      if (!pane || !pane.classList.contains('active')) return;
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const k = (e.key || '').toLowerCase();
+      if (e.ctrlKey && k === 'z') { e.preventDefault(); opUndo(); return; }
+      if (e.ctrlKey && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); opRedo(); return; }
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      const M = { u: () => opBoolean('uni'), s: () => opBoolean('sub'), i: () => opBoolean('int'),
+                  m: () => setGizmo('move'), r: () => setGizmo('rotate'), t: () => setGizmo('scale'),
+                  h: opToggleHide, delete: opDelete, backspace: opDelete };
+      if (M[k]) { e.preventDefault(); M[k](); }
+    });
   }
 
   /* التبويب يُدار بنفس آلية بقية ألسنة الإخراج */

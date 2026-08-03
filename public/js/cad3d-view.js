@@ -357,6 +357,19 @@
     updateCam();
   }
 
+  /** ملاءمة على مجسّمات بعينها — تكبير على التحديد */
+  function fitTo(ids) {
+    const list = (ids || []).map(id => byId(id)).filter(Boolean);
+    if (!list.length) return fit();
+    const box = new THREE.Box3();
+    list.forEach(m => box.expandByObject(m));
+    const c = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    orb.t.copy(c);
+    orb.r = (Math.max(size.x, size.y, size.z) || 40) * 2.1;
+    updateCam();
+  }
+
   function resize() {
     if (!renderer || !host) return;
     const w = Math.max(1, host.clientWidth), h = Math.max(1, host.clientHeight);
@@ -609,7 +622,7 @@
     addSolid, removeSolid, clearSolids, replaceGeometry,
     get: byId, all: () => solids ? solids.children.slice() : [],
     setSelection, getSelection,
-    setView, fit, setOrtho, isOrtho: () => ortho,
+    setView, fit, fitTo, setOrtho, isOrtho: () => ortho,
     setMode, mode: () => mode,
     setSection, setMeasure, setGizmoMode, gizmoMode: () => gizmoMode,
     showGrid: v => { const g = helpers.getObjectByName('grid'); if (g) g.visible = v; requestRender(); },

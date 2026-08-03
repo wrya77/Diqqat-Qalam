@@ -6,7 +6,7 @@
  *  - الملفات الثابتة المحلية → stale-while-revalidate (سرعة + تحديث بالخلفية)
  *  - CDN (Three.js, خطوط)   → cache-first (تعمل دون اتصال بعد أول تحميل)
  */
-const CACHE = 'diqqat-qalam-v87';
+const CACHE = 'diqqat-qalam-v88';
 
 const CORE_ASSETS = [
   '/app',
@@ -90,6 +90,7 @@ const CORE_ASSETS = [
   '/js/simulator-three.js',
   '/js/cad3d-kernel.js',
   '/js/cad3d-build.js',
+  '/js/cad3d-ops.js',
   '/js/cad3d-view.js',
   '/js/cad3d.js',
   '/js/file-importer.js',
@@ -120,6 +121,18 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+/**
+ * تخزين محميّ: عند تفعيل إصدار جديد يُحذف الكاش القديم، بينما تخزينات
+ * stale-while-revalidate من العامل السابق ما زالت طائرة — فتصطدم بكاشٍ لم يعد
+ * موجوداً وترمي NotFoundError كوعدٍ غير مُلتقَط. الاستجابة تكون قد سُلِّمت
+ * للصفحة أصلاً، فالتجاهل هو التصرّف الصحيح لا الإبلاغ.
+ */
+function cachePut(req, res) {
+  return caches.open(CACHE)
+    .then(c => c.put(req, res))
+    .catch(() => {});
+}
+
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
@@ -145,7 +158,7 @@ self.addEventListener('fetch', (e) => {
   if (isHTML && url.origin === location.origin) {
     e.respondWith(
       fetch(e.request).then(res => {
-        if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+        if (res.ok) cachePut(e.request, res.clone());
         return res;
       }).catch(() => caches.match(e.request).then(hit => hit || caches.match('/app')))
     );
@@ -157,10 +170,7 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
       caches.match(e.request).then(hit => hit ||
         fetch(e.request).then(res => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE).then(c => c.put(e.request, clone));
-          }
+          if (res.ok) cachePut(e.request, res.clone());
           return res;
         })
       )
@@ -172,10 +182,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then(hit => {
       const refresh = fetch(e.request).then(res => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
+        if (res.ok) cachePut(e.request, res.clone());
         return res;
       }).catch(() => hit);
       return hit || refresh;
