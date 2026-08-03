@@ -23,7 +23,7 @@
     dlg.className = 'modal' + (wide ? ' modal-wide' : '');
     dlg.innerHTML = `
       <h3>${esc(title)}
-        <button class="modal-x" id="_ext-x" aria-label="إغلاق" style="float:left;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1">✕</button>
+        <button class="modal-x" id="_ext-x" aria-label="إغلاق" style="float:left;background:none;border:none;color:var(--text3);cursor:pointer;line-height:0;padding:2px">${window.DQIcon ? window.DQIcon('close') : ''}</button>
       </h3>
       <div class="modal-body" style="padding:18px 20px">${bodyHTML}</div>
       ${footer ? `<div class="modal-foot" style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-start">${footer}</div>` : ''}`;

@@ -162,6 +162,30 @@
     home: '<path d="M2.4 7.6L8 2.4l5.6 5.2"/><path d="M4 7.2v6.4h8V7.2"/><path d="M6.7 13.6V9.9h2.6v3.7"/>',
     antenna: '<path d="M4.3 3.9a5.5 5.5 0 000 8.2M11.7 3.9a5.5 5.5 0 010 8.2"/><path d="M6.3 6.1a2.7 2.7 0 000 3.8M9.7 6.1a2.7 2.7 0 010 3.8"/><circle cx="8" cy="8" r="1.1"/>',
     wood: '<rect x="2.4" y="4" width="11.2" height="8" rx="1.2"/><path d="M5.2 4v8M8 4v8M10.8 4v8"/>',
+
+    // ── أدوات الثري دي ──
+    drill: '<path d="M8 1.6v6"/><path d="M6 7.6h4l-2 5.4z"/><path d="M6.3 3.2l3.4 1.5M6.3 5.2l3.4 1.5"/>',
+    pocket: '<rect x="2.4" y="3.4" width="11.2" height="9.2" rx="1"/><rect x="5" y="6" width="6" height="4" rx=".6" stroke-dasharray="2 1.5"/>',
+    engrave: '<rect x="2.4" y="5.4" width="11.2" height="7.2" rx="1"/><path d="M5.6 5.4L8 9.4l2.4-4"/>',
+    emboss: '<rect x="2.4" y="8.4" width="11.2" height="4.2" rx="1"/><path d="M5.6 8.4L8 3.4l2.4 5"/>',
+    floor: '<rect x="4.6" y="2.6" width="6.8" height="5.6" rx="1"/><path d="M1.8 13.4h12.4"/><path d="M8 8.6v2.4M6.4 9.9L8 11.4l1.6-1.5"/>',
+    stock: '<rect x="1.7" y="2.7" width="12.6" height="10.6" rx="1" stroke-dasharray="2.5 2"/><rect x="5" y="5.5" width="6" height="5" rx=".8"/>',
+    gauge: '<path d="M2.6 12a5.5 5.5 0 1110.8 0"/><path d="M8 12l2.7-4.3"/><circle cx="8" cy="12" r=".9"/>',
+    'more-h': '<circle cx="3.4" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12.6" cy="8" r="1"/>',
+    magnet: '<path d="M3.5 3v5a4.5 4.5 0 009 0V3"/><path d="M3.5 3h3v5a1.5 1.5 0 003 0V3h3"/>',
+
+    // ── بدائل الرموز النصّية في الأزرار ──
+    eyedropper: '<path d="M9.8 3.4l2.8 2.8"/><path d="M11.2 2l2.8 2.8-1.4 1.4-2.8-2.8z"/><path d="M9.8 4.8L3.6 11v1.4H5L11.2 6.2z"/>',
+    gradient: '<rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M4.5 11.5l7-7M6.5 12.5l6-6M4.5 8.5l4-4" opacity=".75"/>',
+    'no-color': '<circle cx="8" cy="8" r="5.8"/><path d="M4 12L12 4"/>',
+    hexagon: '<path d="M8 1.8l5.4 3.1v6.2L8 14.2l-5.4-3.1V4.9z"/>',
+    'layer-assign': '<path d="M13.5 8h-8"/><path d="M8 4.5L4.5 8 8 11.5"/><path d="M2.5 2.5v11"/>',
+    estop: '<path d="M5.6 2.2h4.8l3.4 3.4v4.8l-3.4 3.4H5.6L2.2 10.4V5.6z"/><path d="M5.6 8h4.8"/>',
+    'arrow-left': '<path d="M13 8H3"/><path d="M6.5 4.5L3 8l3.5 3.5"/>',
+    'arrow-right': '<path d="M3 8h10"/><path d="M9.5 4.5L13 8l-3.5 3.5"/>',
+    'import-file': '<path d="M8 10.5V2.5M5 7.5l3 3 3-3"/><path d="M2.5 10v3a1 1 0 001 1h9a1 1 0 001-1v-3"/>',
+    'dot-on': '<circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2.4" fill="currentColor"/>',
+    'dot-off': '<circle cx="8" cy="8" r="5.5" stroke-dasharray="2 2"/>',
   };
 
   function svg(name) {

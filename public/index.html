@@ -336,18 +336,16 @@
       </div>
     </div>
 
+    <!-- «مساحة العمل» منفصلة عن «نافذة»: الأولى تُبدّل التخطيط وترتّبه، والثانية
+         تفتح اللوحات وتغلقها. كانتا مكدَّستين في قائمة واحدة تطول بطول سجلّ
+         اللوحات — وهو ينمو مع كل لوحة جديدة. -->
     <div class="menu">
-      <button class="menu-btn">نافذة</button>
-      <div class="menu-drop" id="menu-window">
-        <div class="mi-label">مساحات العمل</div>
+      <button class="menu-btn">مساحة العمل</button>
+      <div class="menu-drop" id="menu-workspace">
+        <div class="mi-label">مساحات جاهزة</div>
         <button class="mi" data-ws="ws:design"><span class="ti-ph" data-icon="pencil"></span>رسم</button>
         <button class="mi" data-ws="ws:cnc"><span class="ti-ph" data-icon="cpu"></span>CNC</button>
         <button class="mi" data-ws="ws:sim"><span class="ti-ph" data-icon="monitor"></span>محاكاة</button>
-        <div class="mi-sep"></div>
-        <div class="mi-label">اللوحات</div>
-        <div id="dqw-panel-items"></div>
-        <div class="mi-sep"></div>
-        <button class="mi" data-act="cad3d-open"><span class="ti-ph" data-icon="cube"></span>مساحة ثلاثيّ الأبعاد (CAD)</button>
         <div class="mi-sep"></div>
         <div class="mi-label">ترتيب اللوحات</div>
         <button class="mi" data-ws="fold"><span class="ti-ph" data-icon="chevron-down"></span>طيّ / بسط اللوحات</button>
@@ -355,6 +353,17 @@
         <button class="mi" data-ws="redock"><span class="ti-ph" data-icon="pin"></span>إعادة إرساء العائمة</button>
         <div class="mi-sep"></div>
         <button class="mi" data-ws="reset"><span class="ti-ph" data-icon="history"></span>إعادة ضبط التخطيط</button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-btn">نافذة</button>
+      <div class="menu-drop" id="menu-window">
+        <div class="mi-label">مساحات إضافية</div>
+        <button class="mi" data-act="cad3d-open"><span class="ti-ph" data-icon="cube"></span>مساحة ثلاثيّ الأبعاد (CAD)</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">اللوحات</div>
+        <div id="dqw-panel-items"></div>
       </div>
     </div>
 
@@ -381,6 +390,30 @@
         <button class="mi" data-act="inv-fragility"><span class="ti-ph" data-icon="alert"></span>كاشف الهشاشة — أعناق الخامة…</button>
         <button class="mi" data-act="inv-shadow"><span class="ti-ph" data-icon="monitor"></span>ظلّ النقش</button>
         <button class="mi" data-act="inv-calibrate"><span class="ti-ph" data-icon="ruler"></span>معايرة الواقع بالقدمة…</button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-btn">مساعدة</button>
+      <div class="menu-drop" id="menu-help">
+        <div class="mi-label">ابدأ من هنا</div>
+        <button class="mi" data-act="help-tour"><span class="ti-ph" data-icon="play"></span>جولة تعريفية بالواجهة</button>
+        <button class="mi" data-act="help-palette"><span class="ti-ph" data-icon="search"></span>لوحة الأوامر<span class="mi-k">Ctrl+K</span></button>
+        <button class="mi" data-act="help-keys"><span class="ti-ph" data-icon="list-ordered"></span>كل اختصارات المفاتيح</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">مرجع سريع</div>
+        <button class="mi" data-act="help-gcode"><span class="ti-ph" data-icon="page"></span>أوامر G-Code المستعملة</button>
+        <button class="mi" data-act="help-3d"><span class="ti-ph" data-icon="cube"></span>دليل مساحة ثلاثيّ الأبعاد</button>
+        <button class="mi" data-act="help-guides"><span class="ti-ph" data-icon="ruler"></span>المساطر والأدلة</button>
+        <button class="mi" data-act="help-units"><span class="ti-ph" data-icon="dimensions"></span>محوّل الوحدات</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">قبل التشغيل</div>
+        <button class="mi" data-act="help-checklist"><span class="ti-ph" data-icon="check-circle"></span>قائمة فحص السلامة</button>
+        <button class="mi" data-act="ext-preflight"><span class="ti-ph" data-icon="target"></span>فحص جاهزية الملفّ…</button>
+        <div class="mi-sep"></div>
+        <div class="mi-label">عن البرنامج</div>
+        <button class="mi" data-act="help-diag"><span class="ti-ph" data-icon="monitor"></span>تشخيص النظام</button>
+        <button class="mi" data-act="help-about"><span class="ti-ph" data-icon="info"></span>عن دقة قلم</button>
       </div>
     </div>
   </nav>
@@ -419,7 +452,6 @@
     <svg class="ti" viewBox="0 0 16 16"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2.5 11v2a1 1 0 001 1h9a1 1 0 001-1v-2"/></svg>
     تصدير</button>
 
-  <div class="status-pill" id="status-pill">جاهز</div>
   <button class="tbtn upgrade-btn" id="btn-upgrade" title="ترقية الاشتراك">
     <svg class="ti" viewBox="0 0 16 16"><path d="M2 5.5l3 2.5 3-5 3 5 3-2.5-1 7.5H3z"/></svg>
     ترقية
@@ -1180,7 +1212,7 @@
     </div>
 
     <div class="canvas-footer">
-      <span id="footer-tool">🖊 تحديد</span>
+      <span id="footer-tool"><span class="ti-ph" data-icon="crosshair"></span>تحديد</span>
       <span class="cf-div">│</span>
       <span id="shape-count">أشكال: 0</span>
       <span class="cf-div">│</span>
@@ -1189,6 +1221,10 @@
       <span id="est-time">وقت: --</span>
       <span class="cf-div">│</span>
       <span id="canvas-zoom">100%</span>
+      <!-- حالة الاتصال/AI نُقلت من الشريط العلويّ: هي مؤشّر حالة لا أمرٌ يُنقر،
+           ومكان مؤشّرات الحالة شريطُ الحالة السفليّ لا شريط الأوامر -->
+      <span class="cf-sp"></span>
+      <div class="status-pill" id="status-pill">جاهز</div>
     </div>
   </div>
 
@@ -1980,6 +2016,8 @@
 <script defer src="js/tools-artboards.js"></script>
 <script defer src="js/panels-illustrator.js"></script>
 <script defer src="js/panels-five-more.js"></script>
+<script defer src="js/panels-guides.js"></script>
+<script defer src="js/help-center.js"></script>
 <script defer src="js/interaction-pro.js"></script>
 <script defer src="js/interaction-motion.js"></script>
 <script defer src="js/app.js"></script>

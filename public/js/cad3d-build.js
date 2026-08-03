@@ -194,7 +194,7 @@
         bevelEnabled: bev > 0,
         bevelThickness: bev, bevelSize: bev, bevelOffset: -bev,
         bevelSegments: bev > 0 ? 3 : 0,
-        curveSegments: 12,
+        curveSegments: 24,
       }));
       return mergeGeoms(geoms);
     }
@@ -262,7 +262,7 @@
    * المقطع يجب أن يقع كلّه في جهة واحدة من المحور، وإلّا انقلب على نفسه.
    */
   function revolve(rings, o) {
-    const op = Object.assign({ axis: 'y', angle: 360, segments: 48 }, o || {});
+    const op = Object.assign({ axis: 'y', angle: 360, segments: 96 }, o || {});
     const shapes = prep(rings);
     if (!shapes.length) return null;
     const ang = Math.max(1, Math.min(360, +op.angle || 360)) * Math.PI / 180;
@@ -418,13 +418,26 @@
 
   /* ══════════════ المجسّمات الأوّلية ══════════════ */
 
+  /**
+   * تقسيمٌ متكيّف مع الحجم: قوسٌ نصف قطره ٥مم لا يحتاج ما يحتاجه قوسٌ نصف قطره
+   * ١٠٠مم. نستهدف خطأ وتَرٍ ≈ ٠٫٠٢مم (أدقّ ممّا يميّزه رأس ٣مم)، ونحدّه بين ٣٢
+   * و١٩٢ ضلعاً. الأربعون ضلعاً الثابتة كانت تُظهر الدائرة مضلّعاً مقصوصاً.
+   */
+  function arcSeg(r) {
+    const rr = Math.max(0.5, Math.abs(+r) || 20);
+    const n = Math.ceil(Math.PI / Math.acos(Math.max(-1, Math.min(1, 1 - 0.02 / rr))));
+    return Math.max(32, Math.min(192, n));
+  }
+
   const prim = {
     box:      p => new THREE.BoxGeometry(p.w || 40, p.d || 40, p.h || 20),
     cylinder: p => new THREE.CylinderGeometry(p.r || 20, p.r2 != null ? p.r2 : (p.r || 20),
-                                              p.h || 40, p.seg || 48),
-    cone:     p => new THREE.ConeGeometry(p.r || 20, p.h || 40, p.seg || 48),
-    sphere:   p => new THREE.SphereGeometry(p.r || 20, p.seg || 40, Math.max(8, (p.seg || 40) / 2)),
-    torus:    p => new THREE.TorusGeometry(p.r || 25, p.r2 || 6, 20, p.seg || 60),
+                                              p.h || 40, p.seg || arcSeg(p.r)),
+    cone:     p => new THREE.ConeGeometry(p.r || 20, p.h || 40, p.seg || arcSeg(p.r)),
+    sphere:   p => { const s = p.seg || arcSeg(p.r);
+                     return new THREE.SphereGeometry(p.r || 20, s, Math.max(12, Math.round(s / 2))); },
+    torus:    p => new THREE.TorusGeometry(p.r || 25, p.r2 || 6,
+                                           Math.max(16, Math.round(arcSeg(p.r2) / 2)), p.seg || arcSeg(p.r)),
     tube:     p => tubeGeom(p),
     wedge:    p => wedgeGeom(p),
   };
@@ -432,7 +445,7 @@
   /** أنبوب مجوّف = أسطوانة ناقصة أسطوانة — يُبنى مباشرةً بلا CSG لسرعته */
   function tubeGeom(p) {
     const R = p.r || 20, r = Math.min(R - 0.2, p.r2 != null ? p.r2 : R * 0.6), h = p.h || 40;
-    const seg = Math.max(8, p.seg || 48), pos = [];
+    const seg = Math.max(8, p.seg || arcSeg(R)), pos = [];
     for (let i = 0; i < seg; i++) {
       const a0 = TAU * i / seg, a1 = TAU * (i + 1) / seg;
       const co = [Math.cos(a0), Math.sin(a0), Math.cos(a1), Math.sin(a1)];

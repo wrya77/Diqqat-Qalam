@@ -8,7 +8,12 @@
 (function themeSystem() {
   'use strict';
 
-  const CANVAS = { bg: '#0d1117', grid: '#161b22', axis: '#21262d', label: '#30363d' };
+  // label لتسميات الشبكة الخافتة عمداً؛ ruler* للمسطرة وهي أداة قياس تُقرأ لا
+  // تُلمَح — أرقامها بلون النصّ الكامل لا بلون خطوط الشبكة
+  const CANVAS = {
+    bg: '#0d1117', grid: '#161b22', axis: '#21262d', label: '#30363d',
+    rulerBand: '#171d26', rulerText: '#c9d1d9', rulerTick: '#8b949e', rulerMinor: '#4a525d',
+  };
 
   function apply() {
     document.documentElement.setAttribute('data-theme', 'dark');

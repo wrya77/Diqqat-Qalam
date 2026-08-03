@@ -131,8 +131,21 @@
     const mat = MAT();
     if (meta && meta.color != null) mat.color.setHex(meta.color);
     if (clipOn && clip) mat.clippingPlanes = [clip];
-    const mesh = new THREE.Mesh(geometry, mat);
+
+    /* التظليل بناظم الوجه يجعل الأسطوانة تبدو مضلّعاً مقصوصاً. نُنتج نسخةً
+       للعرض بنواظم مُتوسّطة تحت زاوية حَرف ٣٨°: الجدران المنحنية تلين والحوافّ
+       الحقيقية تبقى حادّة. الهندسة الأصلية لا تُمَسّ — الحجم والـCSG والتصدير
+       تبقى على الرؤوس نفسها. */
+    let display = geometry;
+    try {
+      const O = window.CAD3DOps;
+      if (O && O.smoothNormals) display = O.smoothNormals(geometry, 38);
+    } catch (_) { display = geometry; }
+
+    const mesh = new THREE.Mesh(display, mat);
     mesh.userData = Object.assign({ id: (meta && meta.id) || ('s' + Date.now().toString(36)) }, meta || {});
+    // المصدر محفوظ: القياسات والتصدير تقرأ الهندسة الأصلية لا نسخة العرض
+    mesh.userData.source = geometry;
 
     const eg = new THREE.EdgesGeometry(geometry, 24);
     const edges = new THREE.LineSegments(eg,

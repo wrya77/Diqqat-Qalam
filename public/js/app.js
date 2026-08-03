@@ -64,7 +64,15 @@ class DiqqatQalamApp {
     // ملء الشاشة للوحة الإخراج (G-Code/إحصائيات/محاكاة) — صورة واضحة بلا ازدحام
     const _outPanel = document.querySelector('.output-panel');
     const _fsBtn = document.getElementById('btn-output-fs');
-    const _afterFs = () => requestAnimationFrame(() => { try { this.simulator?._resize(); window.dispatchEvent(new Event('resize')); } catch (_) {} });
+    // ارتفاع شريط التطبيق يُقاس لا يُفترض: مقياس الواجهة يغيّره، واللوحة في ملء
+    // الشاشة تبدأ تحته (انظر .output-panel.fs في style.css)
+    const _syncHdr = () => {
+      const h = document.querySelector('header.toolbar');
+      document.documentElement.style.setProperty('--dq-hdr',
+        (h && _outPanel?.classList.contains('fs') ? Math.round(h.getBoundingClientRect().height) : 0) + 'px');
+    };
+    const _afterFs = () => requestAnimationFrame(() => { try { _syncHdr(); this.simulator?._resize(); window.dispatchEvent(new Event('resize')); } catch (_) {} });
+    window.addEventListener('resize', _syncHdr);
     const _fsIcon = on => { if (_fsBtn) _fsBtn.innerHTML = window.DQIcon ? window.DQIcon(on ? 'fullscreen-exit' : 'fullscreen') : (on ? '✕' : '⛶'); };
     _fsBtn?.addEventListener('click', () => {
       const on = _outPanel.classList.toggle('fs');
@@ -243,7 +251,7 @@ class DiqqatQalamApp {
     if (!shapes.length) { this.toast('الرجاء رسم تصميم أولاً!','warn'); return; }
 
     const config = this.controls.getConfig();
-    this.controls.setStatus('⏳ جاري التوليد...','active');
+    this.controls.setStatus('جاري التوليد…','active');
     document.getElementById('btn-generate').disabled = true;
 
     try {
@@ -265,7 +273,7 @@ class DiqqatQalamApp {
         const el = document.getElementById('st-saving');
         if (el) el.textContent = sortInfo.saving + ` (${sortInfo.before}→${sortInfo.after}mm)`;
       }
-      this.controls.setStatus('✅ تم التوليد','active');
+      this.controls.setStatus('تمّ التوليد','active');
       this.toast(sortInfo && parseInt(sortInfo.saving) > 0
         ? `✅ تم التوليد — توفير ${sortInfo.saving} من التنقل`
         : '✅ تم توليد G-Code!','success');
@@ -311,7 +319,7 @@ class DiqqatQalamApp {
   }
 
   async _generateWithAI(shapes, config) {
-    this.controls.setStatus('🤖 تحسين AI...','active');
+    this.controls.setStatus('تحسين بالذكاء الاصطناعيّ…','active');
     try {
       const res = await fetch('/api/generate',{
         method:'POST',
@@ -324,15 +332,15 @@ class DiqqatQalamApp {
       // عرض اقتراحات AI للمراجعة قبل تطبيقها
       this.controls.showAISuggestions(data.suggestions, data.estimatedSaving);
       this.controls.showAIAnalysis(data.analysis || [], data.processedShapes || [], data.suggestions || [], data.estimatedSaving || '0%', data.aiMetadata || null);
-      this.controls.setStatus('🤖 جاهز للمراجعة','active');
+      this.controls.setStatus('جاهز للمراجعة','active');
     } catch(err) {
       console.warn('AI optimization failed (server offline?):', err.message);
-      this.controls.setStatus('✅ تم (بدون AI)');
+      this.controls.setStatus('تمّ — بلا ذكاء اصطناعيّ');
     }
   }
 
   async applyProcessedShapes(processedShapes, options = { replaceAll: true }) {
-    this.controls.setStatus('⏳ تطبيق اقتراحات AI...','active');
+    this.controls.setStatus('تطبيق الاقتراحات…','active');
     try {
       // apply to editor
       if (options.replaceAll) {
@@ -362,7 +370,7 @@ class DiqqatQalamApp {
       this.preview.display(this.gcode);
       this.controls.updateStats(stats);
       this.toast('✅ تم تطبيق اقتراحات AI وتحديث G-Code','success');
-      this.controls.setStatus('✅ تم تطبيق AI','active');
+      this.controls.setStatus('طُبِّقت الاقتراحات','active');
     } catch (e) {
       console.error('applyProcessedShapes error:', e);
       this.toast('❌ فشل تطبيق اقتراحات AI: '+e.message,'error');
@@ -1105,12 +1113,12 @@ class DiqqatQalamApp {
       const res = await fetch('/api/info');
       const info = await res.json();
       if(info.aiEnabled){
-        this.controls.setStatus('✅ متصل + AI','active');
+        this.controls.setStatus('متّصل · ذكاء اصطناعيّ','active');
       } else {
-        this.controls.setStatus('✅ متصل');
+        this.controls.setStatus('متّصل','active');
       }
     } catch(_) {
-      this.controls.setStatus('📡 وضع محلي');
+      this.controls.setStatus('وضع محلّيّ');
     }
   }
 }

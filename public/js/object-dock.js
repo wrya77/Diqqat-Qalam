@@ -13,6 +13,7 @@
  */
 (function objectDock() {
   'use strict';
+  const ico = n => { try { return window.DQIcon ? window.DQIcon(n) : ''; } catch (_) { return ''; } };
   const KEY = 'dq_object_dock';
   const st = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
   const save = o => localStorage.setItem(KEY, JSON.stringify({ ...st(), ...o }));
@@ -204,12 +205,12 @@
     dock.innerHTML = `
       <div class="odk-head">
         <div class="odk-grip" id="odk-grip" title="اسحب لإرساء اللوحة يميناً أو يساراً">⠿</div>
-        <button class="odk-tab on" data-pane="layers" title="الطبقات">🗂<span class="odk-tab-label"> الطبقات</span></button>
-        <button class="odk-tab" data-pane="objects" title="الكائنات">⬡<span class="odk-tab-label"> الكائنات</span></button>
-        <button class="odk-tab" data-pane="tools" title="كل الأدوات مجمّعة">✥<span class="odk-tab-label"> الأدوات</span></button>
+        <button class="odk-tab on" data-pane="layers" title="الطبقات">${ico('layers')}<span class="odk-tab-label"> الطبقات</span></button>
+        <button class="odk-tab" data-pane="objects" title="الكائنات">${ico('hexagon')}<span class="odk-tab-label"> الكائنات</span></button>
+        <button class="odk-tab" data-pane="tools" title="كل الأدوات مجمّعة">${ico('move')}<span class="odk-tab-label"> الأدوات</span></button>
         <span class="odk-actions">
           <button id="odk-collapse" title="طيّ اللوحة"></button>
-          <button id="odk-hide" title="إخفاء (F7)">✕</button>
+          <button id="odk-hide" title="إخفاء (F7)" aria-label="إخفاء">${ico('close')}</button>
         </span>
       </div>
       <div class="odk-body">
@@ -235,7 +236,7 @@
 
     reopen = document.createElement('button');
     reopen.className = 'odk-reopen';
-    reopen.innerHTML = '⬡ شريط الكائن';
+    reopen.innerHTML = ico('hexagon') + '<span>شريط الكائن</span>';
     document.body.appendChild(reopen);
 
     objList = dock.querySelector('#odk-obj-list');
