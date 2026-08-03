@@ -570,10 +570,13 @@
 
   /* تلميح عائم واحد يخدم كل الأزرار — أرخص من عنوان لكل زرّ */
   let tipEl = null;
+  /** النصّ يُقرأ من dataset عند كل مرور لا يُلتقط عند التسجيل — فأزرار الحالة
+      تُحدِّث تسميتها بتغيير data-tip وحده، بلا حاجة إلى span داخل الزرّ. */
   function tipFor(el, text) {
+    if (text != null) el.dataset.tip = text;
     el.addEventListener('mouseenter', () => {
       if (!tipEl) { tipEl = document.createElement('div'); tipEl.className = 'c3-tip'; document.body.appendChild(tipEl); }
-      tipEl.textContent = text;
+      tipEl.textContent = el.dataset.tip || '';
       const r = el.getBoundingClientRect();
       tipEl.style.insetInlineStart = 'auto';
       tipEl.classList.add('on');
@@ -815,8 +818,16 @@
   function toggleOrtho() {
     const v = V(), n = !v.isOrtho();
     v.setOrtho(n);
-    const b = document.getElementById('c3-ortho');
-    if (b) { b.classList.toggle('on', n); b.querySelector('span').textContent = n ? 'متعامد' : 'مجسّم'; }
+    setLabel('c3-ortho', n ? 'إسقاط متعامد (فعّال)' : 'إسقاط منظوريّ', n);
+  }
+
+  /** يحدّث تسمية زرّ حالة: التلميح وaria معاً، بلا افتراض وجود span بداخله */
+  function setLabel(id, text, on) {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.dataset.tip = text;
+    b.setAttribute('aria-label', text);
+    if (on != null) b.classList.toggle('on', !!on);
   }
   const MODES = [['shaded', 'مظلّل'], ['shaded-edges', 'بحوافّ'], ['wire', 'هيكليّ'], ['xray', 'شفّاف']];
   function cycleMode() {
@@ -824,8 +835,7 @@
     const i = MODES.findIndex(m => m[0] === v.mode());
     const nx = MODES[(i + 1) % MODES.length];
     v.setMode(nx[0]);
-    const b = document.getElementById('c3-mode');
-    if (b) b.querySelector('span').textContent = nx[1];
+    setLabel('c3-mode', 'وضع الإظهار: ' + nx[1], nx[0] !== 'shaded');
   }
   let secOn = false, secOff = 0;
   async function toggleSection() {
