@@ -14,6 +14,8 @@
  */
 (function colorTools() {
   'use strict';
+  /* أيقونة SVG بدل الرمز النصّيّ — الرموز تختلف رسماً بين الأنظمة وتُقصّ في الأزرار الصغيرة */
+  const ico = n => { try { return window.DQIcon ? window.DQIcon(n) : ''; } catch (_) { return ''; } };
   if (typeof CanvasEditor === 'undefined') return;
   const toast = (m, t) => window.app?.toast?.(m, t || 'info');
   const ed = () => window.app && window.app.editor;
@@ -183,8 +185,8 @@
     if (!box || box.dataset.ready) return;
     box.dataset.ready = '1';
     box.innerHTML = `
-      <button class="clr-toolbtn" id="clr-eyedrop" title="ملتقط الألوان (I) — Shift للتعبئة">💧</button>
-      <button class="clr-toolbtn" id="clr-gradient" title="تدرّج التعبئة">🌈</button>`;
+      <button class="clr-toolbtn" id="clr-eyedrop" title="ملتقط الألوان (I) — Shift للتعبئة" aria-label="ملتقط الألوان">${ico('eyedropper')}</button>
+      <button class="clr-toolbtn" id="clr-gradient" title="تدرّج التعبئة" aria-label="تدرّج التعبئة">${ico('gradient')}</button>`;
     document.getElementById('clr-eyedrop').addEventListener('click', () => setArmed(!armed));
     document.getElementById('clr-gradient').addEventListener('click', e => {
       pop && pop.classList.contains('open') ? closePop() : openPop(e.currentTarget);

@@ -479,7 +479,7 @@
     tabs.appendChild(t);
     tabs.appendChild(mk('span', 'dqw-gap'));
     const x = mk('button', 'dqw-close');
-    x.type = 'button'; x.textContent = '✕'; x.title = 'إغلاق';
+    x.type = 'button'; x.innerHTML = ico('close'); x.title = 'إغلاق'; x.setAttribute('aria-label', 'إغلاق');
     x.addEventListener('click', () => { railOpen = null; render(); });
     tabs.appendChild(x);
     fly.appendChild(tabs);
@@ -547,7 +547,7 @@
     fold.addEventListener('click', () => toggleFold(z, gi));
     tabs.appendChild(fold);
     const x = mk('button', 'dqw-close');
-    x.type = 'button'; x.title = 'إغلاق اللوحة الفعّالة'; x.textContent = '✕';
+    x.type = 'button'; x.title = 'إغلاق اللوحة الفعّالة'; x.innerHTML = ico('close'); x.setAttribute('aria-label', 'إغلاق اللوحة الفعّالة');
     x.addEventListener('click', () => closePanel(g.a));
     tabs.appendChild(x);
     wrap.appendChild(tabs);
@@ -677,7 +677,7 @@
     dock.innerHTML = ico('pin') || '⇱';
     dock.addEventListener('click', e => { e.stopPropagation(); redock(f.id); });
     const x = mk('button', 'dqw-close');
-    x.type = 'button'; x.textContent = '✕'; x.title = 'إغلاق'; x.setAttribute('aria-label', 'إغلاق');
+    x.type = 'button'; x.innerHTML = ico('close'); x.title = 'إغلاق'; x.setAttribute('aria-label', 'إغلاق');
     x.addEventListener('click', e => { e.stopPropagation(); closePanel(f.id); });
     head.append(fold, dock, x);
     head.addEventListener('mousedown', e => {

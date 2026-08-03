@@ -151,7 +151,10 @@
     P.setTool = function (t) {
       origSetTool.call(this, t);
       const el = document.getElementById('footer-tool');
-      if (el) el.textContent = '🖊 ' + (NAMES[t] || t);
+      // أيقونة SVG ثابتة + نصّ الأداة؛ استبدال textContent كان يمسح الأيقونة
+      // ويُعيد الإيموجي في كل تبديل أداة
+      if (el) el.innerHTML = (window.DQIcon ? window.DQIcon('crosshair') : '') +
+        `<span>${NAMES[t] || t}</span>`;
     };
   }
 

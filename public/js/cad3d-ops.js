@@ -564,6 +564,80 @@
     return geomFrom(out);
   }
 
+  /* ══════════════ ١١ب · نواظم بزاوية حَرف (تظليل ناعم بحوافّ حادّة) ══════════════ */
+
+  /**
+   * كل هندسة هنا تُبنى بناظم وجهٍ لكل مثلّث — فالأسطوانة تبدو مضلّعاً مقصوصاً
+   * بأربعين وجهاً بدل معدنٍ مدوّر. الحلّ ليس تنعيم كل شيء (فتذوب حوافّ الصندوق)
+   * بل ما تفعله برامج الكاد: يُتوسَّط الناظم بين الأوجه المتجاورة **فقط** حين
+   * تكون الزاوية بينها أصغر من زاوية الحَرف. جدار الأسطوانة (٧° بين وجهين)
+   * يُنعَّم، وحافّتها العلوية (٩٠°) تبقى سكّيناً.
+   *
+   * يعمل على الأوضاع لا على الفهرس — فالشبكات هنا غير مفهرسة.
+   */
+  function smoothNormals(geometry, creaseDeg) {
+    const src = geometry.index ? geometry.toNonIndexed() : geometry;
+    const pos = src.attributes.position.array;
+    const nTri = (pos.length / 9) | 0;
+    if (!nTri) return geometry;
+    const cosC = Math.cos((creaseDeg == null ? 38 : creaseDeg) * Math.PI / 180);
+
+    // ناظم كل مثلّث موزوناً بمساحته (المساحة تُرجّح الوجوه الكبيرة كما يجب)
+    const fn = new Float32Array(nTri * 3);
+    const ax = new THREE.Vector3(), bx = new THREE.Vector3(), cx = new THREE.Vector3();
+    const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), nv = new THREE.Vector3();
+    for (let t = 0; t < nTri; t++) {
+      const o = t * 9;
+      ax.set(pos[o], pos[o + 1], pos[o + 2]);
+      bx.set(pos[o + 3], pos[o + 4], pos[o + 5]);
+      cx.set(pos[o + 6], pos[o + 7], pos[o + 8]);
+      e1.subVectors(bx, ax); e2.subVectors(cx, ax);
+      nv.crossVectors(e1, e2);                       // طوله = ضعف المساحة
+      fn[t * 3] = nv.x; fn[t * 3 + 1] = nv.y; fn[t * 3 + 2] = nv.z;
+    }
+
+    // الأوجه الملتقية عند كل رأسٍ موضعيّ
+    const at = new Map();
+    const key = i => `${Math.round(pos[i] * 1e4)},${Math.round(pos[i + 1] * 1e4)},${Math.round(pos[i + 2] * 1e4)}`;
+    for (let t = 0; t < nTri; t++) {
+      for (let k = 0; k < 3; k++) {
+        const kk = key(t * 9 + k * 3);
+        let a = at.get(kk);
+        if (!a) { a = []; at.set(kk, a); }
+        a.push(t);
+      }
+    }
+
+    const out = new Float32Array(nTri * 9);
+    const u = new THREE.Vector3(), acc = new THREE.Vector3();
+    for (let t = 0; t < nTri; t++) {
+      u.set(fn[t * 3], fn[t * 3 + 1], fn[t * 3 + 2]);
+      const uLen = u.length();
+      if (uLen < 1e-12) continue;                    // مثلّث منحلّ
+      u.divideScalar(uLen);
+      for (let k = 0; k < 3; k++) {
+        const list = at.get(key(t * 9 + k * 3)) || [t];
+        acc.set(0, 0, 0);
+        for (const j of list) {
+          nv.set(fn[j * 3], fn[j * 3 + 1], fn[j * 3 + 2]);
+          const L = nv.length();
+          if (L < 1e-12) continue;
+          // الشرط على الناظم الموحَّد، والجمع على غير الموحَّد (ترجيح بالمساحة)
+          if (nv.dot(u) / L >= cosC) acc.add(nv);
+        }
+        if (acc.lengthSq() < 1e-16) acc.copy(u); else acc.normalize();
+        const o = t * 9 + k * 3;
+        out[o] = acc.x; out[o + 1] = acc.y; out[o + 2] = acc.z;
+      }
+    }
+
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(Float32Array.from(pos), 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(out, 3));
+    g.computeBoundingBox(); g.computeBoundingSphere();
+    return g;
+  }
+
   /* ══════════════ ١٢ · مقطع بمستوٍ → حلقات ثنائية ══════════════ */
 
   /**
@@ -664,6 +738,6 @@
     linearPattern, circularPattern, helixPath,
     splitByPlane, convexHull, decimate, centerOrigin,
     heightmap, roughingGCode, silhouette, chain,
-    smooth, sectionRings, overhangReport,
+    smooth, smoothNormals, sectionRings, overhangReport,
   };
 })();

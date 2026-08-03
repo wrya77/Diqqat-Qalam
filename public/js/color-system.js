@@ -15,6 +15,8 @@
  */
 (function colorSystem() {
   'use strict';
+  /* أيقونة SVG بدل الرمز النصّيّ — الرموز تختلف رسماً بين الأنظمة وتُقصّ في الأزرار الصغيرة */
+  const ico = n => { try { return window.DQIcon ? window.DQIcon(n) : ''; } catch (_) { return ''; } };
   if (typeof CanvasEditor === 'undefined') return;
   const P = CanvasEditor.prototype;
   const toast = (m, t) => window.app?.toast?.(m, t || 'info');
@@ -179,9 +181,9 @@
       <span class="clr-ind" title="خط/تعبئة — ⇄ للتبديل (Shift+X)">
         <span class="clr-chip clr-fillchip" id="clr-fill-chip"></span>
         <span class="clr-chip clr-strokechip" id="clr-stroke-chip"></span>
-        <button class="clr-swap" id="clr-swap" title="تبديل خط ⇄ تعبئة (Shift+X)">⇄</button>
+        <button class="clr-swap" id="clr-swap" title="تبديل خط ⇄ تعبئة (Shift+X)" aria-label="تبديل الخط والتعبئة">${ico('swap')}</button>
       </span>
-      <button class="clr-none" id="clr-none" title="إزالة: يسرى=الخط · يمنى=التعبئة">∅</button>
+      <button class="clr-none" id="clr-none" title="إزالة: يسرى=الخط · يمنى=التعبئة" aria-label="بلا لون">${ico('no-color')}</button>
       <input type="color" class="clr-custom" id="clr-custom" value="#4f6ef7"
              title="لون مخصص: يُطبَّق على الخط — مع Shift على التعبئة">
       ${SWATCHES.map(c => `<button class="clr-sw" data-c="${c}" style="background:${c}"

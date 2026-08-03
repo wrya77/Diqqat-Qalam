@@ -233,7 +233,7 @@
   async function opPrimitive(kind) {
     const F = {
       box:      [{ key: 'w', label: 'العرض (mm)', def: 40 }, { key: 'd', label: 'العمق (mm)', def: 40 }, { key: 'h', label: 'الارتفاع (mm)', def: 20 }],
-      cylinder: [{ key: 'r', label: 'نصف القطر (mm)', def: 20 }, { key: 'h', label: 'الارتفاع (mm)', def: 40 }, { key: 'seg', label: 'التقسيمات', def: 48 }],
+      cylinder: [{ key: 'r', label: 'نصف القطر (mm)', def: 20 }, { key: 'h', label: 'الارتفاع (mm)', def: 40 }, { key: 'seg', label: 'التقسيمات (صفر = تلقائيّ)', def: 0, min: 0, max: 256 }],
       cone:     [{ key: 'r', label: 'نصف قطر القاعدة', def: 20 }, { key: 'h', label: 'الارتفاع (mm)', def: 40 }],
       sphere:   [{ key: 'r', label: 'نصف القطر (mm)', def: 20 }],
       torus:    [{ key: 'r', label: 'نصف القطر الكبير', def: 25 }, { key: 'r2', label: 'نصف قطر المقطع', def: 6 }],
@@ -283,7 +283,7 @@
         { key: 'axis', label: 'المحور', type: 'select', def: 'y',
           options: [{ v: 'y', t: 'رأسيّ' }, { v: 'x', t: 'أفقيّ' }] },
         { key: 'angle', label: 'الزاوية (°)', def: 360, min: 1, max: 360 },
-        { key: 'segments', label: 'التقسيمات', def: 48, min: 3, max: 256 },
+        { key: 'segments', label: 'التقسيمات', def: 96, min: 3, max: 512 },
       ]);
       if (!r) return;
       p = r;
@@ -375,7 +375,7 @@
       { key: 'bevel', label: 'الشطف (mm)', def: P.bevel ?? 0 });
     else if (f.kind === 'revolve') fields.push(
       { key: 'angle', label: 'الزاوية (°)', def: P.angle ?? 360, min: 1, max: 360 },
-      { key: 'segments', label: 'التقسيمات', def: P.segments ?? 48 });
+      { key: 'segments', label: 'التقسيمات', def: P.segments ?? 96 });
     else if (f.kind === 'loft') fields.push({ key: 'height', label: 'الارتفاع', def: P.height ?? 20 });
     else if (['box', 'wedge'].includes(f.kind)) fields.push(
       { key: 'w', label: 'العرض', def: P.w ?? 40 }, { key: 'd', label: 'العمق', def: P.d ?? 40 },
@@ -647,8 +647,9 @@
       .c3-row .n input{width:100%;padding:0 2px;border:1px solid var(--c3-acc);border-radius:3px;
         background:var(--c3-bar);color:var(--c3-fg);font:inherit}
       /* أزرار الصفّ صامتة حتى المرور — الشجرة تبقى قابلة للمسح بلمحة */
-      .c3-row .a{flex:0 0 auto;width:15px;text-align:center;opacity:0;font-size:10.5px;
-        transition:opacity .1s ease}
+      .c3-row .a{flex:0 0 auto;width:15px;height:15px;display:flex;align-items:center;
+        justify-content:center;opacity:0;transition:opacity .1s ease}
+      .c3-row .a svg{width:11px;height:11px}
       .c3-row:hover .a,.c3-row.on .a{opacity:.6}
       .c3-row .a:hover{opacity:1}
       .c3-row.off .a[data-a="eye"]{opacity:.75}
@@ -1100,11 +1101,14 @@
       const kind = KINDS[f.kind] || {};
       row.innerHTML = ico(kind.icon || 'cube') +
         `<span class="n" title="${f.error || f.name}">${f.name}</span>` +
-        `<span class="a" data-a="eye" title="إخفاء / إظهار">${f.off ? '◌' : '◉'}</span>` +
-        `<span class="a" data-a="edit" title="تحرير المعاملات">✎</span>`;
+        `<span class="a" data-a="eye" title="إخفاء / إظهار">${ico(f.off ? 'dot-off' : 'dot-on')}</span>` +
+        `<span class="a" data-a="edit" title="تحرير المعاملات">${ico('pencil')}</span>`;
 
       row.addEventListener('click', e => {
-        const a = e.target.dataset && e.target.dataset.a;
+        // closest لا dataset المباشر: الأزرار صارت أيقونات SVG، فهدف النقر هو
+        // <svg> أو <path> بداخلها لا الـspan الحامل للسمة
+        const hit = e.target.closest && e.target.closest('[data-a]');
+        const a = hit && hit.dataset.a;
         if (a === 'edit') { opEdit(f.id); return; }
         if (a === 'eye') { v.setSelection([f.id]); opToggleHide(); return; }
         // Ctrl يضيف/يزيل، Shift يمدّ من آخر صفّ — كسلوك الطبقات المعتاد
@@ -1453,7 +1457,7 @@
     snapshot();
     const through = !(r.depth > 0);
     const h = through ? (box.max.z - box.min.z) + 4 : r.depth + 1;
-    const cyl = addFeature('cylinder', { r: Math.max(0.05, r.dia / 2), h, seg: 48 });
+    const cyl = addFeature('cylinder', { r: Math.max(0.05, r.dia / 2), h });
     cyl.name = `مثقب ⌀${r.dia}`;
     cyl.tf.px = r.x; cyl.tf.py = r.y;
     // المولّد يبني الأسطوانة حول مركزها، فمنتصف الثقب لا قاعدته

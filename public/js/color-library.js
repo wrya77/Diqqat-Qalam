@@ -180,7 +180,8 @@
     if (!tools || document.getElementById('clr-library')) return;
     const btn = document.createElement('button');
     btn.className = 'clr-toolbtn'; btn.id = 'clr-library'; btn.title = 'مكتبة الألوان الكاملة';
-    btn.textContent = '📚';
+    btn.innerHTML = window.DQIcon ? window.DQIcon('library') : '';
+    btn.setAttribute('aria-label', btn.title);
     tools.appendChild(btn);
     btn.addEventListener('click', () => box && box.classList.contains('open') ? close() : open(btn));
   }

@@ -13,6 +13,7 @@
  */
 (function versionHistory() {
   'use strict';
+  const ico = n => { try { return window.DQIcon ? window.DQIcon(n) : ''; } catch (_) { return ''; } };
   if (typeof CanvasEditor === 'undefined') return;
   const P = CanvasEditor.prototype;
   const ed = () => window.app && window.app.editor;
@@ -83,8 +84,8 @@
       <div class="ver-item" data-id="${v.id}">
         <span class="ver-ic">${v.manual ? '💾' : '🕓'}</span>
         <span class="ver-meta"><b>${relTime(v.ts)}</b><span>${v.count} شكل${v.manual ? ' · يدوي' : ''}</span></span>
-        <button class="ver-btn ver-restore" title="استرجاع هذه النسخة">↺</button>
-        <button class="ver-btn ver-del" title="حذف">✕</button>
+        <button class="ver-btn ver-restore" title="استرجاع هذه النسخة" aria-label="استرجاع">${ico('rot-left')}</button>
+        <button class="ver-btn ver-del" title="حذف" aria-label="حذف">${ico('trash')}</button>
       </div>`).join('');
     box.querySelectorAll('.ver-item').forEach(el => {
       const id = el.dataset.id;

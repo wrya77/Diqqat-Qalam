@@ -393,6 +393,19 @@ dialog.modal::backdrop {
 }
 .status-pill.active { border-color: var(--green); color: var(--green); }
 .status-pill.error  { border-color: var(--red);   color: var(--red); }
+/* في شريط الحالة السفليّ: مؤشّر مضغوط يُدفع إلى الطرف، لا رقاقة بحجم زرّ */
+.cf-sp { flex: 1 1 auto; }
+.canvas-footer .status-pill {
+  padding: 1px 8px; font-size: 10.5px; line-height: 1.6; flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+/* نقطة حالة بدل الإيموجي: تُرسم بنفس المقاس على كل نظام، ولونها يتبع الحالة */
+.canvas-footer .status-pill::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; opacity: .8; flex: 0 0 auto;
+}
+.canvas-footer #footer-tool { display: inline-flex; align-items: center; gap: 5px; }
+.canvas-footer #footer-tool svg { width: 12px; height: 12px; opacity: .75; }
 
 /* User pill (auth) */
 .user-pill {

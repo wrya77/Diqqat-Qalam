@@ -12,6 +12,7 @@
  */
 (function layersFeature() {
   'use strict';
+  const ico = n => { try { return window.DQIcon ? window.DQIcon(n) : ''; } catch (_) { return ''; } };
   if (typeof CanvasEditor === 'undefined') return;
   const P = CanvasEditor.prototype;
   const toast = (m, t) => window.app?.toast?.(m, t || 'info');
@@ -149,12 +150,12 @@
     box.innerHTML = this._layers.map(L => `
       <div class="lyr-row ${L.id === this._activeLayer ? 'active' : ''}" data-id="${L.id}">
         <input type="color" class="lyr-color" value="${L.color}" title="لون الطبقة">
-        <button class="lyr-eye ${L.visible ? '' : 'off'}" title="${L.visible ? 'إخفاء' : 'إظهار'}">${L.visible ? '👁' : '🚫'}</button>
-        <button class="lyr-lock ${L.locked ? 'on' : ''}" title="${L.locked ? 'فتح القفل' : 'قفل'}">${L.locked ? '🔒' : '🔓'}</button>
+        <button class="lyr-eye ${L.visible ? '' : 'off'}" title="${L.visible ? 'إخفاء' : 'إظهار'}">${ico(L.visible ? 'eye' : 'disable')}</button>
+        <button class="lyr-lock ${L.locked ? 'on' : ''}" title="${L.locked ? 'فتح القفل' : 'قفل'}">${ico(L.locked ? 'lock' : 'unlock')}</button>
         <span class="lyr-name" title="نقر: تفعيل · نقر مزدوج: إعادة تسمية">${L.name}</span>
         <span class="lyr-count">${counts[L.id] || 0}</span>
-        <button class="lyr-assign" title="إسناد المحدد لهذه الطبقة">⇤</button>
-        <button class="lyr-del" title="حذف الطبقة">✕</button>
+        <button class="lyr-assign" title="إسناد المحدد لهذه الطبقة" aria-label="إسناد المحدد">${ico('layer-assign')}</button>
+        <button class="lyr-del" title="حذف الطبقة" aria-label="حذف الطبقة">${ico('trash')}</button>
       </div>`).join('');
 
     const ed = this;

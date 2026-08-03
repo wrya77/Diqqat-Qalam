@@ -13,6 +13,18 @@
     // document: هذا الموزّع يوقف انتشار نقر .mi فلا يصل إلى أي مستمع أعلى
     'cad3d-open':   () => window.CAD3D?.reveal?.(),
 
+    // مساعدة — المحتوى في help-center.js
+    'help-tour':      () => window.HelpCenter?.tour(),
+    'help-palette':   () => window.HelpCenter?.palette(),
+    'help-keys':      () => window.HelpCenter?.keys(),
+    'help-gcode':     () => window.HelpCenter?.gcode(),
+    'help-3d':        () => window.HelpCenter?.cad3d(),
+    'help-guides':    () => window.HelpCenter?.guides(),
+    'help-units':     () => window.HelpCenter?.units(),
+    'help-checklist': () => window.HelpCenter?.checklist(),
+    'help-diag':      () => window.HelpCenter?.diagnostics(),
+    'help-about':     () => window.HelpCenter?.about(),
+
     // ملف
     'file-new':     () => window.app?.newProject(),
     'file-open':    () => document.getElementById('btn-load-project')?.click(),
