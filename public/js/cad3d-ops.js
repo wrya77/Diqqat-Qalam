@@ -491,10 +491,179 @@
     return rings;
   }
 
+  /* ══════════════ ١١ · تنعيم الشبكة (لابلاس مع كبح) ══════════════ */
+
+  /**
+   * تنعيم لابلاسيّ: كل رأس ينجذب إلى متوسّط جيرانه بمعامل lambda.
+   *
+   * الشبكات هنا غير مفهرسة ووجوهها مسطّحة (لكل مثلّث رؤوسه الخاصّة)، فالجوار
+   * لا يُقرأ من الفهرس بل يُبنى بلحم الرؤوس المتطابقة موضعياً — وإلّا تحرّك كل
+   * مثلّث وحده وتفكّكت الشبكة. الكبح يمنع الانكماش: نحدّ إزاحة الرأس بنسبة من
+   * متوسّط طول الحافّة، فيلين السطح دون أن يذوب المجسّم.
+   */
+  function smooth(geometry, iters, lambda) {
+    const pos = tris(geometry);
+    const n = pos.length / 3;
+    const lam = Math.min(0.9, Math.max(0.05, lambda == null ? 0.5 : lambda));
+    const rounds = Math.min(20, Math.max(1, Math.round(iters || 2)));
+
+    // لحم الرؤوس: مفتاح شبكيّ دقيق يجمع النسخ المتطابقة في رأس منطقيّ واحد
+    const key = (i) => `${Math.round(pos[i * 3] * 1e4)},${Math.round(pos[i * 3 + 1] * 1e4)},${Math.round(pos[i * 3 + 2] * 1e4)}`;
+    const idOf = new Int32Array(n);
+    const map = new Map();
+    const P = [];                       // مواضع الرؤوس المنطقية
+    for (let i = 0; i < n; i++) {
+      const k = key(i);
+      let id = map.get(k);
+      if (id === undefined) { id = P.length / 3; map.set(k, id); P.push(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]); }
+      idOf[i] = id;
+    }
+    const m = P.length / 3;
+    if (m < 4) return geomFrom(Array.from(pos));
+
+    // الجوار من حوافّ المثلّثات
+    const nb = Array.from({ length: m }, () => new Set());
+    let edgeSum = 0, edgeN = 0;
+    for (let t = 0; t < n; t += 3) {
+      const a = idOf[t], b = idOf[t + 1], c = idOf[t + 2];
+      nb[a].add(b); nb[a].add(c); nb[b].add(a); nb[b].add(c); nb[c].add(a); nb[c].add(b);
+      for (const [u, v] of [[a, b], [b, c], [c, a]]) {
+        edgeSum += Math.hypot(P[u * 3] - P[v * 3], P[u * 3 + 1] - P[v * 3 + 1], P[u * 3 + 2] - P[v * 3 + 2]);
+        edgeN++;
+      }
+    }
+    const cap = edgeN ? (edgeSum / edgeN) * 0.6 : Infinity;   // سقف الإزاحة لكل دورة
+
+    const cur = Float64Array.from(P), nxt = new Float64Array(P.length);
+    /** خطوة استرخاء واحدة بمعامل f (سالباً كان أو موجباً) */
+    const relax = f => {
+      for (let i = 0; i < m; i++) {
+        const s = nb[i];
+        if (!s.size) { nxt[i * 3] = cur[i * 3]; nxt[i * 3 + 1] = cur[i * 3 + 1]; nxt[i * 3 + 2] = cur[i * 3 + 2]; continue; }
+        let sx = 0, sy = 0, sz = 0;
+        for (const j of s) { sx += cur[j * 3]; sy += cur[j * 3 + 1]; sz += cur[j * 3 + 2]; }
+        sx /= s.size; sy /= s.size; sz /= s.size;
+        let dx = (sx - cur[i * 3]) * f, dy = (sy - cur[i * 3 + 1]) * f, dz = (sz - cur[i * 3 + 2]) * f;
+        const d = Math.hypot(dx, dy, dz);
+        if (d > cap) { const k = cap / d; dx *= k; dy *= k; dz *= k; }
+        nxt[i * 3] = cur[i * 3] + dx; nxt[i * 3 + 1] = cur[i * 3 + 1] + dy; nxt[i * 3 + 2] = cur[i * 3 + 2] + dz;
+      }
+      cur.set(nxt);
+    };
+    // تاوبن لا لابلاس المجرّد: خطوةُ شدٍّ موجبة تليها خطوةُ نفخٍ سالبة أصغر
+    // قليلاً. لابلاس وحده يُنعّم بالانكماش — كرةٌ نصف قطرها ٢٠ كانت تفقد ١٥٪
+    // من حجمها في ثلاث دورات، وهذا في الكاد عيبٌ لا ميزة.
+    const mu = -lam / (1 - 0.1 * lam);
+    for (let r = 0; r < rounds; r++) { relax(lam); relax(mu); }
+
+    const out = new Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const id = idOf[i];
+      out[i * 3] = cur[id * 3]; out[i * 3 + 1] = cur[id * 3 + 1]; out[i * 3 + 2] = cur[id * 3 + 2];
+    }
+    return geomFrom(out);
+  }
+
+  /* ══════════════ ١٢ · مقطع بمستوٍ → حلقات ثنائية ══════════════ */
+
+  /**
+   * تقاطع الشبكات مع مستوٍ عموديّ على محور، ثم وصل القطع إلى حلقات مغلقة.
+   * الناتج بإحداثيات المستوى (u,v) الموافقة للوحة الرسم — لا بإحداثيات العالم.
+   */
+  function sectionRings(list, axis, offset) {
+    const ax = { x: 0, y: 1, z: 2 }[axis] || 2;
+    const uA = ax === 0 ? 1 : 0, vA = ax === 2 ? 1 : 2;    // المحوران الباقيان
+    const segs = [];
+    const v = new THREE.Vector3();
+    for (const it of list) {
+      const g = it.geometry || it;
+      const M = it.matrixWorld || it.matrix || null;
+      const p = tris(g);
+      for (let t = 0; t < p.length; t += 9) {
+        const T = [];
+        for (let k = 0; k < 3; k++) {
+          v.set(p[t + k * 3], p[t + k * 3 + 1], p[t + k * 3 + 2]);
+          if (M) v.applyMatrix4(M);
+          T.push([v.x, v.y, v.z]);
+        }
+        const d = T.map(q => q[ax] - offset);
+        // المثلّث يقطع المستوى إذا اختلفت إشارات رؤوسه
+        const hit = [];
+        for (let k = 0; k < 3; k++) {
+          const a = T[k], b = T[(k + 1) % 3], da = d[k], db = d[(k + 1) % 3];
+          if ((da > 0 && db > 0) || (da < 0 && db < 0)) continue;
+          if (da === db) continue;
+          const f = da / (da - db);
+          hit.push({ x: a[uA] + (b[uA] - a[uA]) * f, y: a[vA] + (b[vA] - a[vA]) * f });
+        }
+        if (hit.length >= 2) {
+          const [a, b] = hit;
+          if (Math.hypot(a.x - b.x, a.y - b.y) > 1e-6) segs.push([a, b]);
+        }
+      }
+    }
+    return segs.length ? chain(segs, 1e-3) : [];
+  }
+
+  /* ══════════════ ١٣ · تقرير قابلية التصنيع ══════════════ */
+
+  /**
+   * إحصاء الأوجه المتدلّية ومساحتها.
+   *
+   * الميل يُقاس عن المستوى الأفقيّ: وجهٌ نظره إلى الأسفل تماماً ميله صفر وهو
+   * الأسوأ، ووجهٌ عموديّ ميله ٩٠° وهو سليم. فالوجه مُشكِل حين
+   * acos(-n·z) < الحدّ، أي حين -n·z > cos(الحدّ).
+   *
+   * قاعدة المجسّم مستثناة: هي على منضدة الطباعة أو على سطح الخام، فعدّها تدلّياً
+   * يجعل كلّ صندوقٍ يبدو «٢٥٪ متدلٍّ» وهو إنذارٌ كاذب.
+   */
+  function overhangReport(list, limitDeg) {
+    const lim = Math.cos(Math.min(89, Math.max(1, limitDeg == null ? 45 : limitDeg)) * Math.PI / 180);
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const ab = new THREE.Vector3(), ac = new THREE.Vector3(), nv = new THREE.Vector3();
+
+    // تمريرة أولى للحدود — القاعدة لا تُعرف إلا بعد معرفة أدنى Z
+    let minZ = Infinity, maxZ = -Infinity;
+    const baked = [];
+    for (const it of list) {
+      const g = it.geometry || it;
+      const M = it.matrixWorld || it.matrix || null;
+      const p = tris(g);
+      const q = new Float64Array(p.length);
+      for (let i = 0; i < p.length; i += 3) {
+        a.set(p[i], p[i + 1], p[i + 2]);
+        if (M) a.applyMatrix4(M);
+        q[i] = a.x; q[i + 1] = a.y; q[i + 2] = a.z;
+        if (a.z < minZ) minZ = a.z;
+        if (a.z > maxZ) maxZ = a.z;
+      }
+      baked.push(q);
+    }
+    const floor = minZ + Math.max(1e-4, (maxZ - minZ) * 1e-4);
+
+    let total = 0, bad = 0, tri = 0, badTri = 0;
+    for (const q of baked) {
+      for (let t = 0; t < q.length; t += 9) {
+        a.set(q[t], q[t + 1], q[t + 2]);
+        b.set(q[t + 3], q[t + 4], q[t + 5]);
+        c.set(q[t + 6], q[t + 7], q[t + 8]);
+        ab.subVectors(b, a); ac.subVectors(c, a); nv.crossVectors(ab, ac);
+        const area = nv.length() / 2;
+        if (!(area > 0)) continue;
+        nv.divideScalar(area * 2);
+        total += area; tri++;
+        if (a.z <= floor && b.z <= floor && c.z <= floor) continue;   // القاعدة
+        if (nv.z < 0 && -nv.z > lim) { bad += area; badTri++; }
+      }
+    }
+    return { total, bad, tri, badTri, minZ, maxZ, ratio: total ? bad / total : 0 };
+  }
+
   window.CAD3DOps = {
     merge, offsetSurface, shell, mirror,
     linearPattern, circularPattern, helixPath,
     splitByPlane, convexHull, decimate, centerOrigin,
     heightmap, roughingGCode, silhouette, chain,
+    smooth, sectionRings, overhangReport,
   };
 })();

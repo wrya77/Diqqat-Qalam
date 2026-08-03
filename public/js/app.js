@@ -64,7 +64,15 @@ class DiqqatQalamApp {
     // ملء الشاشة للوحة الإخراج (G-Code/إحصائيات/محاكاة) — صورة واضحة بلا ازدحام
     const _outPanel = document.querySelector('.output-panel');
     const _fsBtn = document.getElementById('btn-output-fs');
-    const _afterFs = () => requestAnimationFrame(() => { try { this.simulator?._resize(); window.dispatchEvent(new Event('resize')); } catch (_) {} });
+    // ارتفاع شريط التطبيق يُقاس لا يُفترض: مقياس الواجهة يغيّره، واللوحة في ملء
+    // الشاشة تبدأ تحته (انظر .output-panel.fs في style.css)
+    const _syncHdr = () => {
+      const h = document.querySelector('header.toolbar');
+      document.documentElement.style.setProperty('--dq-hdr',
+        (h && _outPanel?.classList.contains('fs') ? Math.round(h.getBoundingClientRect().height) : 0) + 'px');
+    };
+    const _afterFs = () => requestAnimationFrame(() => { try { _syncHdr(); this.simulator?._resize(); window.dispatchEvent(new Event('resize')); } catch (_) {} });
+    window.addEventListener('resize', _syncHdr);
     const _fsIcon = on => { if (_fsBtn) _fsBtn.innerHTML = window.DQIcon ? window.DQIcon(on ? 'fullscreen-exit' : 'fullscreen') : (on ? '✕' : '⛶'); };
     _fsBtn?.addEventListener('click', () => {
       const on = _outPanel.classList.toggle('fs');
