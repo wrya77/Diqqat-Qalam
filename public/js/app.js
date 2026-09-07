@@ -245,6 +245,29 @@ class DiqqatQalamApp {
     });
   }
 
+  /**
+   * يُظهر لسان الإخراج المطلوب — ويفتح لوحة الإخراج نفسها إن كانت مغلقة.
+   *
+   * بلا هذا كان «توليد G-Code» ينجح صامتاً: الكود يُولَّد ويُملأ في اللسان،
+   * لكنّ المرئيّ لسانٌ آخر (المحاكاة أو ثلاثيّ الأبعاد) أو لوحةٌ مطويّة كلّياً
+   * في مساحة «رسم» — فلا يتغيّر شيء أمام المستخدم فيبدو الزرّ معطّلاً.
+   * الفعل الذي يُنتج مخرَجاً ملزَمٌ بإظهار مخرَجه.
+   */
+  _showOutput(tab) {
+    try {
+      const W = window.WorkspaceDock;
+      if (W && W.active && W.active() && W.isOpen && !W.isOpen('output')) W.open('output');
+      const go = () => {
+        const el = document.querySelector(`.otab[data-tab="${tab}"]`);
+        if (el) el.click();
+        else this.controls?.activateTab?.(tab);
+      };
+      // اللوحة المفتوحة للتوّ تحتاج إطاراً قبل أن يوجد لسانها في التخطيط
+      if (document.querySelector(`.otab[data-tab="${tab}"]`)) go();
+      else setTimeout(go, 160);
+    } catch (_) { /* إظهار اللسان ترفٌ لا يُسقط التوليد */ }
+  }
+
   /* ══ GENERATE ══ */
   async generate() {
     const shapes = this.editor.getShapes();
@@ -268,6 +291,7 @@ class DiqqatQalamApp {
       const result = gen.generate(ordered);
       this.gcode = result.gcode;
       this.preview.display(this.gcode);
+      this._showOutput('gcode');
       this.controls.updateStats(result.stats);
       if (sortInfo && sortInfo.before > 0) {
         const el = document.getElementById('st-saving');
@@ -379,9 +403,14 @@ class DiqqatQalamApp {
   }
 
   /* ══ SIMULATE ══ */
-  simulate() {
-    if (!this.gcode) { this.generate(); return; }
-    this.controls.activateTab('sim');
+  async simulate() {
+    // بلا كود: ولّده ثم تابع المحاكاة — كان يتوقّف بعد التوليد فيبدو الزرّ
+    // وكأنّه لم يفعل شيئاً سوى فتح لسان الـG-Code
+    if (!this.gcode) {
+      await this.generate();
+      if (!this.gcode) return;
+    }
+    this._showOutput('sim');
     const in3D = document.getElementById('sim3d-wrap')?.style.display !== 'none';
     if (in3D && typeof Toolpath3D !== 'undefined') {
       Toolpath3D.show(this.gcode).then(() => Toolpath3D.play()).catch(()=>{});

@@ -90,9 +90,12 @@
     .pw-toggle{
       position:absolute;left:10px;top:50%;transform:translateY(-50%);
       background:none;border:none;cursor:pointer;color:var(--text3);
-      font-size:16px;padding:2px 4px;line-height:1;
+      display:flex;align-items:center;justify-content:center;
+      padding:4px;line-height:0;border-radius:6px;
     }
+    .pw-toggle svg{width:17px;height:17px;display:block}
     .pw-toggle:hover{color:var(--text2)}
+    .pw-toggle:focus-visible{outline:2px solid var(--accent,#4f6ef7);outline-offset:1px}
 
     /* ── Buttons ── */
     .btn{
@@ -212,7 +215,7 @@
           <label for="si-password">كلمة المرور</label>
           <div class="pw-wrap">
             <input type="password" id="si-password" placeholder="••••••••" autocomplete="current-password" required>
-            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('si-password',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('si-password',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button>
           </div>
         </div>
         <button type="button" class="btn btn-primary" onclick="signInEmail()" id="btn-signin">
@@ -240,7 +243,7 @@
           <div class="pw-wrap">
             <input type="password" id="su-password" placeholder="••••••••" autocomplete="new-password"
                    oninput="checkPwStrength(this.value)" required>
-            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('su-password',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('su-password',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button>
           </div>
           <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
         </div>
@@ -248,7 +251,7 @@
           <label for="su-confirm">تأكيد كلمة المرور</label>
           <div class="pw-wrap">
             <input type="password" id="su-confirm" placeholder="••••••••" autocomplete="new-password" required>
-            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('su-confirm',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('su-confirm',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button>
           </div>
         </div>
         <button type="button" class="btn btn-primary" onclick="signUpEmail()" id="btn-signup">
@@ -288,14 +291,14 @@
           <label for="np-password">كلمة المرور الجديدة (8 أحرف على الأقل)</label>
           <div class="pw-wrap">
             <input type="password" id="np-password" placeholder="••••••••" autocomplete="new-password" required>
-            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('np-password',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('np-password',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button>
           </div>
         </div>
         <div class="field">
           <label for="np-confirm">تأكيد كلمة المرور</label>
           <div class="pw-wrap">
             <input type="password" id="np-confirm" placeholder="••••••••" autocomplete="new-password" required>
-            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('np-confirm',this)">👁</button>
+            <button type="button" class="pw-toggle" aria-label="إظهار/إخفاء كلمة المرور" onclick="togglePw('np-confirm',this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button>
           </div>
         </div>
         <button type="button" class="btn btn-primary" onclick="updatePassword()" id="btn-newpass">
@@ -416,11 +419,15 @@ function setLoading(btnId, spinId, loading) {
   if (spin) spin.style.display = loading ? 'block' : 'none';
 }
 
+const EYE_ON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l10 10"/><path d="M6.3 6.4A2 2 0 008 10a2 2 0 001.6-.8"/><path d="M4.4 4.6C2.7 5.9 1.5 8 1.5 8S4 12.5 8 12.5c1.1 0 2-.3 2.9-.7M11.9 10A10 10 0 0014.5 8S12 3.5 8 3.5c-.6 0-1.1.1-1.6.2"/></svg>';
+
 /* ── Password toggle ── */
 function togglePw(inputId, btn) {
   const inp = document.getElementById(inputId);
   inp.type = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  // أيقونتان SVG لا إيموجي: 👁/🙈 تختلفان حجماً ورسماً بين الأنظمة وتقفزان في الحقل
+  btn.innerHTML = inp.type === 'password' ? EYE_ON : EYE_OFF;
 }
 
 /* ── Password strength ── */
