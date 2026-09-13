@@ -88,7 +88,23 @@ class FileImporter {
         prev.textContent = `⚠ الصور تتطلب تحويل يدوي — استخدم SVG بدلاً من ذلك`;
         return;
 
+      } else if (window.MeshImport && this._isMesh(ext)) {
+        /* صيغ المجسّمات (بلندر وغيره) تُقرأ هنا وتُسلَّم لمساحة ثلاثيّ الأبعاد.
+           المستخدم يقصد زرّ «استيراد» الرئيسيّ بأيّ ملفّ، ولا يعرف أنّ قارئ
+           المجسّمات يسكن شريط مساحةٍ أخرى — فكان يُقابَل بـ«نوع الملف غير مدعوم». */
+        const { parsed } = await window.CAD3D.parseMeshFiles([file]);
+        const p = parsed[0];
+        const MI = window.MeshImport;
+        const sz = MI.bounds(p.pos).size.map(v => v.toFixed(1)).join(' × ');
+        const fmt = (MI.FORMATS.find(f => f.id === p.format) || {}).name || p.format;
+        this.loaded = { type: 'mesh', parsed, name: file.name };
+        prev.textContent = `✅ ${fmt} — ${MI.triCount(p).toLocaleString('en')} مثلّث · ${sz} وحدة` +
+                           ` — يُدرَج في مساحة ثلاثيّ الأبعاد`;
+
       } else {
+        // الصيغ المعروفة التي لا تُقرأ تُجيب بما يُصدَّر بدلاً منها
+        const hint = window.MeshImport && window.MeshImport.UNSUPPORTED[ext];
+        if (hint) throw new Error(hint);
         throw new Error(`نوع الملف غير مدعوم: .${ext}`);
       }
 
@@ -112,8 +128,23 @@ class FileImporter {
     } else if (this.loaded.type === 'gcode') {
       this.app.setGCode(this.loaded.gcode);
       this.app.toast('✅ تم تحميل ملف G-Code', 'success');
+
+    } else if (this.loaded.type === 'mesh') {
+      // يُغلق الحوار أوّلاً: الإدراج يفتح نافذة المحور والوحدة، ونافذتان
+      // مشروطتان فوق بعضهما تحجب الثانية الأولى
+      const parsed = this.loaded.parsed;
+      this.closeDialog();
+      window.CAD3D.reveal();
+      setTimeout(() => window.CAD3D.importParsed(parsed), 260);
+      return;
     }
 
     this.closeDialog();
+  }
+
+  /** هل الامتداد صيغة مجسّم يقرؤها MeshImport؟ */
+  _isMesh(ext) {
+    const MI = window.MeshImport;
+    return !!(MI && MI.FORMATS.some(f => f.ext.includes(ext)));
   }
 }

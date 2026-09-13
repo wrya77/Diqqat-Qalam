@@ -482,6 +482,32 @@
    * ترويسة الملفّ نفسه لا من تخمين، والمقاس الناتج معروضٌ في السؤال ليُراجَع
    * قبل الإدراج.
    */
+  /** يقرأ قائمة File إلى نتائج مُحلَّلة — بلا أيّ إدراج (تُستعمل للمعاينة أيضاً) */
+  async function parseMeshFiles(files) {
+    const MI = window.MeshImport;
+    if (!MI) throw new Error('وحدة قراءة الصيغ غير محمّلة');
+    const read = f => new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res({ name: f.name, buf: fr.result });
+      fr.onerror = () => rej(new Error('تعذّرت قراءة ' + f.name));
+      fr.readAsArrayBuffer(f);
+    });
+    const loaded = await Promise.all([...files].map(read));
+    // الملفّات المرافقة (‎.bin) تُقدَّم للقارئ ولا تُستورَد وحدها
+    const extras = {};
+    loaded.forEach(l => { extras[l.name] = l.buf; });
+    const mains = loaded.filter(l => !/\.bin$/i.test(l.name));
+    if (!mains.length) throw new Error('اختر ملفّ المجسّم نفسه، لا ‎.bin وحده');
+
+    const parsed = [], failed = [];
+    for (const l of mains) {
+      try { parsed.push(Object.assign(await MI.parseBuffer(l.name, l.buf, extras), { file: l.name })); }
+      catch (e) { failed.push(`${l.name}: ${e.message}`); }
+    }
+    if (!parsed.length) throw new Error(failed[0] || 'تعذّر الاستيراد');
+    return { parsed, failed };
+  }
+
   function opImportMesh() {
     const MI = window.MeshImport;
     if (!MI) { toast('وحدة قراءة الصيغ غير محمّلة', 'error'); return; }
@@ -492,32 +518,25 @@
     inp.onchange = async () => {
       const files = [...(inp.files || [])];
       if (!files.length) return;
-      const read = f => new Promise((res, rej) => {
-        const fr = new FileReader();
-        fr.onload = () => res({ name: f.name, buf: fr.result });
-        fr.onerror = () => rej(new Error('تعذّرت قراءة ' + f.name));
-        fr.readAsArrayBuffer(f);
-      });
-      let loaded;
-      try { loaded = await Promise.all(files.map(read)); }
-      catch (e) { toast(e.message, 'error'); return; }
-
-      // الملفّات المرافقة (‎.bin) تُقدَّم للقارئ ولا تُستورَد وحدها
-      const extras = {};
-      loaded.forEach(l => { extras[l.name] = l.buf; });
-      const mains = loaded.filter(l => !/\.bin$/i.test(l.name));
-      if (!mains.length) { toast('اختر ملفّ المجسّم نفسه، لا ‎.bin وحده', 'warn'); return; }
-
       await busy('جارٍ قراءة الملفّ…');
-      const parsed = [], failed = [];
-      for (const l of mains) {
-        try { parsed.push(Object.assign(await MI.parseBuffer(l.name, l.buf, extras), { file: l.name })); }
-        catch (e) { failed.push(`${l.name}: ${e.message}`); }
-      }
-      unbusy();
-      if (!parsed.length) { toast(failed[0] || 'تعذّر الاستيراد', 'error'); return; }
-      failed.forEach(m => toast(m, 'warn'));
+      let res;
+      try { res = await parseMeshFiles(files); }
+      catch (e) { unbusy(); toast(e.message, 'error'); return; }
+      finally { unbusy(); }
+      res.failed.forEach(m => toast(m, 'warn'));
+      await insertParsed(res.parsed);
+    };
+    inp.click();
+  }
 
+  /** يسأل عن المحور والوحدة ثمّ يُدرج النتائج المُحلَّلة في الشجرة */
+  async function insertParsed(parsed) {
+    const MI = window.MeshImport;
+    if (!MI || !parsed || !parsed.length) return false;
+    // المساحة ثلاثية الأبعاد قد تكون مغلقة تماماً حين يأتي الاستيراد من زرّ
+    // «استيراد» الرئيسيّ — نفتحها أوّلاً وإلّا بُني المجسّم في عرضٍ غير جاهز
+    if (!booted) { await open(); }
+    {
       const first = parsed[0];
       const sz = MI.bounds(first.pos).size;
       const fmtName = (MI.FORMATS.find(f => f.id === first.format) || {}).name || first.format;
@@ -531,7 +550,7 @@
                     { v: '1000', t: 'متر' }, { v: '25.4', t: 'بوصة' }] },
         { key: 'fit', label: 'أو اجعل أكبر بُعد = (mm) — صفر يعني اتركه', def: 0, min: 0 },
       ]);
-      if (!r) return;
+      if (!r) return false;
 
       snapshot();
       let added = 0, lastName = '';
@@ -558,8 +577,8 @@
       toast(added === 1
         ? `استُورد «${lastName}» — ${env ? env.toArray().map(v => v.toFixed(1)).join(' × ') + ' mm' : ''}`
         : `استُورد ${added} مجسّمات`, 'success');
-    };
-    inp.click();
+      return added > 0;
+    }
   }
 
   function visibleGeoms() {
@@ -2361,5 +2380,13 @@
     exportSTL: opExportSTL,
     clear: () => { feats = []; rebuild(); },
     ready: () => booted,
+    // مكشوفة لزرّ «استيراد» الرئيسيّ في file-importer.js: هو يقرأ للمعاينة
+    // ثمّ يُسلّم النتيجة هنا، فلا يتكرّر منطق المحور والوحدة في مكانين
+    parseMeshFiles, importParsed: insertParsed,
+    importMesh: async files => {
+      const r = await parseMeshFiles(files);
+      r.failed.forEach(m => toast(m, 'warn'));
+      return insertParsed(r.parsed);
+    },
   };
 })();
