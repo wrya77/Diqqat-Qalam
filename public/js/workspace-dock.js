@@ -592,6 +592,9 @@
   }
 
   function findPanel(id) {
+    // النموذج لا يوجد قبل بناء الدوك (تحت 1024px) — كل مستعلِمٍ عنه يستحقّ
+    // «لا شيء» لا انهياراً؛ isOpen وwiden يُنادَيان من خارج الوحدة
+    if (!M || !M.zones) return null;
     for (const z of ['right', 'left'])
       for (let gi = 0; gi < M.zones[z].groups.length; gi++)
         if (M.zones[z].groups[gi].p.includes(id)) return { z, gi };

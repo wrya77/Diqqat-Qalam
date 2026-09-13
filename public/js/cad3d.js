@@ -138,7 +138,42 @@
     return m;
   }
 
-  /** إعادة بناء المستند كاملاً — بسيطة وصحيحة؛ الشجرة صغيرة عادةً */
+  /* ══════════════ ذاكرة هندسة الميزات ══════════════ */
+
+  /**
+   * بصمة محتوى الميزة: تتغيّر إذا — وفقط إذا — تغيّر شيءٌ يُغيّر هندستها.
+   * المصفوفات (الحلقات والمسارات) تُختصر بطولها لا بمحتواها: تعديلها يمرّ دائماً
+   * عبر إعادة إنشاء الميزة، ولا يُعدَّل مصفوفٌ في مكانه.
+   */
+  const geomIds = new WeakMap();
+  let geomSeq = 0;
+  function paramsFp(p) {
+    if (!p) return '';
+    const out = [];
+    for (const k of Object.keys(p).sort()) {
+      const v = p[k];
+      if (v == null) out.push(k + ':_');
+      else if (Array.isArray(v)) out.push(k + ':#' + v.length);
+      else if (typeof v === 'object') {
+        let id = geomIds.get(v);
+        if (id === undefined) { id = ++geomSeq; geomIds.set(v, id); }
+        out.push(k + ':@' + id);
+      } else out.push(k + ':' + v);
+    }
+    return out.join(',');
+  }
+  const tfFp = t => t ? [t.px, t.py, t.pz, t.rx, t.ry, t.rz, t.sx, t.sy, t.sz].join(' ') : '';
+  const sigOf = (f, srcSigs) =>
+    f.kind + '|' + paramsFp(f.params) + '|' + tfFp(f.tf) + '|' + srcSigs.join('&');
+
+  /**
+   * إعادة بناء المستند — مع إعادة استخدام ما لم يتغيّر.
+   *
+   * كانت تُعيد حساب كل ميزة من الصفر في كل مرّة، والعمليات المنطقية هي الأغلى
+   * في المستند (ثوانٍ للواحدة على شبكةٍ كثيفة). فكانت إضافة عمليةٍ ثانية تُعيد
+   * حساب الأولى، وثالثةٍ تُعيد حساب الاثنتين — تباطؤٌ يتراكم مع نموّ الشجرة،
+   * وهو بالضبط ما يُحسّ «تأخّراً في تنفيذ الأوامر».
+   */
   function rebuild() {
     const v = V();
     if (!v || !v.ready()) return;
@@ -146,6 +181,7 @@
     v.clearSolids();
 
     const built = new Map();               // id → {geometry, matrix}
+    const sigs = new Map();                // id → بصمة
     const consumed = new Set();
     // أي ميزة تستهلك مصادرها — إلا «نسخة» فهي تُبقي الأصل ظاهراً
     for (const f of feats) {
@@ -155,15 +191,24 @@
     }
 
     for (const f of feats) {
+      const sig = sigOf(f, f.src.map(id => sigs.get(id) || '?'));
       let g = null;
-      try { g = buildOne(f, id => built.get(id) || null); }
-      catch (err) {
-        f.error = err.message || String(err);
-        toast(`تعذّرت ميزة «${f.name}»: ${f.error}`, 'error');
-        continue;
+      if (f.__sig === sig && f.__geom) {
+        g = f.__geom;                       // لم يتغيّر شيء يخصّها — أعِد استعمالها
+      } else {
+        try { g = buildOne(f, id => built.get(id) || null); }
+        catch (err) {
+          f.error = err.message || String(err);
+          f.__sig = null; f.__geom = null;
+          toast(`تعذّرت ميزة «${f.name}»: ${f.error}`, 'error');
+          continue;
+        }
+        f.__sig = g ? sig : null;
+        f.__geom = g || null;
       }
       f.error = null;
       if (!g) { f.error = 'لم تنتج هندسة'; continue; }
+      sigs.set(f.id, sig);
       built.set(f.id, { geometry: g, matrix: matrixOf(f) });
       if (consumed.has(f.id) || f.hidden) continue;
       const mesh = v.addSolid(g, { id: f.id, color: f.color, name: f.name });
@@ -330,15 +375,19 @@
     toast('تمّ التجسير', 'success');
   }
 
-  function opBoolean(op) {
+  async function opBoolean(op) {
     const sel = V().getSelection();
     if (sel.length !== 2) { toast('حدّد مجسّمين اثنين في العرض ثلاثيّ الأبعاد', 'warn'); return; }
     const names = { uni: 'اتحاد', sub: 'طرح', int: 'تقاطع' };
     snapshot();
     const f = addFeature('boolean', { op }, sel.slice());
     f.name = names[op] || 'عملية';
-    // النتيجة تحلّ محلّ مصدريها في ترتيب الشجرة
-    rebuild();
+    // العملية المنطقية تحجب الخيط الرئيسيّ — بلا مؤشّرٍ تبدو اللوحة معطّلة
+    await busy(`جارٍ ${names[op]} المجسّمين…`);
+    try {
+      // النتيجة تحلّ محلّ مصدريها في ترتيب الشجرة
+      rebuild();
+    } finally { unbusy(); }
     if (f.error) { feats = feats.filter(x => x !== f); rebuild(); return; }
     V().setSelection([f.id]);
     toast(`تمّ ${names[op]} المجسّمين`, 'success');
@@ -424,23 +473,91 @@
 
   /* ══════════════ الاستيراد والتصدير ══════════════ */
 
-  function opImportSTL() {
+  /**
+   * استيراد مجسّم بأيّ صيغةٍ يُصدّرها بلندر — القراءة في mesh-import.js.
+   *
+   * بعد القراءة نسأل عن أمرين يُفسدان الاستيراد صامتين لو خُمِّنا خطأً:
+   * المحور الأعلى (بلندر وglTF وFBX تُصدَّر Y-up وعالمنا Z-up) والوحدة (glTF
+   * بالأمتار وFBX بالسنتيمترات وهذا التطبيق بالمليمتر). القيم المقترحة تأتي من
+   * ترويسة الملفّ نفسه لا من تخمين، والمقاس الناتج معروضٌ في السؤال ليُراجَع
+   * قبل الإدراج.
+   */
+  function opImportMesh() {
+    const MI = window.MeshImport;
+    if (!MI) { toast('وحدة قراءة الصيغ غير محمّلة', 'error'); return; }
     const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.stl';
-    inp.onchange = () => {
-      const file = inp.files && inp.files[0];
-      if (!file) return;
-      const fr = new FileReader();
-      fr.onload = () => {
-        const g = K().importSTL(fr.result);
-        if (!g) { toast('تعذّرت قراءة ملف STL', 'error'); return; }
-        snapshot();
+    inp.type = 'file';
+    inp.accept = MI.ACCEPT;
+    inp.multiple = true;                 // glTF قد يحتاج ملفّ ‎.bin بجانبه
+    inp.onchange = async () => {
+      const files = [...(inp.files || [])];
+      if (!files.length) return;
+      const read = f => new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res({ name: f.name, buf: fr.result });
+        fr.onerror = () => rej(new Error('تعذّرت قراءة ' + f.name));
+        fr.readAsArrayBuffer(f);
+      });
+      let loaded;
+      try { loaded = await Promise.all(files.map(read)); }
+      catch (e) { toast(e.message, 'error'); return; }
+
+      // الملفّات المرافقة (‎.bin) تُقدَّم للقارئ ولا تُستورَد وحدها
+      const extras = {};
+      loaded.forEach(l => { extras[l.name] = l.buf; });
+      const mains = loaded.filter(l => !/\.bin$/i.test(l.name));
+      if (!mains.length) { toast('اختر ملفّ المجسّم نفسه، لا ‎.bin وحده', 'warn'); return; }
+
+      await busy('جارٍ قراءة الملفّ…');
+      const parsed = [], failed = [];
+      for (const l of mains) {
+        try { parsed.push(Object.assign(await MI.parseBuffer(l.name, l.buf, extras), { file: l.name })); }
+        catch (e) { failed.push(`${l.name}: ${e.message}`); }
+      }
+      unbusy();
+      if (!parsed.length) { toast(failed[0] || 'تعذّر الاستيراد', 'error'); return; }
+      failed.forEach(m => toast(m, 'warn'));
+
+      const first = parsed[0];
+      const sz = MI.bounds(first.pos).size;
+      const fmtName = (MI.FORMATS.find(f => f.id === first.format) || {}).name || first.format;
+      const cur = `${sz.map(v => v.toFixed(1)).join(' × ')} وحدة`;
+      const r = await ask(`استيراد ${fmtName}`, [
+        { key: 'up', label: 'المحور الأعلى في الملفّ', type: 'select', def: first.up,
+          options: [{ v: 'y', t: 'Y — بلندر و glTF و FBX' }, { v: 'z', t: 'Z — كما هو' }] },
+        { key: 'unit', label: `وحدة الملفّ (مقاسه الآن ${cur})`, type: 'select',
+          def: String(first.unitToMM),
+          options: [{ v: '1', t: 'مليمتر' }, { v: '10', t: 'سنتيمتر' },
+                    { v: '1000', t: 'متر' }, { v: '25.4', t: 'بوصة' }] },
+        { key: 'fit', label: 'أو اجعل أكبر بُعد = (mm) — صفر يعني اتركه', def: 0, min: 0 },
+      ]);
+      if (!r) return;
+
+      snapshot();
+      let added = 0, lastName = '';
+      for (const p of parsed) {
+        const pos = Float32Array.from(p.pos);
+        let scale = +r.unit || 1;
+        if (+r.fit > 0) {
+          const s = MI.bounds(p.pos).size;
+          const big = Math.max(s[0], s[1], s[2]) || 1;
+          scale = +r.fit / big;
+        }
+        MI.orient(pos, r.up, scale);
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
         const f = addFeature('import', { geometry: g });
-        f.name = file.name.replace(/\.stl$/i, '');
-        rebuild(); V().fit();
-        toast(`استُورد ${f.name}`, 'success');
-      };
-      fr.readAsArrayBuffer(file);
+        f.name = p.name || p.file.replace(/\.[^.]+$/, '');
+        lastName = f.name;
+        added++;
+      }
+      rebuild(); V().fit();
+      const b = bboxOf(null);
+      const env = b ? b.getSize(new THREE.Vector3()) : null;
+      toast(added === 1
+        ? `استُورد «${lastName}» — ${env ? env.toArray().map(v => v.toFixed(1)).join(' × ') + ' mm' : ''}`
+        : `استُورد ${added} مجسّمات`, 'success');
     };
     inp.click();
   }
@@ -916,8 +1033,16 @@
     if (!busyEl) return Promise.resolve();
     busyEl.textContent = text || 'جارٍ الحساب…';
     busyEl.classList.add('on');
-    // إطارٌ كامل قبل بدء الحساب، وإلّا رُسم المؤشّر بعد انتهاء العملية
-    return new Promise(r => requestAnimationFrame(() => setTimeout(r, 16)));
+    /* إطارٌ كامل قبل بدء الحساب وإلّا رُسم المؤشّر بعد انتهاء العملية — لكن مع
+       مهلةٍ احتياطية: requestAnimationFrame لا يُطلَق إطلاقاً حين تكون اللوحة
+       مخفيّة أو اللسان في الخلفية، فكان الانتظار لا ينتهي أبداً والعملية كلّها
+       تقف صامتة (الاستيراد والتنعيم والعمليات المنطقية). */
+    return new Promise(r => {
+      let done = false;
+      const fin = () => { if (!done) { done = true; r(); } };
+      requestAnimationFrame(() => setTimeout(fin, 16));
+      setTimeout(fin, 120);
+    });
   }
   const unbusy = () => busyEl && busyEl.classList.remove('on');
 
@@ -1914,46 +2039,6 @@
     inp.click();
   }
 
-  function opImportOBJ() {
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.obj';
-    inp.onchange = () => {
-      const file = inp.files && inp.files[0];
-      if (!file) return;
-      const fr = new FileReader();
-      fr.onload = () => {
-        const V3 = [], pos = [];
-        for (const line of String(fr.result).split('\n')) {
-          const p = line.trim().split(/\s+/);
-          if (p[0] === 'v') V3.push([+p[1], +p[2], +p[3]]);
-          else if (p[0] === 'f' && p.length >= 4) {
-            const idx = p.slice(1).map(t => {
-              const n = parseInt(t.split('/')[0], 10);
-              return n < 0 ? V3.length + n : n - 1;
-            });
-            for (let i = 2; i < idx.length; i++) {          // مروحة للمضلّعات
-              for (const k of [idx[0], idx[i - 1], idx[i]]) {
-                const v = V3[k];
-                if (v) pos.push(v[0], v[1], v[2]);
-              }
-            }
-          }
-        }
-        if (pos.length < 9) { toast('لم أجد أوجهاً في الملف', 'error'); return; }
-        const g = new THREE.BufferGeometry();
-        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-        g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
-        snapshot();
-        const f = addFeature('import', { geometry: g });
-        f.name = file.name.replace(/\.obj$/i, '');
-        rebuild(); V().fit();
-        toast(`استُورد ${f.name} — ${pos.length / 9} وجهاً`, 'success');
-      };
-      fr.readAsText(file);
-    };
-    inp.click();
-  }
-
   function opSnapshotPNG() {
     const d = V().snapshot();
     if (!d) return;
@@ -2116,8 +2201,7 @@
       { t: 'تصدير STL', icon: 'download', fn: opExportSTL },
       { t: 'تصدير OBJ', fn: opExportOBJ },
       { t: 'صورة PNG للعرض', icon: 'image', fn: opSnapshotPNG },
-      { t: 'استيراد STL', fn: opImportSTL },
-      { t: 'استيراد OBJ', fn: opImportOBJ },
+      { t: 'استيراد مجسّم…', icon: 'import-file', fn: opImportMesh },
       { t: 'حفظ مشروع ثلاثيّ', fn: opSaveProject },
       { t: 'فتح مشروع ثلاثيّ', fn: opLoadProject },
     ] });
@@ -2253,8 +2337,9 @@
     const want = Math.round(Math.min(900, Math.max(560, window.innerWidth * 0.46)));
     if (needOpen) W.open('output', { zone: 'left', w: want });
     // مفتوحة سلفاً لكن ضيّقة (عمود «CNC» ٤٠٠px): بعد الريل والشجرة لا يبقى
-    // للعرض إلا ~١٦٠px — فنوسّعها إلى حدّ صالح للعمل بدل تركها مخنوقة
-    else if (W) W.widen('output', want);
+    // للعرض إلا ~١٦٠px — فنوسّعها إلى حدّ صالح للعمل بدل تركها مخنوقة.
+    // وعلى الشاشات الضيّقة لا دوك أصلاً: اللوحة تملأ العرض ولا شيء يُوسَّع
+    else if (W && W.active && W.active()) W.widen('output', want);
     setTimeout(() => {
       const tab = document.querySelector('.otab[data-tab="cad"]');
       if (tab) { tab.click(); tab.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
