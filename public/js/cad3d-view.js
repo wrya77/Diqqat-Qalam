@@ -23,7 +23,7 @@
   let mode = 'shaded';
   let gizmo = null, gizmoMode = 'move', gizmoTarget = null;
   let measure = { on: false, pts: [], obj: null };
-  const listeners = { select: [], change: [], measure: [] };
+  const listeners = { select: [], change: [], measure: [], camera: [] };
 
   /* حالة المدار: مسافة وزاويتان ومركز.
      المركز يُنشأ داخل mount لا هنا — Three يُحمَّل كسولاً، وأي استعمال له وقت
@@ -65,12 +65,7 @@
     solids  = new THREE.Group(); scene.add(solids);
     helpers = new THREE.Group(); scene.add(helpers);
 
-    // إضاءة استوديو من ثلاثة اتجاهات — تُظهر الحوافّ بلا مبالغة
-    scene.add(new THREE.HemisphereLight(0xdfe9f5, 0x1b2430, 0.85));
-    const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(1, -1.2, 1.6);
-    const fill = new THREE.DirectionalLight(0xbcd4ef, 0.35); fill.position.set(-1.4, 0.8, 0.5);
-    const rim = new THREE.DirectionalLight(0xffffff, 0.25); rim.position.set(0.2, 1.4, -1);
-    scene.add(key, fill, rim);
+    buildLights();
 
     camP = new THREE.PerspectiveCamera(45, 1, 0.05, 200000);
     camO = new THREE.OrthographicCamera(-100, 100, 100, -100, -100000, 200000);
@@ -83,6 +78,102 @@
     resize();
     updateCam();
     return true;
+  }
+
+  /* ══════════════ الإضاءة ══════════════ */
+
+  let lights = null, sun = null, hemi = null, fillL = null, rimL = null, ground = null;
+  let lightState = { preset: 'studio', az: 135, el: 45, intensity: 1, shadows: false, bg: 'dark' };
+
+  /**
+   * أطقم إضاءة جاهزة. الشدّات نسبية ويضربها intensity العامّ.
+   *  studio   — ثلاث جهات متوازنة، تُظهر الحوافّ بلا مبالغة (الافتراضيّ)
+   *  workshop — ضوء علويّ بارد كورشة، ظلال واضحة للقراءة الهندسية
+   *  soft     — سماويّ غالب، شبه بلا ظلال، لمراجعة الشكل لا الحوافّ
+   *  hard     — مفتاح قويّ ومِلء ضعيف، تباينٌ عالٍ يكشف التموّجات
+   */
+  const LIGHT_PRESETS = {
+    studio:   { hemi: 0.85, key: 0.85, fill: 0.35, rim: 0.25, keyColor: 0xffffff, sky: 0xdfe9f5, gnd: 0x1b2430 },
+    workshop: { hemi: 0.55, key: 1.15, fill: 0.25, rim: 0.30, keyColor: 0xf4f8ff, sky: 0xc9dcf2, gnd: 0x151c26 },
+    soft:     { hemi: 1.25, key: 0.40, fill: 0.45, rim: 0.15, keyColor: 0xffffff, sky: 0xeaf2fb, gnd: 0x232c38 },
+    hard:     { hemi: 0.35, key: 1.45, fill: 0.12, rim: 0.35, keyColor: 0xffffff, sky: 0xb9cde6, gnd: 0x0e141c },
+  };
+
+  const BACKGROUNDS = { dark: 0x0b1016, slate: 0x161c24, light: 0xd8dee6, black: 0x000000 };
+
+  function buildLights() {
+    lights = new THREE.Group(); lights.name = 'lights'; scene.add(lights);
+    hemi = new THREE.HemisphereLight(0xdfe9f5, 0x1b2430, 0.85);
+    sun = new THREE.DirectionalLight(0xffffff, 0.85);
+    fillL = new THREE.DirectionalLight(0xbcd4ef, 0.35);
+    rimL = new THREE.DirectionalLight(0xffffff, 0.25);
+    lights.add(hemi, sun, fillL, rimL);
+    applyLights();
+  }
+
+  /** يحوّل السمت والارتفاع إلى موضع الشمس (Z للأعلى) */
+  function sunVector(az, el) {
+    const a = az * DEG, e = el * DEG;
+    return new THREE.Vector3(Math.cos(e) * Math.cos(a), Math.cos(e) * Math.sin(a), Math.sin(e));
+  }
+
+  function applyLights() {
+    const P = LIGHT_PRESETS[lightState.preset] || LIGHT_PRESETS.studio;
+    const k = Math.max(0, Math.min(3, lightState.intensity));
+    hemi.color.setHex(P.sky); hemi.groundColor.setHex(P.gnd); hemi.intensity = P.hemi * k;
+    sun.color.setHex(P.keyColor); sun.intensity = P.key * k;
+    fillL.intensity = P.fill * k; rimL.intensity = P.rim * k;
+
+    const v = sunVector(lightState.az, lightState.el);
+    const d = Math.max(1, orb.r || 300) * 2;
+    sun.position.copy(v).multiplyScalar(d);
+    // المِلء يقابل المفتاح أفقياً، والحافّة خلفه — كإضاءة الاستوديو
+    fillL.position.copy(sunVector(lightState.az + 140, Math.max(10, lightState.el * 0.5))).multiplyScalar(d);
+    rimL.position.copy(sunVector(lightState.az + 200, Math.min(80, lightState.el + 25))).multiplyScalar(d);
+
+    if (lightState.shadows) enableShadows(d);
+    else if (renderer) { renderer.shadowMap.enabled = false; sun.castShadow = false; }
+    requestRender();
+  }
+
+  /** ظلال مسقَطة من الشمس وحدها — مصدرٌ واحد يكفي ويبقى رخيصاً */
+  function enableShadows(dist) {
+    if (!renderer) return;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    sun.castShadow = true;
+    const s = Math.max(60, (orb.r || 300) * 1.6);
+    const c = sun.shadow.camera;
+    c.left = -s; c.right = s; c.top = s; c.bottom = -s;
+    c.near = 1; c.far = dist * 3;
+    c.updateProjectionMatrix();
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.bias = -0.0012;
+    solids.children.forEach(m => { m.castShadow = true; m.receiveShadow = true; });
+    ensureGround();
+  }
+
+  /** أرضية تستقبل الظلّ — بلا سطحٍ يستقبله لا يُرى الظلّ أصلاً */
+  function ensureGround() {
+    if (ground) { ground.visible = true; return; }
+    const g = new THREE.Mesh(
+      new THREE.PlaneGeometry(4000, 4000),
+      new THREE.ShadowMaterial({ opacity: 0.28 }));
+    g.name = 'ground';
+    g.receiveShadow = true;
+    g.position.z = -0.01;                       // تحت المستوى صفر بشعرة
+    ground = g;
+    helpers.add(g);
+  }
+
+  function setLighting(o) {
+    Object.assign(lightState, o || {});
+    if (o && o.bg) {
+      const c = BACKGROUNDS[o.bg] != null ? BACKGROUNDS[o.bg] : BACKGROUNDS.dark;
+      scene.background = new THREE.Color(c);
+    }
+    if (!lightState.shadows && ground) ground.visible = false;
+    applyLights();
   }
 
   function buildHelpers() {
@@ -100,6 +191,84 @@
     ax.add(mkAxis(new THREE.Vector3(0, 60, 0), 0x5ad469));
     ax.add(mkAxis(new THREE.Vector3(0, 0, 60), 0x4ea1ff));
     helpers.add(ax);
+  }
+
+  /* ══════════════ الكاميرا: بُعد بؤريّ · لقطات · دوران تلقائيّ ══════════════ */
+
+  /** العدسة بالمليمتر كاصطلاح التصوير: ٣٥مم واسعة و٨٥مم مقرَّبة */
+  function setFocal(mm) {
+    const f = Math.max(8, Math.min(300, +mm || 50));
+    camP.fov = 2 * Math.atan(24 / (2 * f)) * 180 / Math.PI;   // مستشعر ٣٥مم كامل
+    camP.updateProjectionMatrix();
+    requestRender();
+    return camP.fov;
+  }
+  const focal = () => 24 / (2 * Math.tan(camP.fov * DEG / 2));
+
+  /** لقطة كاميرا = موضع المدار كاملاً، تُحفظ وتُستعاد باسمها */
+  const shots = new Map();
+  function saveShot(name) {
+    shots.set(name, { r: orb.r, th: orb.th, ph: orb.ph,
+                      t: orb.t.clone(), ortho, fov: camP.fov });
+    return [...shots.keys()];
+  }
+  function recallShot(name, ms) {
+    const s = shots.get(name);
+    if (!s) return false;
+    setOrtho(s.ortho);
+    camP.fov = s.fov; camP.updateProjectionMatrix();
+    flyTo({ r: s.r, th: s.th, ph: s.ph, t: s.t }, ms);
+    return true;
+  }
+  const listShots = () => [...shots.keys()];
+  const dropShot = n => shots.delete(n);
+
+  /** انتقال ناعم إلى وضع مدار — يُستعمل للّقطات والمساقط */
+  let flyRAF = 0;
+  function flyTo(to, ms) {
+    cancelAnimationFrame(flyRAF);
+    const dur = ms == null ? 420 : ms;
+    if (dur <= 0) {
+      orb.r = to.r; orb.th = to.th; orb.ph = to.ph;
+      if (to.t) orb.t.copy(to.t);
+      updateCam(); return;
+    }
+    const from = { r: orb.r, th: orb.th, ph: orb.ph, t: orb.t.clone() };
+    // أقصر طريق زاويّ: بلا هذا تلفّ الكاميرا الدورة الطويلة
+    let dth = to.th - from.th;
+    while (dth > Math.PI) dth -= 2 * Math.PI;
+    while (dth < -Math.PI) dth += 2 * Math.PI;
+    const t0 = performance.now();
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / dur);
+      const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   // easeInOutCubic
+      orb.r = from.r + (to.r - from.r) * e;
+      orb.th = from.th + dth * e;
+      orb.ph = from.ph + (to.ph - from.ph) * e;
+      if (to.t) orb.t.lerpVectors(from.t, to.t, e);
+      updateCam();
+      if (k < 1) flyRAF = requestAnimationFrame(step);
+    };
+    flyRAF = requestAnimationFrame(step);
+  }
+
+  /** دوران تلقائيّ حول المجسّم — للعرض والمراجعة */
+  let spinRAF = 0, spinning = false;
+  function setTurntable(on, rpm) {
+    spinning = !!on;
+    cancelAnimationFrame(spinRAF);
+    if (!spinning) return false;
+    const speed = (Math.abs(+rpm) || 4) * 2 * Math.PI / 60000;   // راديان/مللي ثانية
+    let last = performance.now();
+    const step = now => {
+      if (!spinning) return;
+      orb.th += speed * (now - last);
+      last = now;
+      updateCam();
+      spinRAF = requestAnimationFrame(step);
+    };
+    spinRAF = requestAnimationFrame(step);
+    return true;
   }
 
   /* ══════════════ المواد وأوضاع الإظهار ══════════════ */
@@ -352,6 +521,7 @@
     updateGizmoScale();
     requestRender();
     emit('change', null);
+    emit('camera', null);        // بوصلة الاتجاهات تتبع الكاميرا
   }
 
   function setOrtho(v) {
@@ -659,6 +829,12 @@
     showAxes: v => { const a = helpers.getObjectByName('axes'); if (a) a.visible = v; requestRender(); },
     camera: () => cam, scene: () => scene, on,
     ready: () => !!renderer,
+    // إضاءة وكاميرا
+    setLighting, lighting: () => Object.assign({}, lightState),
+    LIGHT_PRESETS: Object.keys(LIGHT_PRESETS), BACKGROUNDS: Object.keys(BACKGROUNDS),
+    setFocal, focal, flyTo,
+    saveShot, recallShot, listShots, dropShot,
+    setTurntable, spinning: () => spinning,
   };
   function setMode(m) { applyMode(m); }
 })();
