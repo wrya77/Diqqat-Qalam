@@ -109,8 +109,30 @@
     side: THREE.DoubleSide, flatShading: false,
   });
 
+  const needEdges = () => mode === 'shaded-edges' || mode === 'wire';
+
+  /**
+   * خطوط الحوافّ تُبنى عند أوّل طلبٍ لها لا مع كل مجسّم.
+   * EdgesGeometry تمرّ على كل مثلّث وتوازن حوافّه — ٤١٦ms على ناتج عمليةٍ
+   * منطقية بخمسين ألف وجه — وهي غير مرئية أصلاً في الوضع الافتراضيّ «مظلّل».
+   * كنّا ندفع هذا الثمن مع كل مجسّم يُضاف ثم نُخفي النتيجة.
+   */
+  function ensureEdges(o) {
+    if (o.userData.edges) return o.userData.edges;
+    const src = o.userData.source || o.geometry;
+    if (!src) return null;
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(src, 24),
+      new THREE.LineBasicMaterial({ color: 0x0c1219, transparent: true, opacity: 0.55 }));
+    if (clipOn && clip) edges.material.clippingPlanes = [clip];
+    o.add(edges);
+    o.userData.edges = edges;
+    return edges;
+  }
+
   function applyMode(m) {
     mode = m || 'shaded';
+    const want = needEdges();
     solids.children.forEach(o => {
       const mat = o.material;
       if (!mat) return;
@@ -118,8 +140,8 @@
       mat.transparent = (mode === 'xray');
       mat.opacity = (mode === 'xray') ? 0.32 : 1;
       mat.depthWrite = (mode !== 'xray');
-      const e = o.userData.edges;
-      if (e) e.visible = (mode === 'shaded-edges' || mode === 'wire');
+      const e = want ? ensureEdges(o) : o.userData.edges;
+      if (e) e.visible = want;
       mat.needsUpdate = true;
     });
     requestRender();
@@ -136,24 +158,19 @@
        للعرض بنواظم مُتوسّطة تحت زاوية حَرف ٣٨°: الجدران المنحنية تلين والحوافّ
        الحقيقية تبقى حادّة. الهندسة الأصلية لا تُمَسّ — الحجم والـCSG والتصدير
        تبقى على الرؤوس نفسها. */
-    let display = geometry;
+    let display = null;
     try {
       const O = window.CAD3DOps;
       if (O && O.smoothNormals) display = O.smoothNormals(geometry, 38);
-    } catch (_) { display = geometry; }
+    } catch (_) { display = null; }
+    // نسخةٌ دائماً حتى عند الإخفاق: disposeMesh يتخلّص من geometry الشبكة، ولو
+    // كانت هي عين المصدر المُخزَّن في ذاكرة الميزات لأُفرغت مخازنه من تحته
+    if (!display) display = geometry.clone();
 
     const mesh = new THREE.Mesh(display, mat);
     mesh.userData = Object.assign({ id: (meta && meta.id) || ('s' + Date.now().toString(36)) }, meta || {});
     // المصدر محفوظ: القياسات والتصدير تقرأ الهندسة الأصلية لا نسخة العرض
     mesh.userData.source = geometry;
-
-    const eg = new THREE.EdgesGeometry(geometry, 24);
-    const edges = new THREE.LineSegments(eg,
-      new THREE.LineBasicMaterial({ color: 0x0c1219, transparent: true, opacity: 0.55 }));
-    edges.visible = (mode === 'shaded-edges');
-    if (clipOn && clip) edges.material.clippingPlanes = [clip];
-    mesh.add(edges);
-    mesh.userData.edges = edges;
 
     solids.add(mesh);
     applyMode(mode);

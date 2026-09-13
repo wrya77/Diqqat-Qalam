@@ -596,15 +596,21 @@
       fn[t * 3] = nv.x; fn[t * 3 + 1] = nv.y; fn[t * 3 + 2] = nv.z;
     }
 
-    // الأوجه الملتقية عند كل رأسٍ موضعيّ
-    const at = new Map();
-    const key = i => `${Math.round(pos[i] * 1e4)},${Math.round(pos[i + 1] * 1e4)},${Math.round(pos[i + 2] * 1e4)}`;
+    /* الأوجه الملتقية عند كل رأسٍ موضعيّ.
+       المفتاح النصّيّ يُبنى مرّةً واحدة لكل ركن ثم يُترجَم إلى عدد صحيح: كان
+       يُبنى ستّ مرّات لكل مثلّث (ثلاثة أركان × مرورين)، وتخصيص السلاسل هو
+       معظم زمن هذه الدالة على الشبكات الكثيفة. */
+    const at = [];                                   // id → قائمة المثلّثات
+    const ids = new Int32Array(nTri * 3);            // ركن → id
+    const idx = new Map();
     for (let t = 0; t < nTri; t++) {
       for (let k = 0; k < 3; k++) {
-        const kk = key(t * 9 + k * 3);
-        let a = at.get(kk);
-        if (!a) { a = []; at.set(kk, a); }
-        a.push(t);
+        const i = t * 9 + k * 3;
+        const kk = `${Math.round(pos[i] * 1e4)},${Math.round(pos[i + 1] * 1e4)},${Math.round(pos[i + 2] * 1e4)}`;
+        let id = idx.get(kk);
+        if (id === undefined) { id = at.length; idx.set(kk, id); at.push([]); }
+        at[id].push(t);
+        ids[t * 3 + k] = id;
       }
     }
 
@@ -616,7 +622,7 @@
       if (uLen < 1e-12) continue;                    // مثلّث منحلّ
       u.divideScalar(uLen);
       for (let k = 0; k < 3; k++) {
-        const list = at.get(key(t * 9 + k * 3)) || [t];
+        const list = at[ids[t * 3 + k]] || [t];
         acc.set(0, 0, 0);
         for (const j of list) {
           nv.set(fn[j * 3], fn[j * 3 + 1], fn[j * 3 + 2]);
