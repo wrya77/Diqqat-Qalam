@@ -2005,7 +2005,7 @@
     if (r) r.disabled = !redoStack.length;
   }
 
-  /* ══════════════ مشروع ثلاثيّ · استيراد OBJ · صورة ══════════════ */
+  /* ══════════════ مشروع ثلاثيّ · صورة ══════════════ */
 
   function opSaveProject() {
     if (!feats.length) { toast('لا شيء لحفظه', 'warn'); return; }
