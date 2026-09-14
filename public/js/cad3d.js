@@ -112,6 +112,7 @@
           case 'decimate':return O.decimate(g, P.cell);
           case 'center':  return O.centerOrigin(g, P.mode);
           case 'smooth':  return O.smooth(g, P.iters, P.lambda);
+          case 'bevel':   return window.CAD3DBevel.bevel(g, P);
           // معدِّلات cad3d-mod — كلّها هندسةٌ داخلةٌ وهندسةٌ خارجة
           case 'subdiv':  return D().subdivide(g, P.iters, P.smooth);
           case 'weld':    return D().weld(g, P.tol);
@@ -2140,6 +2141,37 @@
     },
   };
 
+  /* ══════════════ تدوير الحوافّ وشطفها ══════════════ */
+
+  async function opBevel(round) {
+    const id = one(); if (!id) return;
+    if (!window.CAD3DBevel) { toast('وحدة الحوافّ غير محمّلة', 'error'); return; }
+    const f = featById(id);
+    const T = f && f.__geom ? window.CAD3DBevel.topology(f.__geom, 1e-4, 1) : null;
+    const sharp = T ? [...T.edges.values()].filter(e => e.g.length === 2 && e.angle >= 25).length : 0;
+    if (!sharp) { toast('لا حوافّ حادّة في هذا المجسّم', 'warn'); return; }
+    const r = await ask(round ? 'تدوير الحوافّ' : 'شطف الحوافّ', [
+      { key: 'dist', label: round ? 'نصف القطر (mm)' : 'عرض الشطف (mm)', def: 2, min: 0.05 },
+      ...(round ? [{ key: 'segments', label: 'نعومة القوس', def: 6, min: 2, max: 24 }] : []),
+      { key: 'angle', label: `أقلّ زاوية تُعدّ حافّة (°) — ${sharp} حافّة فوق ٢٥°`,
+        def: 25, min: 1, max: 179 },
+      { key: 'mode', label: 'أيّ الحوافّ', type: 'select', def: 'convex',
+        options: [{ v: 'convex', t: 'الخارجية فقط' }, { v: 'concave', t: 'الداخلية فقط' }, { v: 'all', t: 'الكلّ' }] },
+    ]);
+    if (!r) return;
+    await busy(round ? 'جارٍ تدوير الحوافّ…' : 'جارٍ الشطف…');
+    let ok = false;
+    try {
+      ok = pushOp(id, { op: 'bevel', dist: r.dist, segments: round ? r.segments : 1,
+                        angle: r.angle, mode: r.mode },
+                  round ? `تدوير ${r.dist}mm` : `شطف ${r.dist}mm`);
+    } finally { unbusy(); }
+    if (!ok) return;
+    const nf = featById(V().getSelection()[0]);
+    const u = nf && nf.__geom && nf.__geom.userData.bevel;
+    if (u) toast(`${u.edges} حافّة · ${u.corners} ركن`, 'info');
+  }
+
   /* ══════════════ الإضاءة والكاميرا ══════════════ */
 
   const VIEWFX = {
@@ -2517,6 +2549,11 @@
       { t: 'مصفوفة دائرية', icon: 'polar', fn: OPS.circular },
     ] });
 
+    railGroup({ icon: 'corner-round', name: 'حوافّ', items: [
+      { t: 'تدوير الحوافّ…', icon: 'corner-round', fn: () => opBevel(true) },
+      { t: 'شطف الحوافّ…', icon: 'corner-chamfer', fn: () => opBevel(false) },
+    ] });
+
     railGroup({ icon: 'wrench', name: 'تعديل المجسّم', items: [
       { t: 'تفريغ (قشرة)', fn: OPS.shell },
       { t: 'تسميك السطح', icon: 'offset', fn: OPS.offset },
@@ -2609,12 +2646,22 @@
     topItem({ icon: 'eye', lbl: 'إخفاء', name: 'إخفاء / إظهار المحدَّد', fn: opToggleHide });
     topItem({ icon: 'isolate', lbl: 'عزل', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
     topItem({ icon: 'explode', lbl: 'تفجير', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
+    topItem({ icon: 'magnet', lbl: 'التقاط', name: 'الالتقاط ثلاثيّ الأبعاد: رؤوس ومنتصفات ومراكز', id: 'c3-snap', fn: toggleSnap3D });
     topItem({ icon: 'zap', lbl: 'إضاءة', name: 'الإضاءة والظلال', fn: VIEWFX.lighting });
     topItem({ icon: 'rotate', lbl: 'دوران', name: 'دوران تلقائيّ حول المجسّم', id: 'c3-spin', fn: VIEWFX.turntable });
     topItem({ icon: 'sidebar', lbl: 'الشجرة', name: 'طيّ / بسط شجرة الميزات', id: 'c3-side', fn: toggleSide });
     topItem({ grow: true });
     topItem({ icon: 'cpu', lbl: 'تخشين', name: 'مسار تخشين ثلاثيّ المحاور → G-Code', fn: opRoughing });
     topItem({ icon: 'download', lbl: 'STL', name: 'تصدير STL', fn: opExportSTL });
+  }
+
+  /** مفتاح الالتقاط ثلاثيّ الأبعاد — يعمل في القياس وفي مقبض النقل */
+  let snap3D = false;
+  function toggleSnap3D() {
+    snap3D = !snap3D;
+    V().setSnap({ on: snap3D });
+    document.getElementById('c3-snap')?.classList.toggle('on', snap3D);
+    toast(snap3D ? 'الالتقاط مُفعّل — رؤوس ومنتصفات ومراكز' : 'أُوقف الالتقاط', 'info');
   }
 
   function opZoomSel() {
