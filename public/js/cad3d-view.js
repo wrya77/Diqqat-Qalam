@@ -342,6 +342,7 @@
     mesh.userData.source = geometry;
 
     solids.add(mesh);
+    invalidateSnap();
     applyMode(mode);
     requestRender();
     return mesh;
@@ -368,6 +369,7 @@
 
   function clearSolids() {
     solids.children.slice().forEach(m => { disposeMesh(m); solids.remove(m); });
+    invalidateSnap();
     attachGizmo(null);
     requestRender();
   }
@@ -432,6 +434,7 @@
       e.preventDefault();
     });
     window.addEventListener('mousemove', e => {
+      if (snapOpt.on && !gdrag) showSnap(findSnap(e));
       if (gizmoMove(e)) return;
       if (!drag) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
@@ -605,6 +608,127 @@
 
   /* ══════════════ القياس ══════════════ */
 
+  /* ══════════════ الالتقاط ثلاثيّ الأبعاد ══════════════ */
+
+  /**
+   * مرشّحو الالتقاط: رؤوس المجسّمات ومنتصفات حوافّها ومراكز أوجهها، مع الأصل.
+   * تُبنى مرّةً وتُبطَل عند تغيّر المجسّمات — بناؤها في كل حركة فأرة مستحيل.
+   *
+   * الاختيار يتمّ في **فضاء الشاشة** لا في فضاء العالم: ما يبدو قريباً من
+   * المؤشّر هو ما يقصده المستخدم، مهما بَعُد في العمق.
+   */
+  let snapOpt = { on: false, vertex: true, mid: true, center: true, grid: false, step: 10, px: 12 };
+  let snapCache = null, snapMark = null;
+
+  const invalidateSnap = () => { snapCache = null; };
+
+  function buildSnapCache() {
+    const pts = [];
+    const seen = new Set();
+    const add = (p, type) => {
+      const k = `${Math.round(p.x * 100)},${Math.round(p.y * 100)},${Math.round(p.z * 100)}`;
+      if (seen.has(k)) return;
+      seen.add(k);
+      pts.push({ p, type });
+    };
+    const v = new THREE.Vector3();
+    for (const m of solids.children) {
+      if (!m.visible) continue;
+      const g = m.userData.source || m.geometry;
+      const arr = (g.index ? g.toNonIndexed() : g).attributes.position.array;
+      m.updateMatrixWorld();
+      // شبكاتٌ كبيرة: نأخذ عيّنة كي يبقى البحث فورياً
+      const stride = arr.length / 9 > 6000 ? Math.ceil((arr.length / 9) / 6000) : 1;
+      for (let t = 0, ti = 0; t < arr.length; t += 9, ti++) {
+        if (ti % stride) continue;
+        const A = v.set(arr[t], arr[t+1], arr[t+2]).applyMatrix4(m.matrixWorld).clone();
+        const B = v.set(arr[t+3], arr[t+4], arr[t+5]).applyMatrix4(m.matrixWorld).clone();
+        const C = v.set(arr[t+6], arr[t+7], arr[t+8]).applyMatrix4(m.matrixWorld).clone();
+        if (snapOpt.vertex) { add(A, 'رأس'); add(B, 'رأس'); add(C, 'رأس'); }
+        if (snapOpt.mid) {
+          add(A.clone().add(B).multiplyScalar(0.5), 'منتصف');
+          add(B.clone().add(C).multiplyScalar(0.5), 'منتصف');
+          add(C.clone().add(A).multiplyScalar(0.5), 'منتصف');
+        }
+        if (snapOpt.center) add(A.clone().add(B).add(C).divideScalar(3), 'مركز');
+      }
+    }
+    add(new THREE.Vector3(0, 0, 0), 'الأصل');
+    snapCache = pts;
+    return pts;
+  }
+
+  /** أقرب مرشّح إلى المؤشّر ضمن نطاق بكسلات — أو null */
+  function findSnap(ev) {
+    if (!snapOpt.on || !renderer) return null;
+    const r = renderer.domElement.getBoundingClientRect();
+    const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    const list = snapCache || buildSnapCache();
+    cam.updateMatrixWorld();
+    let best = null, bd = snapOpt.px;
+    const v = new THREE.Vector3();
+    for (const c of list) {
+      v.copy(c.p).project(cam);
+      if (v.z < -1 || v.z > 1) continue;
+      const sx = (v.x * 0.5 + 0.5) * r.width, sy = (-v.y * 0.5 + 0.5) * r.height;
+      const d = Math.hypot(sx - mx, sy - my);
+      if (d < bd) { bd = d; best = c; }
+    }
+    // شبكة الأرضية: تُحسب لا تُخزَّن — نقاطها لا نهائية
+    if (snapOpt.grid) {
+      const h = pick(ev);
+      const base = h ? h.point : rayToPlane(ev);
+      if (base) {
+        const s = Math.max(0.1, snapOpt.step);
+        const gp = new THREE.Vector3(Math.round(base.x / s) * s, Math.round(base.y / s) * s,
+                                     Math.abs(base.z) < s / 2 ? 0 : Math.round(base.z / s) * s);
+        v.copy(gp).project(cam);
+        const sx = (v.x * 0.5 + 0.5) * r.width, sy = (-v.y * 0.5 + 0.5) * r.height;
+        const d = Math.hypot(sx - mx, sy - my);
+        if (d < bd) best = { p: gp, type: 'شبكة' };
+      }
+    }
+    return best;
+  }
+
+  /** إسقاط شعاع المؤشّر على مستوى Z=0 — لالتقاط الشبكة خارج المجسّمات */
+  function rayToPlane(ev) {
+    const r = renderer.domElement.getBoundingClientRect();
+    const nd = new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1,
+                                 -((ev.clientY - r.top) / r.height) * 2 + 1);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(nd, cam);
+    const out = new THREE.Vector3();
+    return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), out) ? out : null;
+  }
+
+  /** علامة الالتقاط: مربّع صغير ثابت الحجم على الشاشة */
+  function showSnap(s) {
+    if (!snapMark) {
+      const g = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-1,-1,0), new THREE.Vector3(1,-1,0), new THREE.Vector3(1,1,0),
+        new THREE.Vector3(-1,1,0), new THREE.Vector3(-1,-1,0)]);
+      snapMark = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xffd33d, depthTest: false }));
+      snapMark.renderOrder = 999;
+      snapMark.visible = false;
+      helpers.add(snapMark);
+    }
+    if (!s) { if (snapMark.visible) { snapMark.visible = false; requestRender(); } return; }
+    snapMark.position.copy(s.p);
+    snapMark.quaternion.copy(cam.quaternion);
+    const k = ortho ? orb.r / 190 : s.p.distanceTo(cam.position) / 190;
+    snapMark.scale.setScalar(Math.max(0.02, k) * 3);
+    snapMark.visible = true;
+    requestRender();
+  }
+
+  function setSnap(o) {
+    Object.assign(snapOpt, o || {});
+    invalidateSnap();
+    if (!snapOpt.on) showSnap(null);
+    return Object.assign({}, snapOpt);
+  }
+
   function setMeasure(on2) {
     measure.on = !!on2;
     measure.pts = [];
@@ -618,7 +742,9 @@
   }
 
   function measureClick(ev) {
-    const h = pick(ev);
+    // الالتقاط أوّلاً: نقطةُ رأسٍ مقصودة أدقّ من نقطة سطحٍ عشوائية
+    const s = findSnap(ev);
+    const h = s ? { point: s.p } : pick(ev);
     if (!h) return;
     measure.pts.push(h.point.clone());
     if (measure.pts.length === 2) {
@@ -762,7 +888,17 @@
     const d = p.clone().sub(gdrag.p0);
 
     if (gizmoMode === 'move') {
-      const amt = gdrag.axis === 'all' ? d : gdrag.dir.clone().multiplyScalar(d.dot(gdrag.dir));
+      let amt = gdrag.axis === 'all' ? d : gdrag.dir.clone().multiplyScalar(d.dot(gdrag.dir));
+      /* الالتقاط أثناء النقل: نُقرّب مركز المقبض إلى أقرب مرشّح، ثمّ نُسقط
+         التصحيح على محور السحب كي يبقى النقل مقيَّداً بمحوره. */
+      if (snapOpt.on) {
+        const s2 = findSnap(ev);
+        if (s2) {
+          const want = s2.p.clone().sub(gdrag.gizmo0);
+          amt = gdrag.axis === 'all' ? want : gdrag.dir.clone().multiplyScalar(want.dot(gdrag.dir));
+          showSnap(s2);
+        } else showSnap(null);
+      }
       gizmoTarget.position.copy(gdrag.start.clone().add(amt));
       gizmo.position.copy(gdrag.gizmo0.clone().add(amt));
     } else if (gizmoMode === 'rotate') {
@@ -823,8 +959,12 @@
     get: byId, all: () => solids ? solids.children.slice() : [],
     setSelection, getSelection,
     setView, fit, fitTo, setOrtho, isOrtho: () => ortho,
+    // التكبير كان متاحاً بالعجلة وحدها — بلا واجهة برمجية ولا زرّ تصغير
+    zoomBy, zoomIn: () => zoomBy(1 / 1.25), zoomOut: () => zoomBy(1.25),
+    distance: () => orb.r,
     setMode, mode: () => mode,
     setSection, setMeasure, setGizmoMode, gizmoMode: () => gizmoMode,
+    setSnap, snap: () => Object.assign({}, snapOpt), findSnap, invalidateSnap,
     showGrid: v => { const g = helpers.getObjectByName('grid'); if (g) g.visible = v; requestRender(); },
     showAxes: v => { const a = helpers.getObjectByName('axes'); if (a) a.visible = v; requestRender(); },
     camera: () => cam, scene: () => scene, on,

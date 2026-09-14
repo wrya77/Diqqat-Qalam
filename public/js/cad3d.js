@@ -112,6 +112,7 @@
           case 'decimate':return O.decimate(g, P.cell);
           case 'center':  return O.centerOrigin(g, P.mode);
           case 'smooth':  return O.smooth(g, P.iters, P.lambda);
+          case 'bevel':   return window.CAD3DBevel.bevel(g, P);
           // معدِّلات cad3d-mod — كلّها هندسةٌ داخلةٌ وهندسةٌ خارجة
           case 'subdiv':  return D().subdivide(g, P.iters, P.smooth);
           case 'weld':    return D().weld(g, P.tol);
@@ -647,9 +648,11 @@
         --c3-acc:var(--accent,#2f81f7); --c3-acc2:var(--accent-h,#58a6ff);
         --c3-sel:color-mix(in srgb,var(--accent,#2f81f7) 20%,transparent);
         --c3-r:7px;            /* نصف قطر موحّد */
-        --c3-chip:23px;        /* ارتفاع رقاقة الشريط */
-        --c3-rail:34px;        /* عرض الريل */
-        --c3-ico:13px;         /* أيقونة الشريط */
+        /* مقاسات اللمس: رقاقةٌ بارتفاع ٢٣px وأيقونةٌ ١٣px كانت أصغر من أن
+           تُقرأ أو تُنقر بثقة — أقلّ هدفٍ مريح نحو ٣٠px. */
+        --c3-chip:30px;        /* ارتفاع رقاقة الشريط */
+        --c3-rail:42px;        /* عرض الريل */
+        --c3-ico:16px;         /* أيقونة الشريط */
       }
 
       /* ── الشريط العلويّ ──
@@ -664,16 +667,16 @@
       .c3-grow{flex:1 1 auto;min-width:4px}
 
       .c3-ic{flex:0 0 auto;min-height:var(--c3-chip);display:inline-flex;align-items:center;
-        gap:4px;padding:0 7px;border:1px solid transparent;border-radius:6px;
+        gap:6px;padding:0 10px;border:1px solid transparent;border-radius:7px;
         background:transparent;cursor:pointer;color:var(--c3-fg2);
-        font-family:inherit;font-size:10.5px;font-weight:600;white-space:nowrap;
+        font-family:inherit;font-size:12px;font-weight:600;white-space:nowrap;
         transition:background .14s ease,color .14s ease,border-color .14s ease}
       .c3-ic:hover{background:var(--c3-hi);color:var(--c3-fg)}
       .c3-ic.on{background:var(--c3-sel);border-color:var(--c3-acc);color:var(--c3-acc2)}
       .c3-ic:disabled{opacity:.38;cursor:default}
       .c3-ic:disabled:hover{background:transparent;color:var(--c3-fg2)}
       .c3-ic svg{width:var(--c3-ico);height:var(--c3-ico);flex:0 0 auto}
-      .c3-ic .lbl{font-size:10.5px;font-weight:600;letter-spacing:.1px}
+      .c3-ic .lbl{font-size:12px;font-weight:600;letter-spacing:.1px}
 
       /* ── الريل الجانبيّ: مجموعات أدوات بمثلّث انبثاق ── */
       .c3-main{flex:1 1 auto;min-height:0;display:flex}
@@ -683,13 +686,13 @@
       .c3-rail::-webkit-scrollbar{width:5px}
       .c3-rail::-webkit-scrollbar-thumb{background:var(--c3-line);border-radius:3px}
       .c3-slot{position:relative;flex:0 0 auto;align-self:center}
-      .c3-t{width:28px;height:26px;display:flex;align-items:center;justify-content:center;
+      .c3-t{width:36px;height:34px;display:flex;align-items:center;justify-content:center;
         border:1px solid transparent;border-radius:6px;background:none;cursor:pointer;padding:0;
         color:var(--c3-fg2);transition:background .14s ease,color .14s ease,border-color .14s ease}
       .c3-t:hover{background:var(--c3-hi);color:var(--c3-fg)}
       .c3-t.on,.c3-slot.open .c3-t{background:var(--c3-sel);border-color:var(--c3-acc);
         color:var(--c3-acc2)}
-      .c3-t svg{width:15px;height:15px}
+      .c3-t svg{width:19px;height:19px}
       .c3-arw{position:absolute;inset-block-end:1px;inset-inline-end:1px;width:0;height:0;
         border-inline-start:3.5px solid transparent;border-block-end:3.5px solid var(--c3-fg3);
         pointer-events:none}
@@ -698,7 +701,7 @@
          مثبَّت بالنافذة لا بالريل: الريل له overflow-y:auto، والـCSS يحوّل عندها
          overflow-x من visible إلى auto قسراً — فأي ابن يخرج عن عرضه يُقصّ
          ويختفي. لهذا كانت الأدوات «لا تفتح». */
-      .c3-fly{position:fixed;z-index:2500;display:none;min-width:196px;max-width:280px;
+      .c3-fly{position:fixed;z-index:2500;display:none;min-width:220px;max-width:320px;
         padding:4px;border-radius:10px;background:var(--c3-panel);
         border:1px solid var(--c3-line);box-shadow:0 18px 44px rgba(0,0,0,.55);
         max-height:76vh;overflow-y:auto;overscroll-behavior:contain}
@@ -708,13 +711,13 @@
         font-weight:800;letter-spacing:.4px;color:var(--c3-fg3);text-transform:uppercase}
       .c3-fh svg{width:12px;height:12px;opacity:.75}
       .c3-fs{height:1px;margin:3px 6px;background:var(--c3-line)}
-      .c3-fi{display:flex;align-items:center;gap:7px;width:100%;padding:5px 8px;border:none;
+      .c3-fi{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;
         border-radius:6px;background:none;cursor:pointer;color:var(--c3-fg2);
-        font-family:inherit;font-size:11.5px;font-weight:600;text-align:start;white-space:nowrap;
+        font-family:inherit;font-size:12.5px;font-weight:600;text-align:start;white-space:nowrap;
         transition:background .1s ease,color .1s ease}
       .c3-fi:hover,.c3-fi.cur{background:var(--c3-hi);color:var(--c3-fg)}
       .c3-fi.cur{box-shadow:inset 2px 0 0 var(--c3-acc)}
-      .c3-fi svg{width:13px;height:13px;flex:0 0 auto;opacity:.8}
+      .c3-fi svg{width:15px;height:15px;flex:0 0 auto;opacity:.8}
       .c3-fi .k{margin-inline-start:auto;padding:1px 5px;border-radius:4px;font-size:9.5px;
         font-weight:700;color:var(--c3-fg3);background:var(--c3-bar);
         border:1px solid var(--c3-line)}
@@ -982,7 +985,7 @@
 
     statEl = document.createElement('div'); statEl.className = 'c3-stat';
     hintEl = document.createElement('div'); hintEl.className = 'c3-hint';
-    hintEl.textContent = 'سحب: تدوير · Shift/يمين: تحريك · عجلة: تكبير · ١-٧ مساقط · F ملاءمة';
+    hintEl.textContent = 'سحب: تدوير · Shift/يمين: تحريك · عجلة أو ‎+ ‎−: تكبير وتصغير · ١-٧ مساقط · F ملاءمة';
     busyEl = document.createElement('div'); busyEl.className = 'c3-busy';
     hud.append(cube, row2, statEl, hintEl, busyEl);
     view.appendChild(hud);
@@ -2138,6 +2141,37 @@
     },
   };
 
+  /* ══════════════ تدوير الحوافّ وشطفها ══════════════ */
+
+  async function opBevel(round) {
+    const id = one(); if (!id) return;
+    if (!window.CAD3DBevel) { toast('وحدة الحوافّ غير محمّلة', 'error'); return; }
+    const f = featById(id);
+    const T = f && f.__geom ? window.CAD3DBevel.topology(f.__geom, 1e-4, 1) : null;
+    const sharp = T ? [...T.edges.values()].filter(e => e.g.length === 2 && e.angle >= 25).length : 0;
+    if (!sharp) { toast('لا حوافّ حادّة في هذا المجسّم', 'warn'); return; }
+    const r = await ask(round ? 'تدوير الحوافّ' : 'شطف الحوافّ', [
+      { key: 'dist', label: round ? 'نصف القطر (mm)' : 'عرض الشطف (mm)', def: 2, min: 0.05 },
+      ...(round ? [{ key: 'segments', label: 'نعومة القوس', def: 6, min: 2, max: 24 }] : []),
+      { key: 'angle', label: `أقلّ زاوية تُعدّ حافّة (°) — ${sharp} حافّة فوق ٢٥°`,
+        def: 25, min: 1, max: 179 },
+      { key: 'mode', label: 'أيّ الحوافّ', type: 'select', def: 'convex',
+        options: [{ v: 'convex', t: 'الخارجية فقط' }, { v: 'concave', t: 'الداخلية فقط' }, { v: 'all', t: 'الكلّ' }] },
+    ]);
+    if (!r) return;
+    await busy(round ? 'جارٍ تدوير الحوافّ…' : 'جارٍ الشطف…');
+    let ok = false;
+    try {
+      ok = pushOp(id, { op: 'bevel', dist: r.dist, segments: round ? r.segments : 1,
+                        angle: r.angle, mode: r.mode },
+                  round ? `تدوير ${r.dist}mm` : `شطف ${r.dist}mm`);
+    } finally { unbusy(); }
+    if (!ok) return;
+    const nf = featById(V().getSelection()[0]);
+    const u = nf && nf.__geom && nf.__geom.userData.bevel;
+    if (u) toast(`${u.edges} حافّة · ${u.corners} ركن`, 'info');
+  }
+
   /* ══════════════ الإضاءة والكاميرا ══════════════ */
 
   const VIEWFX = {
@@ -2515,6 +2549,11 @@
       { t: 'مصفوفة دائرية', icon: 'polar', fn: OPS.circular },
     ] });
 
+    railGroup({ icon: 'corner-round', name: 'حوافّ', items: [
+      { t: 'تدوير الحوافّ…', icon: 'corner-round', fn: () => opBevel(true) },
+      { t: 'شطف الحوافّ…', icon: 'corner-chamfer', fn: () => opBevel(false) },
+    ] });
+
     railGroup({ icon: 'wrench', name: 'تعديل المجسّم', items: [
       { t: 'تفريغ (قشرة)', fn: OPS.shell },
       { t: 'تسميك السطح', icon: 'offset', fn: OPS.offset },
@@ -2592,7 +2631,11 @@
     topItem({ icon: 'rot-right', lbl: 'إعادة', name: 'إعادة (Ctrl+Y)', id: 'c3-redo', fn: opRedo });
     topItem({ sep: true });
     topItem({ icon: 'fit-view', lbl: 'ملاءمة', name: 'ملاءمة العرض (F)', fn: () => V().fit() });
-    topItem({ icon: 'zoom-in', lbl: 'تكبير', name: 'تكبير على التحديد', fn: opZoomSel });
+    topItem({ icon: 'zoom-in', lbl: 'تكبير', name: 'تكبير (+)', fn: () => V().zoomIn() });
+    topItem({ icon: 'zoom-out', lbl: 'تصغير', name: 'تصغير (−)', fn: () => V().zoomOut() });
+    // «تأطير» لا «تكبير»: هذه تُحيط بالمحدَّد لا تُقرّب خطوةً — وكان الاسم
+    // الملتبس يُخفي غياب زرّ التصغير أصلاً
+    topItem({ icon: 'fit-view', lbl: 'تأطير', name: 'تأطير المحدَّد', fn: opZoomSel });
     topItem({ icon: 'ortho', lbl: 'متعامد', name: 'إسقاط متعامد / منظور (O)', id: 'c3-ortho', fn: toggleOrtho });
     topItem({ sep: true });
     topItem({ icon: 'blend', lbl: 'الإظهار', name: 'وضع الإظهار: مظلّل', id: 'c3-mode', fn: cycleMode });
@@ -2603,12 +2646,22 @@
     topItem({ icon: 'eye', lbl: 'إخفاء', name: 'إخفاء / إظهار المحدَّد', fn: opToggleHide });
     topItem({ icon: 'isolate', lbl: 'عزل', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
     topItem({ icon: 'explode', lbl: 'تفجير', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
+    topItem({ icon: 'magnet', lbl: 'التقاط', name: 'الالتقاط ثلاثيّ الأبعاد: رؤوس ومنتصفات ومراكز', id: 'c3-snap', fn: toggleSnap3D });
     topItem({ icon: 'zap', lbl: 'إضاءة', name: 'الإضاءة والظلال', fn: VIEWFX.lighting });
     topItem({ icon: 'rotate', lbl: 'دوران', name: 'دوران تلقائيّ حول المجسّم', id: 'c3-spin', fn: VIEWFX.turntable });
     topItem({ icon: 'sidebar', lbl: 'الشجرة', name: 'طيّ / بسط شجرة الميزات', id: 'c3-side', fn: toggleSide });
     topItem({ grow: true });
     topItem({ icon: 'cpu', lbl: 'تخشين', name: 'مسار تخشين ثلاثيّ المحاور → G-Code', fn: opRoughing });
     topItem({ icon: 'download', lbl: 'STL', name: 'تصدير STL', fn: opExportSTL });
+  }
+
+  /** مفتاح الالتقاط ثلاثيّ الأبعاد — يعمل في القياس وفي مقبض النقل */
+  let snap3D = false;
+  function toggleSnap3D() {
+    snap3D = !snap3D;
+    V().setSnap({ on: snap3D });
+    document.getElementById('c3-snap')?.classList.toggle('on', snap3D);
+    toast(snap3D ? 'الالتقاط مُفعّل — رؤوس ومنتصفات ومراكز' : 'أُوقف الالتقاط', 'info');
   }
 
   function opZoomSel() {
@@ -2680,6 +2733,8 @@
         else { V().setSelection([]); renderTree(); updateInfo(); }
         return;
       }
+      if (k === '+' || k === '=' ) { e.preventDefault(); V().zoomIn(); return; }
+      if (k === '-' || k === '_' ) { e.preventDefault(); V().zoomOut(); return; }
       if (k === 'f2') {
         const s = V().getSelection();
         if (s.length === 1) { e.preventDefault(); beginRename(s[0]); }
