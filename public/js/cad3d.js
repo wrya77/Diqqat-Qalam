@@ -982,7 +982,7 @@
 
     statEl = document.createElement('div'); statEl.className = 'c3-stat';
     hintEl = document.createElement('div'); hintEl.className = 'c3-hint';
-    hintEl.textContent = 'سحب: تدوير · Shift/يمين: تحريك · عجلة: تكبير · ١-٧ مساقط · F ملاءمة';
+    hintEl.textContent = 'سحب: تدوير · Shift/يمين: تحريك · عجلة أو ‎+ ‎−: تكبير وتصغير · ١-٧ مساقط · F ملاءمة';
     busyEl = document.createElement('div'); busyEl.className = 'c3-busy';
     hud.append(cube, row2, statEl, hintEl, busyEl);
     view.appendChild(hud);
@@ -2592,7 +2592,11 @@
     topItem({ icon: 'rot-right', lbl: 'إعادة', name: 'إعادة (Ctrl+Y)', id: 'c3-redo', fn: opRedo });
     topItem({ sep: true });
     topItem({ icon: 'fit-view', lbl: 'ملاءمة', name: 'ملاءمة العرض (F)', fn: () => V().fit() });
-    topItem({ icon: 'zoom-in', lbl: 'تكبير', name: 'تكبير على التحديد', fn: opZoomSel });
+    topItem({ icon: 'zoom-in', lbl: 'تكبير', name: 'تكبير (+)', fn: () => V().zoomIn() });
+    topItem({ icon: 'zoom-out', lbl: 'تصغير', name: 'تصغير (−)', fn: () => V().zoomOut() });
+    // «تأطير» لا «تكبير»: هذه تُحيط بالمحدَّد لا تُقرّب خطوةً — وكان الاسم
+    // الملتبس يُخفي غياب زرّ التصغير أصلاً
+    topItem({ icon: 'fit-view', lbl: 'تأطير', name: 'تأطير المحدَّد', fn: opZoomSel });
     topItem({ icon: 'ortho', lbl: 'متعامد', name: 'إسقاط متعامد / منظور (O)', id: 'c3-ortho', fn: toggleOrtho });
     topItem({ sep: true });
     topItem({ icon: 'blend', lbl: 'الإظهار', name: 'وضع الإظهار: مظلّل', id: 'c3-mode', fn: cycleMode });
@@ -2680,6 +2684,8 @@
         else { V().setSelection([]); renderTree(); updateInfo(); }
         return;
       }
+      if (k === '+' || k === '=' ) { e.preventDefault(); V().zoomIn(); return; }
+      if (k === '-' || k === '_' ) { e.preventDefault(); V().zoomOut(); return; }
       if (k === 'f2') {
         const s = V().getSelection();
         if (s.length === 1) { e.preventDefault(); beginRename(s[0]); }

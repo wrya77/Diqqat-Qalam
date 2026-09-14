@@ -823,6 +823,9 @@
     get: byId, all: () => solids ? solids.children.slice() : [],
     setSelection, getSelection,
     setView, fit, fitTo, setOrtho, isOrtho: () => ortho,
+    // التكبير كان متاحاً بالعجلة وحدها — بلا واجهة برمجية ولا زرّ تصغير
+    zoomBy, zoomIn: () => zoomBy(1 / 1.25), zoomOut: () => zoomBy(1.25),
+    distance: () => orb.r,
     setMode, mode: () => mode,
     setSection, setMeasure, setGizmoMode, gizmoMode: () => gizmoMode,
     showGrid: v => { const g = helpers.getObjectByName('grid'); if (g) g.visible = v; requestRender(); },
