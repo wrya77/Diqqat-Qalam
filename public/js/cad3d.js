@@ -1300,10 +1300,19 @@
       row.draggable = true;
       if (consumed.has(f.id)) row.style.opacity = '.45';
       const kind = KINDS[f.kind] || {};
-      row.innerHTML = ico(kind.icon || 'cube') +
-        `<span class="n" title="${f.error || f.name}">${f.name}</span>` +
+      /* اسم الميزة نصٌّ من المستخدم: إعادة تسمية بـF2، أو اسم ملفٍّ مستورَد، أو
+         اسمٌ قادمٌ من ملفّ مشروعٍ أو جلسةٍ محفوظة. إقحامه الخام في innerHTML كان
+         يُنفّذ ما فيه: `<img src=x onerror=…>` في ملفّ مشروعٍ يُشارَك = شيفرةٌ
+         تعمل في أصل التطبيق حيث تسكن جلسة الدخول. يُبنى الآن عقدةً نصّية. */
+      row.innerHTML = ico(kind.icon || 'cube');
+      const nameEl = document.createElement('span');
+      nameEl.className = 'n';
+      nameEl.title = String(f.error || f.name || '');
+      nameEl.textContent = String(f.name == null ? '' : f.name);
+      row.appendChild(nameEl);
+      row.insertAdjacentHTML('beforeend',
         `<span class="a" data-a="eye" title="إخفاء / إظهار">${ico(f.off ? 'dot-off' : 'dot-on')}</span>` +
-        `<span class="a" data-a="edit" title="تحرير المعاملات">${ico('pencil')}</span>`;
+        `<span class="a" data-a="edit" title="تحرير المعاملات">${ico('pencil')}</span>`);
 
       row.addEventListener('click', e => {
         // closest لا dataset المباشر: الأزرار صارت أيقونات SVG، فهدف النقر هو

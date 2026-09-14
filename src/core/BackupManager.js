@@ -49,17 +49,42 @@ class BackupManager {
     return { success: true, projectsBacked: backed, file: backupFile, timestamp };
   }
 
+  /**
+   * يحصر مساراً داخل مجلّده. المقارنة على المسار المُحلَّل لا على النصّ الخام —
+   * فـ`..%2f` و`..\` وروابط الأسماء كلّها تنكشف بعد الحلّ.
+   */
+  static _within(dir, name) {
+    const root = path.resolve(dir) + path.sep;
+    const full = path.resolve(dir, name);
+    if (!full.startsWith(root)) throw new Error('اسم غير صالح: ' + name);
+    return full;
+  }
+
   restore(backupId) {
-    const file = path.join(this.backupDir, backupId.endsWith('.json') ? backupId : `${backupId}.json`);
+    /* كان المعرّف يدخل المسار كما هو: `../../anything` يقرأ أيّ ملفّ .json على
+       القرص. والأخطر أنّ مفاتيح `projects` داخل الملفّ كانت تُكتب كما هي، فملفّ
+       نسخةٍ يحوي المفتاح `../server.js` يكتب فوق شيفرة الخادم — أي تنفيذ شيفرة
+       عن بُعد. النقطة إداريّة لكن تسريب مفتاح الإدارة يجب ألّا يساوي سيطرةً على
+       الجهاز. (قِيس: القراءة والكتابة خارج المجلّدين نجحتا قبل هذا الإصلاح.) */
+    const id = String(backupId == null ? '' : backupId);
+    if (!id || /[\/\\]/.test(id) || id.includes('..')) {
+      throw new Error('معرّف نسخة احتياطية غير صالح');
+    }
+    const file = BackupManager._within(this.backupDir, id.endsWith('.json') ? id : `${id}.json`);
     if (!fs.existsSync(file)) throw new Error('ملف النسخة الاحتياطية غير موجود');
 
     const backup   = JSON.parse(fs.readFileSync(file, 'utf8'));
-    let restored = 0;
+    let restored = 0, skipped = 0;
     for (const [filename, data] of Object.entries(backup.projects || {})) {
-      fs.writeFileSync(path.join(this.projectsDir, filename), JSON.stringify(data, null, 2));
+      // اسم ملفٍّ مجرّد بامتداد المشاريع وحده — لا مسارات ولا امتدادات أخرى
+      if (/[\/\\]/.test(filename) || filename.includes('..') || !filename.endsWith('.cncp')) {
+        skipped++;
+        continue;
+      }
+      fs.writeFileSync(BackupManager._within(this.projectsDir, filename), JSON.stringify(data, null, 2));
       restored++;
     }
-    return { restored, timestamp: backup.timestamp };
+    return { restored, skipped, timestamp: backup.timestamp };
   }
 
   listBackups() {

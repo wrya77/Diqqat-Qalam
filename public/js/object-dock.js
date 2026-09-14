@@ -11,9 +11,13 @@
  *  «/» يطويها إلى شريط أيقونات · F7 يبدّل الإظهار. الحالة في localStorage.
  *  واجهة فقط — لا منطق هندسي؛ يقرأ ed.shapes ويحدّد عبر selectedIdx/msel القائمة.
  */
+/* أسماء الأشكال يكتبها المستخدم وتُحفظ في ملفّ المشروع ثم تُقحَم في innerHTML —
+   تُعقَّم قبل الإقحام وإلّا نفّذ ملفٌّ مُشارَك شيفرةً في أصل التطبيق. */
 (function objectDock() {
   'use strict';
   const ico = n => { try { return window.DQIcon ? window.DQIcon(n) : ''; } catch (_) { return ''; } };
+  const esc = s => String(s == null ? '' : s)
+    .replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'dq_object_dock';
   const st = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
   const save = o => localStorage.setItem(KEY, JSON.stringify({ ...st(), ...o }));
@@ -457,7 +461,7 @@
     objList.innerHTML = e.shapes.map((s, i) => `
       <div class="odk-row ${sel.has(i) ? 'sel' : ''} ${s.disabled ? 'off' : ''}" data-i="${i}">
         <span class="odk-row-ic">${ICONS[s.type] || '◇'}</span>
-        <span class="odk-row-name">${s.name || `${AR_TYPE[s.type] || s.type} ${i + 1}`}</span>
+        <span class="odk-row-name">${esc(s.name || `${AR_TYPE[s.type] || s.type} ${i + 1}`)}</span>
         <button data-act="eye" title="${s.disabled ? 'إظهار في الإخراج' : 'إخفاء من الإخراج'}">${s.disabled ? '🚫' : '👁'}</button>
         <button data-act="lock" class="${s.locked ? 'act' : ''}" title="${s.locked ? 'فك القفل' : 'قفل'}">${s.locked ? '🔒' : '🔓'}</button>
       </div>`).join('');
