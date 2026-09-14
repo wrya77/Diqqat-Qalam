@@ -122,6 +122,7 @@
           case 'twist':   return D().twist(g, P.deg, P.axis);
           case 'taper':   return D().taper(g, P.factor, P.axis);
           case 'bend':    return D().bend(g, P.deg, P.axis);
+          case 'draft':   return D().draft(g, P);
           case 'arrpath': return D().arrayPath(g, P.path || [], P);
           case 'orient':  {
             const r = D().autoOrient(g);
@@ -247,6 +248,8 @@
     isolated = false; exploded = 0;
     document.getElementById('c3-iso')?.classList.remove('on');
     document.getElementById('c3-exp')?.classList.remove('on');
+    // الوجوه والحوافّ المنتقاة تخصّ شبكاتٍ استُبدلت للتوّ
+    try { window.CAD3DSub && window.CAD3DSub.invalidate(); } catch (_) {}
 
     v.setSelection(sel.filter(id => !consumed.has(id) && feats.some(f => f.id === id)));
     renderTree();
@@ -1297,10 +1300,19 @@
       row.draggable = true;
       if (consumed.has(f.id)) row.style.opacity = '.45';
       const kind = KINDS[f.kind] || {};
-      row.innerHTML = ico(kind.icon || 'cube') +
-        `<span class="n" title="${f.error || f.name}">${f.name}</span>` +
+      /* اسم الميزة نصٌّ من المستخدم: إعادة تسمية بـF2، أو اسم ملفٍّ مستورَد، أو
+         اسمٌ قادمٌ من ملفّ مشروعٍ أو جلسةٍ محفوظة. إقحامه الخام في innerHTML كان
+         يُنفّذ ما فيه: `<img src=x onerror=…>` في ملفّ مشروعٍ يُشارَك = شيفرةٌ
+         تعمل في أصل التطبيق حيث تسكن جلسة الدخول. يُبنى الآن عقدةً نصّية. */
+      row.innerHTML = ico(kind.icon || 'cube');
+      const nameEl = document.createElement('span');
+      nameEl.className = 'n';
+      nameEl.title = String(f.error || f.name || '');
+      nameEl.textContent = String(f.name == null ? '' : f.name);
+      row.appendChild(nameEl);
+      row.insertAdjacentHTML('beforeend',
         `<span class="a" data-a="eye" title="إخفاء / إظهار">${ico(f.off ? 'dot-off' : 'dot-on')}</span>` +
-        `<span class="a" data-a="edit" title="تحرير المعاملات">${ico('pencil')}</span>`;
+        `<span class="a" data-a="edit" title="تحرير المعاملات">${ico('pencil')}</span>`);
 
       row.addEventListener('click', e => {
         // closest لا dataset المباشر: الأزرار صارت أيقونات SVG، فهدف النقر هو
@@ -1433,6 +1445,14 @@
         '<i>·</i><span>mm</span>';
     }
     if (!infoEl) return;
+    // الانتقاء الفرعيّ يسبق معلومات الجسم: هو ما ينظر إليه المستخدم الآن
+    const S = window.CAD3DSub;
+    if (S && S.mode() !== 'off') {
+      const txt = S.describe();
+      infoEl.innerHTML = `<b>مستوى الانتقاء:</b> ${S.LABEL[S.mode()]}<br>` +
+        (txt ? txt : '<span style="opacity:.7">انقر على المجسّم للانتقاء · Ctrl للإضافة</span>');
+      return;
+    }
     if (sel.length !== 1) {
       infoEl.innerHTML = `<b>${feats.length}</b> ميزة · <b>${v.all().length}</b> مجسّم ظاهر`;
       return;
@@ -2032,6 +2052,24 @@
           options: [{ v: 'x', t: 'X' }, { v: 'y', t: 'Y' }, { v: 'z', t: 'Z' }] }]);
       if (r) pushOp(id, { op: 'bend', deg: r.deg, axis: r.axis }, `ثني ${r.deg}°`);
     },
+    async draft() {
+      const id = one(); if (!id) return;
+      const r = await ask('زاوية السحب — تمييل الجدران', [
+        { key: 'angle', label: 'الزاوية (°)', def: 3, min: 0.1, max: 45, step: 0.5 },
+        { key: 'axis', label: 'محور السحب', type: 'select', def: 'z',
+          options: [{ v: 'z', t: 'Z' }, { v: 'x', t: 'X' }, { v: 'y', t: 'Y' }] },
+        { key: 'from', label: 'المستوى المحايد', type: 'select', def: 'min',
+          options: [{ v: 'min', t: 'الأسفل' }, { v: 'mid', t: 'الوسط' }, { v: 'max', t: 'الأعلى' }] },
+        { key: 'dir', label: 'الاتجاه', type: 'select', def: '1',
+          options: [{ v: '1', t: 'اتّساع للأعلى' }, { v: '-1', t: 'ضيق للأعلى' }] },
+      ]);
+      if (!r) return;
+      const before = kVol(id);
+      if (!pushOp(id, { op: 'draft', angle: r.angle, axis: r.axis, from: r.from, dir: +r.dir },
+                  `سحب ${r.angle}°`)) return;
+      const after = kVol(V().getSelection()[0]);
+      if (before && after) toast(`الحجم ${(before/1000).toFixed(2)} → ${(after/1000).toFixed(2)} سم³`, 'info');
+    },
     async arrayPath() {
       const id = one(); if (!id) return;
       const path = selectedPath() || (() => {
@@ -2150,26 +2188,43 @@
     const T = f && f.__geom ? window.CAD3DBevel.topology(f.__geom, 1e-4, 1) : null;
     const sharp = T ? [...T.edges.values()].filter(e => e.g.length === 2 && e.angle >= 25).length : 0;
     if (!sharp) { toast('لا حوافّ حادّة في هذا المجسّم', 'warn'); return; }
-    const r = await ask(round ? 'تدوير الحوافّ' : 'شطف الحوافّ', [
+
+    /* انتقاءٌ على مستوى الحافّة أو الوجه يقيّد العملية به. بلا انتقاءٍ يبقى
+       السلوك الشامل السابق: كلّ حافّةٍ فوق الزاوية. */
+    const S = window.CAD3DSub;
+    const picked = S ? S.anchors() : { at: [], faces: [] };
+    const local = picked.at.length + picked.faces.length > 0;
+    const scope = local
+      ? `المنتقى: ${picked.at.length ? picked.at.length + ' حافّة' : ''}${picked.at.length && picked.faces.length ? ' و' : ''}${picked.faces.length ? picked.faces.length + ' وجه' : ''}`
+      : `الكلّ — ${sharp} حافّة فوق ٢٥°`;
+
+    const r = await ask((round ? 'تدوير الحوافّ' : 'شطف الحوافّ') + ' · ' + scope, [
       { key: 'dist', label: round ? 'نصف القطر (mm)' : 'عرض الشطف (mm)', def: 2, min: 0.05 },
       ...(round ? [{ key: 'segments', label: 'نعومة القوس', def: 6, min: 2, max: 24 }] : []),
-      { key: 'angle', label: `أقلّ زاوية تُعدّ حافّة (°) — ${sharp} حافّة فوق ٢٥°`,
-        def: 25, min: 1, max: 179 },
-      { key: 'mode', label: 'أيّ الحوافّ', type: 'select', def: 'convex',
-        options: [{ v: 'convex', t: 'الخارجية فقط' }, { v: 'concave', t: 'الداخلية فقط' }, { v: 'all', t: 'الكلّ' }] },
+      ...(local ? [] : [
+        { key: 'angle', label: 'أقلّ زاوية تُعدّ حافّة (°)', def: 25, min: 1, max: 179 },
+        { key: 'mode', label: 'أيّ الحوافّ', type: 'select', def: 'convex',
+          options: [{ v: 'convex', t: 'الخارجية فقط' }, { v: 'concave', t: 'الداخلية فقط' }, { v: 'all', t: 'الكلّ' }] },
+      ]),
     ]);
     if (!r) return;
     await busy(round ? 'جارٍ تدوير الحوافّ…' : 'جارٍ الشطف…');
     let ok = false;
     try {
-      ok = pushOp(id, { op: 'bevel', dist: r.dist, segments: round ? r.segments : 1,
-                        angle: r.angle, mode: r.mode },
-                  round ? `تدوير ${r.dist}mm` : `شطف ${r.dist}mm`);
+      const P = { op: 'bevel', dist: r.dist, segments: round ? r.segments : 1 };
+      if (local) { P.at = picked.at; P.faces = picked.faces; }
+      else { P.angle = r.angle; P.mode = r.mode; }
+      ok = pushOp(id, P, (round ? `تدوير ${r.dist}mm` : `شطف ${r.dist}mm`) + (local ? ' (منتقى)' : ''));
     } finally { unbusy(); }
     if (!ok) return;
     const nf = featById(V().getSelection()[0]);
     const u = nf && nf.__geom && nf.__geom.userData.bevel;
-    if (u) toast(`${u.edges} حافّة · ${u.corners} ركن`, 'info');
+    if (!u) return;
+    // الانفتاح لا يُكتَم: مجسّمٌ غير مغلق يُفسد الحجم والعمليات المنطقية وملفّ
+    // الطباعة، ويظهر العطب متأخّراً على الآلة لا هنا
+    if (u.open) toast(`${u.edges} حافّة · لكنّ الشبكة غير مغلقة (${u.open} حافّة حرّة) — ` +
+                      'جرّب الشطف أو نصف قطر أصغر، أو «إعادة بناء بالفوكسل» للإصلاح', 'error');
+    else toast(`${u.edges} حافّة · ${u.corners} ركن`, 'success');
   }
 
   /* ══════════════ الإضاءة والكاميرا ══════════════ */
@@ -2497,6 +2552,44 @@
   }
   const K3 = () => window.CAD3DKernel;
 
+  /** حجم ميزةٍ بالمم³ — أو 0 إن تعذّر */
+  function kVol(id) {
+    try {
+      const f = featById(id);
+      if (!f || !f.__geom) return 0;
+      return Math.abs(K3().volume(K3().fromGeometry(f.__geom)) || 0);
+    } catch (_) { return 0; }
+  }
+
+  /**
+   * فحص التداخل بين جسمين: حجم تقاطعهما.
+   * التجميعات التي تبدو سليمة بالعين تتداخل كثيراً، ولا يظهر ذلك إلّا بعد
+   * إتلاف قطعة على الآلة. الـCSG عندنا يعطي الجواب مباشرةً.
+   */
+  async function opInterference() {
+    const ids = V().getSelection();
+    if (ids.length < 2) { toast('حدّد جسمين فأكثر لفحص التداخل', 'warn'); return; }
+    await busy('جارٍ فحص التداخل…');
+    const hits = [];
+    try {
+      const solids = ids.map(id => ({ id, f: featById(id) })).filter(x => x.f && x.f.__geom);
+      for (let i = 0; i < solids.length; i++) {
+        for (let j = i + 1; j < solids.length; j++) {
+          const A = K3().fromGeometry(solids[i].f.__geom);
+          const B = K3().fromGeometry(solids[j].f.__geom);
+          let vol = 0;
+          try { vol = Math.abs(K3().volume(K3().intersect(A, B)) || 0); } catch (_) { vol = 0; }
+          if (vol > 1e-3) hits.push({ a: solids[i].f.name, b: solids[j].f.name, vol });
+        }
+      }
+    } finally { unbusy(); }
+    if (!hits.length) { toast(`لا تداخل بين ${ids.length} أجسام`, 'success'); return; }
+    hits.sort((x, y) => y.vol - x.vol);
+    const lines = hits.map(h => `${h.a} ⟷ ${h.b}: ${(h.vol / 1000).toFixed(3)} سم³`);
+    toast(`${hits.length} تداخل — ${lines[0]}`, 'error');
+    if (infoEl) infoEl.textContent = 'تداخل: ' + lines.join(' · ');
+  }
+
   /* ══════════════ تسجيل الأوامر في الشريط والريل ══════════════ */
 
   function defineCommands() {
@@ -2552,6 +2645,11 @@
     railGroup({ icon: 'corner-round', name: 'حوافّ', items: [
       { t: 'تدوير الحوافّ…', icon: 'corner-round', fn: () => opBevel(true) },
       { t: 'شطف الحوافّ…', icon: 'corner-chamfer', fn: () => opBevel(false) },
+      { sep: true },
+      { t: 'انتقاء الأوجه', icon: 'sub-face', fn: () => setSubMode('face') },
+      { t: 'انتقاء الحوافّ', icon: 'sub-edge', fn: () => setSubMode('edge') },
+      { t: 'انتقاء الرؤوس', icon: 'sub-vertex', fn: () => setSubMode('vertex') },
+      { t: 'العودة إلى مستوى الجسم', icon: 'cube', key: 'Tab', fn: () => setSubMode('off') },
     ] });
 
     railGroup({ icon: 'wrench', name: 'تعديل المجسّم', items: [
@@ -2577,6 +2675,7 @@
       { t: 'التواء…', icon: 'rotate', fn: MOD.twist },
       { t: 'استدقاق…', icon: 'triangle', fn: MOD.taper },
       { t: 'ثني…', icon: 'arc-join', fn: MOD.bend },
+      { t: 'زاوية السحب…', icon: 'triangle', fn: MOD.draft },
       { t: 'مصفوفة على مسار…', icon: 'dots-path', fn: MOD.arrayPath },
     ] });
 
@@ -2596,6 +2695,7 @@
       { t: 'تقرير قابلية التصنيع…', icon: 'gauge', fn: opReport },
       { t: 'الجدران الرقيقة…', icon: 'alert', fn: MOD.thin },
       { t: 'الخصائص الفيزيائية…', icon: 'coin', fn: MOD.mass },
+      { t: 'فحص التداخل بين الأجسام', icon: 'alert', fn: opInterference },
     ] });
 
     railGroup({ icon: 'cpu', name: 'تصنيع CNC', items: [
@@ -2647,6 +2747,7 @@
     topItem({ icon: 'isolate', lbl: 'عزل', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
     topItem({ icon: 'explode', lbl: 'تفجير', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
     topItem({ icon: 'magnet', lbl: 'التقاط', name: 'الالتقاط ثلاثيّ الأبعاد: رؤوس ومنتصفات ومراكز', id: 'c3-snap', fn: toggleSnap3D });
+    topItem({ icon: 'cube', lbl: 'مستوى', name: 'مستوى الانتقاء: جسم ← وجه ← حافّة ← رأس (Tab)', id: 'c3-sub', fn: cycleSubMode });
     topItem({ icon: 'zap', lbl: 'إضاءة', name: 'الإضاءة والظلال', fn: VIEWFX.lighting });
     topItem({ icon: 'rotate', lbl: 'دوران', name: 'دوران تلقائيّ حول المجسّم', id: 'c3-spin', fn: VIEWFX.turntable });
     topItem({ icon: 'sidebar', lbl: 'الشجرة', name: 'طيّ / بسط شجرة الميزات', id: 'c3-side', fn: toggleSide });
@@ -2662,6 +2763,34 @@
     V().setSnap({ on: snap3D });
     document.getElementById('c3-snap')?.classList.toggle('on', snap3D);
     toast(snap3D ? 'الالتقاط مُفعّل — رؤوس ومنتصفات ومراكز' : 'أُوقف الالتقاط', 'info');
+  }
+
+  /* ══════════════ مستوى الانتقاء ══════════════ */
+
+  const SUB_ICON = { off: 'cube', face: 'sub-face', edge: 'sub-edge', vertex: 'sub-vertex' };
+
+  function setSubMode(m) {
+    const S = window.CAD3DSub;
+    if (!S) { toast('وحدة الانتقاء الفرعيّ غير محمّلة', 'error'); return; }
+    const now = S.setMode(m);
+    const btn = document.getElementById('c3-sub');
+    if (btn) {
+      btn.classList.toggle('on', now !== 'off');
+      const l = btn.querySelector('.lbl');
+      if (l) l.textContent = S.LABEL[now];
+      const i = btn.querySelector('svg');
+      if (i && window.DQIcon) i.outerHTML = ico(SUB_ICON[now] || 'cube');
+      btn.title = `مستوى الانتقاء: ${S.LABEL[now]} (Tab)`;
+    }
+    toast(now === 'off' ? 'الانتقاء على مستوى الجسم' : `الانتقاء على مستوى ال${S.LABEL[now]}`, 'info');
+    updateInfo();
+  }
+
+  function cycleSubMode() {
+    const S = window.CAD3DSub;
+    if (!S) return;
+    const i = S.MODES.indexOf(S.mode());
+    setSubMode(S.MODES[(i + 1) % S.MODES.length]);
   }
 
   function opZoomSel() {
@@ -2691,6 +2820,7 @@
       if (!v.mount(host)) { pane.innerHTML = '<div class="c3-empty">تعذّر تهيئة WebGL.</div>'; return; }
       v.on('select', () => { renderTree(); updateInfo(); });
       v.on('camera', drawNav);
+      try { window.CAD3DSub && window.CAD3DSub.on(() => updateInfo()); } catch (_) {}
       v.on('change', e => {
         if (!e || !e.transform) return;
         const f = featById(e.id), m = v.get(e.id);
@@ -2727,9 +2857,12 @@
       if (e.ctrlKey && k === 'a') { e.preventDefault(); selectAll(); return; }
       if (e.ctrlKey && k === 'd' && !e.shiftKey) { e.preventDefault(); OPS.duplicate(); return; }
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (k === 'tab') { e.preventDefault(); cycleSubMode(); return; }
       if (k === 'escape') {
-        // إفلات متدرّج: أغلق القوائم، وإلّا ألغِ التحديد
+        // إفلات متدرّج: أغلق القوائم، ثمّ الانتقاء الفرعيّ، ثمّ التحديد
+        const S = window.CAD3DSub;
         if (document.querySelector('#pane-cad .c3-slot.open') || ctxEl) closeFlyouts();
+        else if (S && S.mode() !== 'off') setSubMode('off');
         else { V().setSelection([]); renderTree(); updateInfo(); }
         return;
       }

@@ -20,6 +20,22 @@ const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const authEnabled = !!(supabaseUrl && supabaseKey);
 
+/**
+ * وضع التطوير يمنح مستخدماً وهمياً كي يبقى التطبيق صالحاً بلا مصادقة. لكنّه كان
+ * يُمنَح بمجرّد غياب متغيّرات Supabase — أياً كانت البيئة. فنشرٌ إنتاجيّ يفقد
+ * متغيّراته (مفتاح مُدوَّر، متغيّر لم يُنقل إلى بيئة جديدة) كان **يفتح كلّ نقطة
+ * محميّة للعالم**، والأسوأ أنّ الجميع يصيرون الهويّة نفسها 'dev-user' فيقرأ كلٌّ
+ * مشاريع الآخرين ويكتب فوقها. والعطب صامت: التطبيق يعمل، فلا شيء ينبّه.
+ *
+ * فليكن الفشل مغلقاً: خارج التطوير الصريح لا مستخدم وهميّ البتّة.
+ */
+const DEV_FALLBACK = !authEnabled && process.env.NODE_ENV !== 'production';
+
+if (!authEnabled && !DEV_FALLBACK) {
+  console.error('[auth] SUPABASE_URL/SUPABASE_ANON_KEY غير مضبوطة في الإنتاج — ' +
+                'كل النقاط المحميّة سترفض الطلبات (فشلٌ مغلق).');
+}
+
 // Verified-token cache: avoids one Supabase round-trip per request
 const TOKEN_CACHE_TTL = 60 * 1000;
 const tokenCache = new Map(); // token -> { user, expires }
@@ -72,7 +88,9 @@ async function verifyToken(token) {
 
 async function attachUser(req, res, next) {
   if (!authEnabled) {
-    req.user = { id: 'dev-user', email: 'dev@localhost', dev: true };
+    // في التطوير المحلّي فقط — وإلّا نترك req.user فارغاً ويتكفّل requireAuth بالرفض
+    if (DEV_FALLBACK) req.user = { id: 'dev-user', email: 'dev@localhost', dev: true };
+    else req.user = null;
     return next();
   }
   const header = req.headers.authorization || '';
@@ -90,6 +108,9 @@ async function attachUser(req, res, next) {
 
 function requireAuth(req, res, next) {
   if (req.user) return next();
+  if (!authEnabled) {
+    return res.status(503).json({ error: 'المصادقة غير مهيّأة على الخادم. تواصل مع المشرف.' });
+  }
   res.status(401).json({ error: 'يجب تسجيل الدخول للوصول لهذه الخدمة.' });
 }
 
