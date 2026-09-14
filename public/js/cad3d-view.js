@@ -23,6 +23,9 @@
   let mode = 'shaded';
   let gizmo = null, gizmoMode = 'move', gizmoTarget = null;
   let measure = { on: false, pts: [], obj: null };
+  /* خطّافا الانتقاء: حين يكون وضع الانتقاء على مستوى الوجه أو الحافّة أو الرأس
+     تتولّى وحدة cad3d-subsel النقرة، ولا يُبدَّل تحديد الأجسام. */
+  let pickHook = null, hoverHook = null;
   const listeners = { select: [], change: [], measure: [], camera: [] };
 
   /* حالة المدار: مسافة وزاويتان ومركز.
@@ -435,6 +438,7 @@
     });
     window.addEventListener('mousemove', e => {
       if (snapOpt.on && !gdrag) showSnap(findSnap(e));
+      if (hoverHook && !gdrag && !drag) { try { hoverHook(e); } catch (_) {} }
       if (gizmoMove(e)) return;
       if (!drag) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
@@ -446,6 +450,7 @@
       if (gizmoUp()) { drag = null; return; }
       if (drag && !drag.moved && drag.btn === 0 && !measure.on) {
         const h = pick(e);
+        if (pickHook && pickHook(e, h)) { drag = null; return; }
         if (h) {
           const id = h.object.userData.id;
           if (e.ctrlKey || e.metaKey) {
@@ -829,9 +834,19 @@
     rebuildGizmo();
   }
 
+  /* في وضع انتقاء الوجوه والحوافّ يُخفى مقبض التحويل: هو يحرّك الجسم كلّه، وهو
+     يتوسّط الشاشة فيبتلع النقرات الواقعة قربه — رأسٌ من أربعة كان لا يُنتقى
+     لأنّ ذراع المقبض تعترضه. */
+  let gizmoOff = false;
+  function suppressGizmo(v) {
+    gizmoOff = !!v;
+    if (gizmo) gizmo.visible = !gizmoOff && !!gizmoTarget;
+    requestRender();
+  }
+
   function attachGizmo(mesh) {
     gizmoTarget = mesh || null;
-    gizmo.visible = !!mesh;
+    gizmo.visible = !!mesh && !gizmoOff;
     if (mesh) {
       const b = new THREE.Box3().setFromObject(mesh);
       gizmo.position.copy(b.getCenter(new THREE.Vector3()));
@@ -850,7 +865,7 @@
   let gdrag = null;
 
   function gizmoDown(ev) {
-    if (!gizmo.visible || !gizmoTarget) return false;
+    if (gizmoOff || !gizmo.visible || !gizmoTarget) return false;
     const r = renderer.domElement.getBoundingClientRect();
     const nd = new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1,
                                 -((ev.clientY - r.top) / r.height) * 2 + 1);
@@ -968,6 +983,11 @@
     showGrid: v => { const g = helpers.getObjectByName('grid'); if (g) g.visible = v; requestRender(); },
     showAxes: v => { const a = helpers.getObjectByName('axes'); if (a) a.visible = v; requestRender(); },
     camera: () => cam, scene: () => scene, on,
+    canvas: () => renderer && renderer.domElement,
+    pickAt: pick,
+    setPickHook: f => { pickHook = f || null; },
+    suppressGizmo,
+    setHoverHook: f => { hoverHook = f || null; },
     ready: () => !!renderer,
     // إضاءة وكاميرا
     setLighting, lighting: () => Object.assign({}, lightState),

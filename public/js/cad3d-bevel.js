@@ -23,6 +23,12 @@
 
   const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
   const key2 = (a, b) => (a < b ? a + '_' + b : b + '_' + a);
+  const toV3 = p => {
+    if (!p) return null;
+    if (Array.isArray(p)) return v3(+p[0] || 0, +p[1] || 0, +p[2] || 0);
+    if (typeof p.x === 'number') return v3(p.x, p.y, p.z);
+    return null;
+  };
 
   /* ══════════════ ١ · نموذج الحوافّ والوجوه ══════════════ */
 
@@ -31,7 +37,7 @@
    * بينها مع زواياها ثنائية السطح.
    */
   function topology(geometry, tol, planarDeg) {
-    const { V, F } = D().indexed(geometry, tol || 1e-4);
+    const { V, F, S } = D().indexed(geometry, tol || 1e-4);
     if (!F.length) return null;
 
     const P = i => v3(V[i * 3], V[i * 3 + 1], V[i * 3 + 2]);
@@ -138,7 +144,29 @@
       e.convex = ref ? ref.clone().sub(mid).dot(out) < 0 : true;
     }
 
-    return { V, F, P, groups, edges, eMap };
+    /* مركز كل وجه ومركز كل حافّة — مرساةُ الانتقاء.
+       أرقام الرؤوس تتغيّر مع أي إعادة بناء، فحفظُ اختيار المستخدم برقمٍ هشّ.
+       الإحداثيّ يبقى صحيحاً ما دام الشكل هو نفسه، ويقرؤه الإنسان عند التنقيح. */
+    groups.forEach(g => {
+      const c = v3(0, 0, 0);
+      let w = 0;
+      for (const fi of g.tris) {
+        const f = F[fi];
+        const m = P(f[0]).add(P(f[1])).add(P(f[2])).divideScalar(3);
+        c.addScaledVector(m, area[fi]); w += area[fi];
+      }
+      g.center = w > EPS ? c.divideScalar(w) : c;
+    });
+    for (const e of edges.values()) {
+      e.mid = P(e.a).add(P(e.b)).multiplyScalar(0.5);
+      e.len = P(e.a).distanceTo(P(e.b));
+    }
+
+    // المثلّث المرسوم → الوجه الذي ينتمي إليه (للانتقاء بالأشعّة)
+    const triGroup = new Int32Array((S[S.length - 1] || 0) + 1).fill(-1);
+    F.forEach((_, fi) => { triGroup[S[fi]] = group[fi]; });
+
+    return { V, F, S, P, groups, edges, eMap, triGroup, N, area };
   }
 
   /* ══════════════ ٢ · الشطف والتدوير ══════════════ */
@@ -158,13 +186,30 @@
     const segs = Math.max(1, Math.min(24, Math.round(opt.segments || 1)));
     const { V, P, groups, edges } = T;
 
-    // أيّ الحوافّ تُشطَف؟
+    /* أيّ الحوافّ تُشطَف؟ إمّا كلّ حافّةٍ حادّة (الوضع الشامل)، وإمّا ما انتقاه
+       المستخدم — يصل إلينا كإحداثيّات مراكز حوافّ (at) أو مراكز أوجه (faces)
+       تُشطَف كلّ حدودها. الإحداثيّ لا الرقم: أرقام الرؤوس تتبدّل مع كل بناء. */
     const picked = new Set();
-    for (const [kk, e] of edges) {
-      if (e.g.length !== 2 || e.angle < opt.angle) continue;
-      if (opt.mode === 'convex' && !e.convex) continue;
-      if (opt.mode === 'concave' && e.convex) continue;
-      picked.add(kk);
+    const anchors = [].concat(opt.at || [], []).map(toV3).filter(Boolean);
+    const faceAnchors = (opt.faces || []).map(toV3).filter(Boolean);
+
+    if (anchors.length || faceAnchors.length) {
+      const tolA = Math.max(1e-3, +opt.pickTol || 0.35);
+      for (const [kk, e] of edges) {
+        if (e.g.length !== 2) continue;
+        if (anchors.some(a => a.distanceTo(e.mid) <= tolA)) { picked.add(kk); continue; }
+        if (faceAnchors.length && e.g.some(gi => {
+          const c = groups[gi] && groups[gi].center;
+          return c && faceAnchors.some(a => a.distanceTo(c) <= tolA);
+        })) picked.add(kk);
+      }
+    } else {
+      for (const [kk, e] of edges) {
+        if (e.g.length !== 2 || e.angle < opt.angle) continue;
+        if (opt.mode === 'convex' && !e.convex) continue;
+        if (opt.mode === 'concave' && e.convex) continue;
+        picked.add(kk);
+      }
     }
     if (!picked.size) return null;
 
@@ -226,37 +271,6 @@
       if (n.dot(outward) >= 0) push(a, b, c); else push(a, c, b);
     };
 
-    /* الوجوه المقلَّصة — تُثلَّث في مستواها ثمّ تُعاد إلى الفضاء */
-    groups.forEach((g, gi) => {
-      const n = g.n;
-      // أساس محلّيّ للمستوى
-      const ax = Math.abs(n.z) < 0.9 ? v3(0, 0, 1) : v3(1, 0, 0);
-      const ux = ax.clone().cross(n).normalize();
-      const uy = n.clone().cross(ux).normalize();
-      const org = cornerOf(gi, g.loops[0][0]) || P(g.loops[0][0]);
-      const to2 = p => new THREE.Vector2(p.clone().sub(org).dot(ux), p.clone().sub(org).dot(uy));
-      const to3 = v => org.clone().addScaledVector(ux, v.x).addScaledVector(uy, v.y);
-
-      const rings = g.loops.map(loop => loop.map(vi => to2(cornerOf(gi, vi))));
-      if (!rings.length) return;
-      // الحلقة الأكبر مساحةً هي الحدّ الخارجيّ والبقية ثقوب
-      const areaOf = r => { let s = 0; for (let i = 0; i < r.length; i++) {
-        const a = r[i], b = r[(i + 1) % r.length]; s += a.x * b.y - b.x * a.y; } return s / 2; };
-      let outer = rings[0], oi = 0;
-      rings.forEach((r, i) => { if (Math.abs(areaOf(r)) > Math.abs(areaOf(outer))) { outer = r; oi = i; } });
-      const holes = rings.filter((_, i) => i !== oi);
-      if (areaOf(outer) < 0) outer = outer.slice().reverse();
-      holes.forEach(h => { if (areaOf(h) > 0) h.reverse(); });
-      let tri;
-      try { tri = THREE.ShapeUtils.triangulateShape(outer, holes); }
-      catch (_) { return; }
-      const all = outer.concat(...holes);
-      for (const t of tri) {
-        const [A, B, C] = t.map(i => to3(all[i]));
-        push(A, B, C);
-      }
-    });
-
     const arcAt = new Map();       // "vi:edgeKey" → قوس الحافّة عند ذلك الرأس
 
     /* جسر كل حافّة مشطوفة */
@@ -270,20 +284,30 @@
       const outward = groups[gA].n.clone().add(groups[gB].n).normalize();
       if (segs === 1) {
         pushOut(a0, a1, b1, outward); pushOut(a0, b1, b0, outward);   // شطف: رباعيّ مستوٍ
+        // طرفا الشطف يُسجَّلان كقوسٍ من قطعتين، ليقرأهما شقّ الوجوه بالطريقة نفسها
+        arcAt.set(e.a + ':' + kk, { pts: [a0, b0], gA, gB });
+        arcAt.set(e.b + ':' + kk, { pts: [a1, b1], gA, gB });
         continue;
       }
       /* تدوير: قوسٌ حول محور الحافّة. مركز الكرة المتدحرجة يقع على تقاطع
          المستويين المُزاحين، ونصف قطرها المسافة إلى نقطتَي البداية. */
       const axis = P(e.b).clone().sub(P(e.a)).normalize();
+      /* القوس يُبنى بإقحامٍ كرويّ بين الشعاعين لا بتدويرٍ صلب حول محور الحافّة.
+         حين لا تُشطَف كلّ حوافّ الركن يكون ركن أحد الوجهين مُزاحاً في اتجاهين
+         والآخر في اتجاهٍ واحد، فيختلف طولا الشعاعين ولا يكون الثاني عمودياً
+         على المحور — فالتدوير الصلب لا يصل إليه أبداً: كان القوس ينتهي عند
+         (20,16,20) بينما ركن الوجه عند (16,16,20)، فتُفتح الشبكة (٢٠ حافّة
+         حرّة) ويخرج حجمٌ أكبر من الصندوق نفسه وهو محال.
+         الإقحام الكرويّ يبدأ وينتهي عند الركنين بالضبط بحكم البناء، وهو مطابقٌ
+         تماماً للتدوير الصلب حين يتساوى الشعاعان (حالة الشطف الشامل). */
       const arc = (s0, s1) => {
         const c = centerFor(s0, s1, groups[gA].n, groups[gB].n, axis, e.convex);
         const r0 = s0.clone().sub(c), r1 = s1.clone().sub(c);
+        const L0 = r0.length(), L1 = r1.length();
         const out = [];
-        const tot = Math.acos(Math.max(-1, Math.min(1, r0.clone().normalize().dot(r1.clone().normalize()))));
         for (let i = 0; i <= segs; i++) {
           const t = i / segs;
-          const q = new THREE.Quaternion().setFromAxisAngle(axis, rotSign(r0, r1, axis) * tot * t);
-          out.push(c.clone().add(r0.clone().applyQuaternion(q)));
+          out.push(c.clone().addScaledVector(slerpV(r0, r1, t), L0 + (L1 - L0) * t));
         }
         return out;
       };
@@ -307,8 +331,23 @@
         l.push(e);
       }
     }
+    /* أيّ الأوجه تلتقي عند كل رأس — يلزم لإغلاق نهاية الشطف الجزئيّ */
+    const vertFaces = new Map();
+    groups.forEach((g, gi) => {
+      for (const loop of g.loops) for (const vi of loop) {
+        let l = vertFaces.get(vi);
+        if (!l) { l = new Set(); vertFaces.set(vi, l); }
+        l.add(gi);
+      }
+    });
+
     for (const [vi, list] of atVert) {
-      if (list.length < 3) continue;             // حافّتان فقط: الجسران يتلامسان
+      /* حافّتان تلتقيان عند رأس: في الشطف يتلامس الجسران فعلاً (قِيس مغلقاً
+         وبحجمٍ مضبوط)، أمّا في التدوير فالقوسان يشتركان في طرفيهما ويسلكان
+         مسارين مختلفين، فبينهما عدسةٌ كرويّة تبقى مفتوحة — ٢٤ حافّةً حرّة عند
+         قطعتين و٢٠٠ عند ٢٤، وحجمٌ أكبر من الصندوق الأصليّ وهو محال. فتُبنى
+         الرقعة الكرويّة نفسها من حافّتين فصاعداً. */
+      if (list.length < (segs === 1 ? 3 : 2)) continue;
       const gs = new Set();
       list.forEach(e => e.g.forEach(g => gs.add(g)));
       const nAvg = v3(0, 0, 0);
@@ -339,7 +378,7 @@
       if (!c) continue;
       // حلقة الحدّ: أقواس الحوافّ الملتقية عند هذا الرأس، مسلسلةً بأركان الوجوه
       const segsAt = list.map(e => arcAt.get(vi + ':' + key2(e.a, e.b))).filter(Boolean);
-      if (segsAt.length < 3) continue;
+      if (segsAt.length < 2) continue;
       const loop = [];
       const used = new Set();
       let cur = segsAt[0], guard = 0;
@@ -371,11 +410,89 @@
       }
     }
 
+    /* ── شقّ أركان الأوجه المُنهية ──
+       حين لا تُشطَف كلُّ الحوافّ، ينتهي الشطف في منتصف الجسم. الوجه الثالث
+       الملاصق لذلك الرأس لا حافّةَ له منتقاة، فيبقى ركنه على الرأس الأصليّ
+       بينما انزاح جاراه — فيبرز منه لسانٌ مسطّح فوق سطح الشطف، والحلقة تبقى
+       مفتوحة عند نقطة T (قِيس ٦٣٩٤٠ بدل ٦٣٨٢٠ على صندوق ٤٠).
+
+       العلاج ليس رقعةً تُضاف بل شقُّ الركن نفسه: الوجه المُنهي يدخل الرأس من
+       جهة جاره الأوّل فيجب أن يوافق ركنَه، ويخرج من جهة جاره الثاني فيوافق
+       ركنه هو — أي أنّ الرأس الواحد يصير في حلقته نقطتين (أو قوساً كاملاً في
+       التدوير) بدل نقطة. */
+    const other = (e, gi) => (e.g[0] === gi ? e.g[1] : e.g[0]);
+    const seqAt = new Map();                  // "gi:vi" → [Vector3, …]
+    groups.forEach((g, gi) => {
+      for (const loop of g.loops) {
+        const L = loop.length;
+        for (let i = 0; i < L; i++) {
+          const vi = loop[i];
+          const prev = loop[(i - 1 + L) % L], next = loop[(i + 1) % L];
+          const kPrev = key2(prev, vi), kNext = key2(vi, next);
+          if (picked.has(kPrev) || picked.has(kNext)) continue;   // ركنٌ مُزاح سلفاً
+          if (!atVert.has(vi)) continue;                          // لا شطف عند هذا الرأس
+          const ePrev = edges.get(kPrev), eNext = edges.get(kNext);
+          const qA = ePrev && ePrev.g.length === 2 ? cornerOf(other(ePrev, gi), vi) : null;
+          const qB = eNext && eNext.g.length === 2 ? cornerOf(other(eNext, gi), vi) : null;
+          if (!qA || !qB) continue;
+          if (qA.distanceTo(qB) < 1e-9) continue;                 // الجاران متّفقان: لا شقّ
+
+          /* بين النقطتين يمرّ طرف الجسر. في التدوير هو قوسٌ منحنٍ لا وترٌ
+             مستقيم، فنأخذ نقاطه كلّها وإلّا بقي فرقُ الانتفاخ مفتوحاً. */
+          let seq = [qA, qB];
+          for (const e of atVert.get(vi)) {
+            const a = arcAt.get(vi + ':' + key2(e.a, e.b));
+            if (!a || a.pts.length < 2) continue;
+            const s = a.pts[0], t = a.pts[a.pts.length - 1];
+            if (s.distanceTo(qA) < 1e-9 && t.distanceTo(qB) < 1e-9) { seq = a.pts.slice(); break; }
+            if (t.distanceTo(qA) < 1e-9 && s.distanceTo(qB) < 1e-9) { seq = a.pts.slice().reverse(); break; }
+          }
+          seqAt.set(gi + ':' + vi, seq);
+        }
+      }
+    });
+
+    /* الوجوه المقلَّصة — تُثلَّث في مستواها ثمّ تُعاد إلى الفضاء */
+    groups.forEach((g, gi) => {
+      const n = g.n;
+      // أساس محلّيّ للمستوى
+      const ax = Math.abs(n.z) < 0.9 ? v3(0, 0, 1) : v3(1, 0, 0);
+      const ux = ax.clone().cross(n).normalize();
+      const uy = n.clone().cross(ux).normalize();
+      const org = cornerOf(gi, g.loops[0][0]) || P(g.loops[0][0]);
+      const to2 = p => new THREE.Vector2(p.clone().sub(org).dot(ux), p.clone().sub(org).dot(uy));
+      const to3 = v => org.clone().addScaledVector(ux, v.x).addScaledVector(uy, v.y);
+
+      const ptsOf = vi => seqAt.get(gi + ':' + vi) || [cornerOf(gi, vi)];
+      const rings = g.loops.map(loop => {
+        const out = [];
+        for (const vi of loop) for (const p of ptsOf(vi)) if (p) out.push(to2(p));
+        return out;
+      }).filter(r => r.length >= 3);
+      if (!rings.length) return;
+      // الحلقة الأكبر مساحةً هي الحدّ الخارجيّ والبقية ثقوب
+      const areaOf = r => { let s = 0; for (let i = 0; i < r.length; i++) {
+        const a = r[i], b = r[(i + 1) % r.length]; s += a.x * b.y - b.x * a.y; } return s / 2; };
+      let outer = rings[0], oi = 0;
+      rings.forEach((r, i) => { if (Math.abs(areaOf(r)) > Math.abs(areaOf(outer))) { outer = r; oi = i; } });
+      const holes = rings.filter((_, i) => i !== oi);
+      if (areaOf(outer) < 0) outer = outer.slice().reverse();
+      holes.forEach(h => { if (areaOf(h) > 0) h.reverse(); });
+      let tri;
+      try { tri = THREE.ShapeUtils.triangulateShape(outer, holes); }
+      catch (_) { return; }
+      const all = outer.concat(...holes);
+      for (const t of tri) {
+        const [A, B, C] = t.map(i => to3(all[i]));
+        pushOut(A, B, C, n);
+      }
+    });
+
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
     g.userData.bevel = { edges: picked.size, corners: [...atVert.values()].filter(l => l.length >= 3).length,
-                         dist: d, segments: segs };
+                         dist: d, segments: segs, open: openEdges(pos) };
     return g;
   }
 
@@ -411,9 +528,44 @@
     return v3(M[0][3] / M[0][0], M[1][3] / M[1][1], M[2][3] / M[2][2]);
   }
 
+  /**
+   * عدد الحوافّ التي لا تظهر مرّتين بالضبط — أي مقياس انفتاح الشبكة.
+   * أشكالٌ نادرة (قمّة المخروط: ستّون حافّة تلتقي في رأسٍ واحد) ما تزال تُخرج
+   * شبكةً مفتوحة، ولا يجوز أن تمرّ صامتة: مجسّمٌ مفتوح يُفسد الحجم والـCSG
+   * وملفّ الطباعة. نقيسها هنا ليُخبَر بها المستخدم بدل أن يكتشفها على الآلة.
+   */
+  function openEdges(pos) {
+    const m = new Map();
+    const key = (i) => `${Math.round(pos[i] * 1e4)},${Math.round(pos[i+1] * 1e4)},${Math.round(pos[i+2] * 1e4)}`;
+    for (let i = 0; i < pos.length; i += 9) {
+      const K = [key(i), key(i + 3), key(i + 6)];
+      for (let k = 0; k < 3; k++) {
+        const a = K[k], b = K[(k + 1) % 3];
+        if (a === b) continue;
+        const kk = a < b ? a + '|' + b : b + '|' + a;
+        m.set(kk, (m.get(kk) || 0) + 1);
+      }
+    }
+    let bad = 0;
+    for (const v of m.values()) if (v !== 2) bad++;
+    return bad;
+  }
+
   /** اتجاه الدوران من r0 إلى r1 حول المحور */
   function rotSign(r0, r1, axis) {
     return r0.clone().cross(r1).dot(axis) >= 0 ? 1 : -1;
+  }
+
+  /** إقحام كرويّ بين اتجاهي شعاعين — يصل إلى الطرفين بالضبط */
+  function slerpV(A, B, t) {
+    const a = A.clone().normalize(), b = B.clone().normalize();
+    const d = Math.max(-1, Math.min(1, a.dot(b)));
+    const om = Math.acos(d);
+    if (om < 1e-6) return a.lerp(b, t).normalize();
+    if (Math.PI - om < 1e-6) return a;                 // متعاكسان: لا مستوى محدَّد
+    const s = Math.sin(om);
+    return a.multiplyScalar(Math.sin((1 - t) * om) / s)
+            .add(b.multiplyScalar(Math.sin(t * om) / s)).normalize();
   }
 
   /**

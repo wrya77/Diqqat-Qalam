@@ -107,7 +107,7 @@
     const a = tris(geometry);
     const t = Math.max(1e-6, +tol || 1e-4);
     const map = new Map();
-    const V = [], F = [];
+    const V = [], F = [], S = [];
     for (let f = 0; f < a.length; f += 9) {
       const tri = [];
       for (let k = 0; k < 3; k++) {
@@ -117,9 +117,11 @@
         if (v === undefined) { v = V.length / 3; map.set(kk, v); V.push(a[i], a[i+1], a[i+2]); }
         tri.push(v);
       }
-      if (tri[0] !== tri[1] && tri[1] !== tri[2] && tri[2] !== tri[0]) F.push(tri);
+      // S يحفظ رقم المثلّث الأصليّ: المثلّثات المنحلّة تُسقَط، فلا يبقى ترتيب F
+      // موازياً للمخزن — والانتقاء بالأشعّة يعطينا رقم المثلّث المرسوم لا رقم F.
+      if (tri[0] !== tri[1] && tri[1] !== tri[2] && tri[2] !== tri[0]) { F.push(tri); S.push(f / 9); }
     }
-    return { V, F };
+    return { V, F, S };
   }
 
   const fromIndexed = (V, F) => {
@@ -529,6 +531,85 @@
   }
 
   /**
+   * زاوية السحب (Draft) — تمييل الجدران الجانبية عن محور السحب.
+   *
+   *   جدارٌ عموديّ تماماً يستحيل إخراجه من قالب، ويحتكّ بأداة القطع على كامل
+   *   ارتفاعه. البرامج المهنية تحلّ هذا بتمييل كل جدارٍ درجاتٍ قليلة.
+   *
+   *   الإزاحة تناسب البعد عن المستوى المحايد، واتجاهها هو الناظم الجانبيّ —
+   *   أي ناظم الوجه بعد طرح مركّبته على محور السحب. الأغطية (النواظم الموازية
+   *   للمحور) لا ناظم جانبيّ لها فلا تُزاح بذاتها، لكن رؤوسها مشتركة مع
+   *   الجدران فتتبعها — وهذا هو الصحيح: الغطاء يضيق أو يتّسع مع الجدار.
+   *
+   * @param opt {axis:'z', angle:3, from:'min'|'max'|'mid', dir:1|-1}
+   */
+  function draft(geometry, opt) {
+    const o = Object.assign({ axis: 'z', angle: 3, from: 'min', dir: 1 }, opt || {});
+    const k = AX[o.axis] == null ? 2 : AX[o.axis];
+    const deg = +o.angle || 0;
+    if (Math.abs(deg) < 1e-6) return geometry;
+    const tanA = Math.tan(deg * Math.PI / 180) * (+o.dir < 0 ? -1 : 1);
+
+    const { V, F } = indexed(geometry, 1e-4);
+    if (!F.length) return geometry;
+    const b = boundsOf(Array.from(tris(geometry)));
+    const h0 = o.from === 'max' ? b.max[k] : o.from === 'mid' ? (b.min[k] + b.max[k]) / 2 : b.min[k];
+
+    /* نواظم الأوجه الجانبية الملتقية عند كل رأس، بلا تكرار.
+       التكرار يزن الوجه بعدد مثلّثاته لا بشيء هندسيّ، فيُحرف الاتجاه. */
+    const i1 = (k + 1) % 3, i2 = (k + 2) % 3;
+    const at = new Map();                          // vi → [[nx, ny], …]
+    const P = i => [V[i*3], V[i*3+1], V[i*3+2]];
+    for (const f of F) {
+      const [A, B, C] = [P(f[0]), P(f[1]), P(f[2])];
+      const u = [B[0]-A[0], B[1]-A[1], B[2]-A[2]];
+      const w = [C[0]-A[0], C[1]-A[1], C[2]-A[2]];
+      const n = [u[1]*w[2]-u[2]*w[1], u[2]*w[0]-u[0]*w[2], u[0]*w[1]-u[1]*w[0]];
+      const L = Math.hypot(n[0], n[1], n[2]);
+      if (L < 1e-12) continue;
+      // المركّبة الجانبية وحدها تهمّ — محور السحب يُسقَط
+      const sx = n[i1] / L, sy = n[i2] / L;
+      const sl = Math.hypot(sx, sy);
+      if (sl < 1e-4) continue;                     // غطاء: لا جانب له
+      const ux = sx / sl, uy = sy / sl;
+      for (const vi of f) {
+        let l = at.get(vi);
+        if (!l) { l = []; at.set(vi, l); }
+        if (!l.some(p => p[0] * ux + p[1] * uy > 0.9999)) l.push([ux, uy]);
+      }
+    }
+
+    /* الإزاحة تُحلّ لا تُتوسَّط.
+       متوسّط ناظمَي وجهين متعامدين عند ركن الصندوق هو القطر، والسير عليه مسافة
+       المطلوب يُبعد عن كلّ جدارٍ مقدارها ÷√٢ — فتخرج زاوية ٧٫١° بدل ١٠°. الحلّ
+       أن نطلب من الإزاحة أن تبعد المقدار المطلوب عن **كل** جدارٍ ملاصق:
+       δ·nᵢ = off لكل i، بالمربّعات الصغرى مع تنظيمٍ خفيف للحالة الناقصة
+       (رأسٌ على جدارٍ واحد) — وهذا هو «الشطف» نفسه الذي تفعله البرامج. */
+    const out = V.slice();
+    for (const [vi, list] of at) {
+      const off = (V[vi*3+k] - h0) * tanA;
+      if (!isFinite(off) || Math.abs(off) < 1e-12) continue;
+      let a11 = 0, a12 = 0, a22 = 0, b1 = 0, b2 = 0;
+      for (const [nx, ny] of list) {
+        a11 += nx * nx; a12 += nx * ny; a22 += ny * ny;
+        b1 += nx * off; b2 += ny * off;
+      }
+      const lam = 1e-9 * Math.max(1e-12, a11 + a22);
+      a11 += lam; a22 += lam;
+      const det = a11 * a22 - a12 * a12;
+      let dx, dy;
+      if (Math.abs(det) < 1e-14) { dx = list[0][0] * off; dy = list[0][1] * off; }
+      else { dx = (b1 * a22 - a12 * b2) / det; dy = (a11 * b2 - a12 * b1) / det; }
+      // حدٌّ أعلى: رأسٌ على جدارين شبه متعاكسين يُعطي حلّاً ينفجر
+      const mag = Math.hypot(dx, dy), cap = Math.abs(off) * 8;
+      if (mag > cap) { dx = dx / mag * cap; dy = dy / mag * cap; }
+      out[vi*3+i1] = V[vi*3+i1] + dx;
+      out[vi*3+i2] = V[vi*3+i2] + dy;
+    }
+    return fromIndexed(out, F);
+  }
+
+  /**
    * ١٠ · ثني حول محورٍ عموديّ على محور الامتداد.
    * الامتداد يُلَفّ على قوسٍ بزاوية كلّية: نصف القطر = الطول ÷ الزاوية.
    */
@@ -834,7 +915,7 @@
 
   window.CAD3DMod = {
     subdivide, weld, indexed, recalcNormals, flipNormals, separateLoose, joinGeoms,
-    remesh, twist, taper, bend, arrayPath, slices, autoOrient, thinWalls, massProps,
+    remesh, twist, taper, bend, draft, arrayPath, slices, autoOrient, thinWalls, massProps,
     DENSITY, boundsOf,
   };
 })();

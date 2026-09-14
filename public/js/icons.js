@@ -85,6 +85,16 @@
     crosshair: '<circle cx="8" cy="8" r="2"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3"/>',
     bbox: '<rect x="3" y="3" width="10" height="10" rx="1" stroke-dasharray="2.5 2"/>',
 
+    /* مستويات الانتقاء — مكعّبٌ واحد يُبرَز فيه وجهٌ أو حافّةٌ أو رأس، فيُقرأ
+       الفرق بينها بلمحة بدل ثلاثة رموز لا رابط بينها */
+    'sub-face': '<path d="M13.5 4.8L8 7.9v6.3l5.5-3z" fill="currentColor" stroke="none" opacity=".5"/>' +
+                '<path d="M8 1.8l5.5 3v6.4L8 14.2 2.5 11.2V4.8z"/><path d="M2.5 4.8L8 7.9l5.5-3.1M8 7.9v6.3"/>',
+    'sub-edge': '<path d="M8 1.8l5.5 3v6.4L8 14.2 2.5 11.2V4.8z" opacity=".5"/>' +
+                '<path d="M2.5 4.8L8 7.9l5.5-3.1" opacity=".5"/><path d="M8 7.9v6.3" stroke-width="2.6"/>',
+    'sub-vertex': '<path d="M8 1.8l5.5 3v6.4L8 14.2 2.5 11.2V4.8z" opacity=".5"/>' +
+                  '<path d="M2.5 4.8L8 7.9l5.5-3.1M8 7.9v6.3" opacity=".5"/>' +
+                  '<circle cx="8" cy="7.9" r="1.9" fill="currentColor" stroke="none"/>',
+
     // ── قوائم: CNC+ / الابتكار / التأثيرات ──
     dogbone: '<rect x="5" y="6.5" width="6" height="3" rx="1"/><circle cx="4.5" cy="6" r="1.6"/><circle cx="4.5" cy="10" r="1.6"/><circle cx="11.5" cy="6" r="1.6"/><circle cx="11.5" cy="10" r="1.6"/>',
     hash: '<path d="M6 2.5L4.5 13.5M11 2.5L9.5 13.5M3 5.5h10M2.5 10.5h10"/>',
