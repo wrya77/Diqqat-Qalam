@@ -429,10 +429,24 @@
    * النعومة البصرية تأتي من تظليل زاوية الحَرف لا من عدّ الأضلاع.
    */
   const CHORD = 0.06;                 // أقصى انحراف وتر عن القوس (mm)
+  const MAX_FACET = 6;                // أقصى زاوية بين وجهين متجاورين (°)
+
+  /**
+   * قيدان لا قيدٌ واحد.
+   *
+   * خطأ الوتر وحده يُبقي الانحراف المطلق ثابتاً لكنّه يترك **الزاوية** بين
+   * الوجهين تنفلت على القطع الصغيرة: نصف قطر ٥مم كان يُعطى ٢٤ ضلعاً أي ١٥°
+   * للوجه الواحد — وهذا يُرى خطوطاً على السطح المنحني مهما نعُمت النواظم،
+   * لأنّ إدراك النعومة يتبع الزاوية لا المسافة. فنأخذ الأشدّ من القيدين.
+   *
+   * وكلفة ذلك شبه معدومة: القطع الصغيرة هي الأرخص في الـCSG أصلاً، والقطع
+   * الكبيرة تتجاوز حدّ الزاوية بقيد الوتر وحده.
+   */
   function arcSeg(r) {
     const rr = Math.max(0.5, Math.abs(+r) || 20);
-    const n = Math.ceil(Math.PI / Math.acos(Math.max(-1, Math.min(1, 1 - CHORD / rr))));
-    return Math.max(24, Math.min(96, n));
+    const byChord = Math.ceil(Math.PI / Math.acos(Math.max(-1, Math.min(1, 1 - CHORD / rr))));
+    const byAngle = Math.ceil(360 / MAX_FACET);
+    return Math.max(24, Math.min(128, Math.max(byChord, byAngle)));
   }
 
   const prim = {

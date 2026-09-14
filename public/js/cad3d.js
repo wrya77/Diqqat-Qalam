@@ -647,9 +647,11 @@
         --c3-acc:var(--accent,#2f81f7); --c3-acc2:var(--accent-h,#58a6ff);
         --c3-sel:color-mix(in srgb,var(--accent,#2f81f7) 20%,transparent);
         --c3-r:7px;            /* نصف قطر موحّد */
-        --c3-chip:23px;        /* ارتفاع رقاقة الشريط */
-        --c3-rail:34px;        /* عرض الريل */
-        --c3-ico:13px;         /* أيقونة الشريط */
+        /* مقاسات اللمس: رقاقةٌ بارتفاع ٢٣px وأيقونةٌ ١٣px كانت أصغر من أن
+           تُقرأ أو تُنقر بثقة — أقلّ هدفٍ مريح نحو ٣٠px. */
+        --c3-chip:30px;        /* ارتفاع رقاقة الشريط */
+        --c3-rail:42px;        /* عرض الريل */
+        --c3-ico:16px;         /* أيقونة الشريط */
       }
 
       /* ── الشريط العلويّ ──
@@ -664,16 +666,16 @@
       .c3-grow{flex:1 1 auto;min-width:4px}
 
       .c3-ic{flex:0 0 auto;min-height:var(--c3-chip);display:inline-flex;align-items:center;
-        gap:4px;padding:0 7px;border:1px solid transparent;border-radius:6px;
+        gap:6px;padding:0 10px;border:1px solid transparent;border-radius:7px;
         background:transparent;cursor:pointer;color:var(--c3-fg2);
-        font-family:inherit;font-size:10.5px;font-weight:600;white-space:nowrap;
+        font-family:inherit;font-size:12px;font-weight:600;white-space:nowrap;
         transition:background .14s ease,color .14s ease,border-color .14s ease}
       .c3-ic:hover{background:var(--c3-hi);color:var(--c3-fg)}
       .c3-ic.on{background:var(--c3-sel);border-color:var(--c3-acc);color:var(--c3-acc2)}
       .c3-ic:disabled{opacity:.38;cursor:default}
       .c3-ic:disabled:hover{background:transparent;color:var(--c3-fg2)}
       .c3-ic svg{width:var(--c3-ico);height:var(--c3-ico);flex:0 0 auto}
-      .c3-ic .lbl{font-size:10.5px;font-weight:600;letter-spacing:.1px}
+      .c3-ic .lbl{font-size:12px;font-weight:600;letter-spacing:.1px}
 
       /* ── الريل الجانبيّ: مجموعات أدوات بمثلّث انبثاق ── */
       .c3-main{flex:1 1 auto;min-height:0;display:flex}
@@ -683,13 +685,13 @@
       .c3-rail::-webkit-scrollbar{width:5px}
       .c3-rail::-webkit-scrollbar-thumb{background:var(--c3-line);border-radius:3px}
       .c3-slot{position:relative;flex:0 0 auto;align-self:center}
-      .c3-t{width:28px;height:26px;display:flex;align-items:center;justify-content:center;
+      .c3-t{width:36px;height:34px;display:flex;align-items:center;justify-content:center;
         border:1px solid transparent;border-radius:6px;background:none;cursor:pointer;padding:0;
         color:var(--c3-fg2);transition:background .14s ease,color .14s ease,border-color .14s ease}
       .c3-t:hover{background:var(--c3-hi);color:var(--c3-fg)}
       .c3-t.on,.c3-slot.open .c3-t{background:var(--c3-sel);border-color:var(--c3-acc);
         color:var(--c3-acc2)}
-      .c3-t svg{width:15px;height:15px}
+      .c3-t svg{width:19px;height:19px}
       .c3-arw{position:absolute;inset-block-end:1px;inset-inline-end:1px;width:0;height:0;
         border-inline-start:3.5px solid transparent;border-block-end:3.5px solid var(--c3-fg3);
         pointer-events:none}
@@ -698,7 +700,7 @@
          مثبَّت بالنافذة لا بالريل: الريل له overflow-y:auto، والـCSS يحوّل عندها
          overflow-x من visible إلى auto قسراً — فأي ابن يخرج عن عرضه يُقصّ
          ويختفي. لهذا كانت الأدوات «لا تفتح». */
-      .c3-fly{position:fixed;z-index:2500;display:none;min-width:196px;max-width:280px;
+      .c3-fly{position:fixed;z-index:2500;display:none;min-width:220px;max-width:320px;
         padding:4px;border-radius:10px;background:var(--c3-panel);
         border:1px solid var(--c3-line);box-shadow:0 18px 44px rgba(0,0,0,.55);
         max-height:76vh;overflow-y:auto;overscroll-behavior:contain}
@@ -708,13 +710,13 @@
         font-weight:800;letter-spacing:.4px;color:var(--c3-fg3);text-transform:uppercase}
       .c3-fh svg{width:12px;height:12px;opacity:.75}
       .c3-fs{height:1px;margin:3px 6px;background:var(--c3-line)}
-      .c3-fi{display:flex;align-items:center;gap:7px;width:100%;padding:5px 8px;border:none;
+      .c3-fi{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;
         border-radius:6px;background:none;cursor:pointer;color:var(--c3-fg2);
-        font-family:inherit;font-size:11.5px;font-weight:600;text-align:start;white-space:nowrap;
+        font-family:inherit;font-size:12.5px;font-weight:600;text-align:start;white-space:nowrap;
         transition:background .1s ease,color .1s ease}
       .c3-fi:hover,.c3-fi.cur{background:var(--c3-hi);color:var(--c3-fg)}
       .c3-fi.cur{box-shadow:inset 2px 0 0 var(--c3-acc)}
-      .c3-fi svg{width:13px;height:13px;flex:0 0 auto;opacity:.8}
+      .c3-fi svg{width:15px;height:15px;flex:0 0 auto;opacity:.8}
       .c3-fi .k{margin-inline-start:auto;padding:1px 5px;border-radius:4px;font-size:9.5px;
         font-weight:700;color:var(--c3-fg3);background:var(--c3-bar);
         border:1px solid var(--c3-line)}
