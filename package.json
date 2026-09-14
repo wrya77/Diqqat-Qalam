@@ -59,7 +59,7 @@
     "appId": "com.diqqatqalam.app",
     "productName": "Diqqat Qalam",
     "copyright": "© 2026 Diqqat Qalam",
-    "asar": false,
+    "asar": true,
     "npmRebuild": false,
     "directories": {
       "output": "dist",
@@ -106,7 +106,10 @@
     },
     "portable": {
       "artifactName": "DiqqatQalam-Portable-${version}.${ext}"
-    }
+    },
+    "asarUnpack": [
+      "src/workers/**"
+    ]
   },
   "jest": {
     "testEnvironment": "node",
