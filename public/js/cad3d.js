@@ -18,6 +18,7 @@
   const K = () => window.CAD3DKernel;
   const B = () => window.CAD3DBuild;
   const V = () => window.CAD3DView;
+  const D = () => window.CAD3DMod;
 
   let booted = false, threeReady = false, loading = null;
   let feats = [];              // شجرة الميزات
@@ -111,6 +112,20 @@
           case 'decimate':return O.decimate(g, P.cell);
           case 'center':  return O.centerOrigin(g, P.mode);
           case 'smooth':  return O.smooth(g, P.iters, P.lambda);
+          // معدِّلات cad3d-mod — كلّها هندسةٌ داخلةٌ وهندسةٌ خارجة
+          case 'subdiv':  return D().subdivide(g, P.iters, P.smooth);
+          case 'weld':    return D().weld(g, P.tol);
+          case 'renorm':  return D().recalcNormals(g, P.tol);
+          case 'flipn':   return D().flipNormals(g);
+          case 'remesh':  return D().remesh(g, P.voxel, P.seal);
+          case 'twist':   return D().twist(g, P.deg, P.axis);
+          case 'taper':   return D().taper(g, P.factor, P.axis);
+          case 'bend':    return D().bend(g, P.deg, P.axis);
+          case 'arrpath': return D().arrayPath(g, P.path || [], P);
+          case 'orient':  {
+            const r = D().autoOrient(g);
+            return r ? g.clone().applyMatrix4(r.m) : g;
+          }
           case 'splitA':  { const r = O.splitByPlane(g, P.axis, P.offset); return r && r.a; }
           case 'splitB':  { const r = O.splitByPlane(g, P.axis, P.offset); return r && r.b; }
           case 'copy':    return g;
@@ -482,6 +497,32 @@
    * ترويسة الملفّ نفسه لا من تخمين، والمقاس الناتج معروضٌ في السؤال ليُراجَع
    * قبل الإدراج.
    */
+  /** يقرأ قائمة File إلى نتائج مُحلَّلة — بلا أيّ إدراج (تُستعمل للمعاينة أيضاً) */
+  async function parseMeshFiles(files) {
+    const MI = window.MeshImport;
+    if (!MI) throw new Error('وحدة قراءة الصيغ غير محمّلة');
+    const read = f => new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res({ name: f.name, buf: fr.result });
+      fr.onerror = () => rej(new Error('تعذّرت قراءة ' + f.name));
+      fr.readAsArrayBuffer(f);
+    });
+    const loaded = await Promise.all([...files].map(read));
+    // الملفّات المرافقة (‎.bin) تُقدَّم للقارئ ولا تُستورَد وحدها
+    const extras = {};
+    loaded.forEach(l => { extras[l.name] = l.buf; });
+    const mains = loaded.filter(l => !/\.bin$/i.test(l.name));
+    if (!mains.length) throw new Error('اختر ملفّ المجسّم نفسه، لا ‎.bin وحده');
+
+    const parsed = [], failed = [];
+    for (const l of mains) {
+      try { parsed.push(Object.assign(await MI.parseBuffer(l.name, l.buf, extras), { file: l.name })); }
+      catch (e) { failed.push(`${l.name}: ${e.message}`); }
+    }
+    if (!parsed.length) throw new Error(failed[0] || 'تعذّر الاستيراد');
+    return { parsed, failed };
+  }
+
   function opImportMesh() {
     const MI = window.MeshImport;
     if (!MI) { toast('وحدة قراءة الصيغ غير محمّلة', 'error'); return; }
@@ -492,32 +533,25 @@
     inp.onchange = async () => {
       const files = [...(inp.files || [])];
       if (!files.length) return;
-      const read = f => new Promise((res, rej) => {
-        const fr = new FileReader();
-        fr.onload = () => res({ name: f.name, buf: fr.result });
-        fr.onerror = () => rej(new Error('تعذّرت قراءة ' + f.name));
-        fr.readAsArrayBuffer(f);
-      });
-      let loaded;
-      try { loaded = await Promise.all(files.map(read)); }
-      catch (e) { toast(e.message, 'error'); return; }
-
-      // الملفّات المرافقة (‎.bin) تُقدَّم للقارئ ولا تُستورَد وحدها
-      const extras = {};
-      loaded.forEach(l => { extras[l.name] = l.buf; });
-      const mains = loaded.filter(l => !/\.bin$/i.test(l.name));
-      if (!mains.length) { toast('اختر ملفّ المجسّم نفسه، لا ‎.bin وحده', 'warn'); return; }
-
       await busy('جارٍ قراءة الملفّ…');
-      const parsed = [], failed = [];
-      for (const l of mains) {
-        try { parsed.push(Object.assign(await MI.parseBuffer(l.name, l.buf, extras), { file: l.name })); }
-        catch (e) { failed.push(`${l.name}: ${e.message}`); }
-      }
-      unbusy();
-      if (!parsed.length) { toast(failed[0] || 'تعذّر الاستيراد', 'error'); return; }
-      failed.forEach(m => toast(m, 'warn'));
+      let res;
+      try { res = await parseMeshFiles(files); }
+      catch (e) { unbusy(); toast(e.message, 'error'); return; }
+      finally { unbusy(); }
+      res.failed.forEach(m => toast(m, 'warn'));
+      await insertParsed(res.parsed);
+    };
+    inp.click();
+  }
 
+  /** يسأل عن المحور والوحدة ثمّ يُدرج النتائج المُحلَّلة في الشجرة */
+  async function insertParsed(parsed) {
+    const MI = window.MeshImport;
+    if (!MI || !parsed || !parsed.length) return false;
+    // المساحة ثلاثية الأبعاد قد تكون مغلقة تماماً حين يأتي الاستيراد من زرّ
+    // «استيراد» الرئيسيّ — نفتحها أوّلاً وإلّا بُني المجسّم في عرضٍ غير جاهز
+    if (!booted) { await open(); }
+    {
       const first = parsed[0];
       const sz = MI.bounds(first.pos).size;
       const fmtName = (MI.FORMATS.find(f => f.id === first.format) || {}).name || first.format;
@@ -531,7 +565,7 @@
                     { v: '1000', t: 'متر' }, { v: '25.4', t: 'بوصة' }] },
         { key: 'fit', label: 'أو اجعل أكبر بُعد = (mm) — صفر يعني اتركه', def: 0, min: 0 },
       ]);
-      if (!r) return;
+      if (!r) return false;
 
       snapshot();
       let added = 0, lastName = '';
@@ -558,8 +592,8 @@
       toast(added === 1
         ? `استُورد «${lastName}» — ${env ? env.toArray().map(v => v.toFixed(1)).join(' × ') + ' mm' : ''}`
         : `استُورد ${added} مجسّمات`, 'success');
-    };
-    inp.click();
+      return added > 0;
+    }
   }
 
   function visibleGeoms() {
@@ -925,20 +959,18 @@
     const view = document.createElement('div'); view.className = 'c3-view'; view.id = 'c3-view';
     const hud = document.createElement('div'); hud.className = 'c3-hud';
 
+    /* بوصلة الاتجاهات: محاور حقيقية تدور مع الكاميرا بدل شبكة أزرار نصّية.
+       كرةٌ لكل نصف محور بلونه (X أحمر · Y أخضر · Z أزرق)، الموجب ممتلئٌ بحرفه
+       والسالب مفرَّغ، والأقرب إلى العين يُرسم فوق الأبعد — فتُقرأ الوِجهة من
+       نظرةٍ كما في برامج الكاد، ونقرُ أيّ كرة يطير بالعرض إلى ذلك المسقط. */
     const cube = document.createElement('div'); cube.className = 'c3-cube';
-    const CUBE = [
-      ['', 'أعلى', ''], ['يسار', 'مجسّم', 'يمين'], ['', 'أسفل', ''],
-    ];
-    const VMAP = { 'أعلى': 'top', 'أسفل': 'bottom', 'يمين': 'right', 'يسار': 'left', 'مجسّم': 'iso' };
-    CUBE.flat().forEach(t => {
-      const b = document.createElement('button');
-      b.className = 'c3-cb' + (t === 'مجسّم' ? ' mid' : '');
-      b.type = 'button';
-      b.textContent = t;
-      if (!t) { b.style.visibility = 'hidden'; b.disabled = true; }
-      else { b.setAttribute('aria-label', 'مسقط ' + t); b.addEventListener('click', () => V().setView(VMAP[t])); }
-      cube.appendChild(b);
+    cube.innerHTML = '<svg viewBox="-50 -50 100 100" width="86" height="86" aria-label="بوصلة الاتجاهات"></svg>';
+    navSvg = cube.firstChild;
+    navSvg.addEventListener('click', e => {
+      const g = e.target.closest('[data-view]');
+      if (g) V().setView(g.dataset.view);
     });
+    navSvg.addEventListener('dblclick', () => V().setView('iso'));
     const row2 = document.createElement('div');
     row2.className = 'c3-row2';
     [['أمام', 'front'], ['خلف', 'back'], ['ملاءمة', 'fit']].forEach(([t, v]) => {
@@ -1025,7 +1057,45 @@
     if (!moreFly.querySelector('.c3-grp')) moreGrp.style.display = 'none';
   }
 
-  let sideEl = null, sidePinned = false, hintEl = null, busyEl = null;
+  let sideEl = null, sidePinned = false, hintEl = null, busyEl = null, navSvg = null;
+
+  /* أنصاف المحاور الستّة: اللون بالمحور، والموجب يحمل حرفه */
+  const NAV_AXES = [
+    { v: [1, 0, 0],  c: "#ff6b60", t: "X", view: "right"  },
+    { v: [-1, 0, 0], c: "#ff6b60", t: "",  view: "left"   },
+    { v: [0, 1, 0],  c: "#5ad469", t: "Y", view: "back"   },
+    { v: [0, -1, 0], c: "#5ad469", t: "",  view: "front"  },
+    { v: [0, 0, 1],  c: "#4ea1ff", t: "Z", view: "top"    },
+    { v: [0, 0, -1], c: "#4ea1ff", t: "",  view: "bottom" },
+  ];
+
+  /** يُعيد رسم بوصلة الاتجاهات من مصفوفة الكاميرا الحالية */
+  function drawNav() {
+    if (!navSvg || !V().ready()) return;
+    const cam = V().camera();
+    if (!cam) return;
+    cam.updateMatrixWorld();
+    const m = new THREE.Matrix4().copy(cam.matrixWorldInverse);
+    const R = 34;
+    const items = NAV_AXES.map(a => {
+      const p = new THREE.Vector3(a.v[0], a.v[1], a.v[2]).transformDirection(m);
+      return { a, x: p.x * R, y: -p.y * R, z: p.z };      // z موجب = أقرب للعين
+    }).sort((p, q) => p.z - q.z);                          // الأبعد أوّلاً
+    let svg = '';
+    for (const it of items) {
+      const near = it.z > -0.05;
+      svg += `<line x1="0" y1="0" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" ` +
+             `stroke="${it.a.c}" stroke-width="2" opacity="${near ? 0.9 : 0.35}"/>`;
+      svg += `<g data-view="${it.a.view}" style="cursor:pointer">` +
+             `<circle cx="${it.x.toFixed(1)}" cy="${it.y.toFixed(1)}" r="9" ` +
+             `fill="${it.a.t ? it.a.c : '#0d1117'}" stroke="${it.a.c}" stroke-width="2" ` +
+             `opacity="${near ? 1 : 0.45}"/>` +
+             (it.a.t ? `<text x="${it.x.toFixed(1)}" y="${(it.y + 3.4).toFixed(1)}" ` +
+                       `text-anchor="middle" font-size="10" font-weight="800" fill="#0d1117">${it.a.t}</text>` : '') +
+             `</g>`;
+    }
+    navSvg.innerHTML = svg;
+  }
 
   /** مؤشّر انشغال: العمليات الثقيلة (التخشين، الغلاف، التنعيم) تحجب الخيط
       الرئيسيّ لثوانٍ — بلا هذا تبدو اللوحة معطّلة. */
@@ -1845,6 +1915,286 @@
       rep.ratio > 0.02 ? 'warn' : 'success');
   }
 
+  /* ══════════════ معدِّلات الشبكة (بأسلوب بلندر) ══════════════ */
+
+  const MOD = {
+    async subdivide() {
+      const id = one(); if (!id) return;
+      const r = await ask('تقسيم السطح', [
+        { key: 'iters', label: 'عدد المستويات', def: 1, min: 1, max: 4 },
+        { key: 'smooth', label: 'نعّم بعد التقسيم', type: 'check', def: true },
+      ]);
+      if (!r) return;
+      await busy('جارٍ التقسيم…');
+      try { pushOp(id, { op: 'subdiv', iters: r.iters, smooth: !!r.smooth }, `تقسيم ×${r.iters}`); }
+      finally { unbusy(); }
+    },
+    async weld() {
+      const id = one(); if (!id) return;
+      const r = await ask('لحم الرؤوس بالمسافة', [
+        { key: 'tol', label: 'المسافة (mm)', def: 0.01, min: 0.0001, step: 0.01 }]);
+      if (!r) return;
+      if (pushOp(id, { op: 'weld', tol: r.tol }, `لحم ${r.tol}mm`)) {
+        const g = featById(V().getSelection()[0]);
+        const w = g && g.__geom && g.__geom.userData.welded;
+        if (w) toast(`الرؤوس ${w.before.verts} → ${w.verts} · الأوجه ${w.before.faces} → ${w.faces}`, 'info');
+      }
+    },
+    async recalc() {
+      const id = one(); if (!id) return;
+      await busy('جارٍ توحيد اتجاه الأوجه…');
+      try { pushOp(id, { op: 'renorm', tol: 0.01 }, 'إعادة حساب النواظم'); }
+      finally { unbusy(); }
+    },
+    flip() { const id = one(); if (id) pushOp(id, { op: 'flipn' }, 'قلب النواظم'); },
+    async remesh() {
+      const id = one(); if (!id) return;
+      const b = bboxOf([id]);
+      const big = b ? Math.max(...b.getSize(new THREE.Vector3()).toArray()) : 40;
+      const r = await ask('إعادة بناء بالفوكسل', [
+        { key: 'voxel', label: 'حجم الفوكسل (mm) — أصغر = أدقّ وأبطأ',
+          def: +(big / 60).toFixed(2), min: 0.05 },
+        { key: 'seal', label: 'سدّ الثقوب (فوكسل)', def: 1, min: 0, max: 4 },
+      ]);
+      if (!r) return;
+      await busy('جارٍ إعادة البناء…');
+      let ok = false;
+      try { ok = pushOp(id, { op: 'remesh', voxel: r.voxel, seal: r.seal }, `إعادة بناء ${r.voxel}mm`); }
+      finally { unbusy(); }
+      if (!ok) return;
+      /* إعادة البناء تقريبٌ بطبيعتها: دقيقة على الأسطح المنحنية والمكسورة
+         (±٤٪) ومتضخّمة على المجسّمات المحاذية للمحاور تماماً. الانحراف يُعرَض
+         دائماً كي لا يمرّ خطأٌ صامت في قطعةٍ ستُصنَّع. */
+      const f = featById(V().getSelection()[0]);
+      const u = f && f.__geom && f.__geom.userData.remesh;
+      if (u && u.volumeBefore) {
+        const pct = u.drift * 100;
+        toast(`الحجم ${(u.volumeBefore/1000).toFixed(2)} → ${(u.volumeAfter/1000).toFixed(2)} cm³ ` +
+              `(${pct >= 0 ? '+' : ''}${pct.toFixed(1)}٪)`,
+              Math.abs(pct) > 8 ? 'warn' : 'info');
+      }
+    },
+    async separate() {
+      const id = one(); if (!id) return;
+      const f = featById(id);
+      if (!f || !f.__geom) { toast('لا هندسة', 'warn'); return; }
+      await busy('جارٍ فصل الأجزاء…');
+      let parts = [];
+      try { parts = D().separateLoose(f.__geom, 0.01); } finally { unbusy(); }
+      if (parts.length < 2) { toast('المجسّم قطعةٌ واحدة متّصلة', 'info'); return; }
+      snapshot();
+      f.hidden = true;
+      parts.forEach((g, i) => {
+        const nf = addFeature('import', { geometry: g });
+        nf.name = `${f.name} · جزء ${i + 1}`;
+      });
+      rebuild();
+      toast(`فُصلت ${parts.length} أجزاء`, 'success');
+    },
+    async join() {
+      const sel = V().getSelection();
+      if (sel.length < 2) { toast('حدّد مجسّمين فأكثر للضمّ', 'warn'); return; }
+      const list = sel.map(i => V().get(i)).filter(Boolean)
+        .map(m => ({ geometry: m.userData.source || m.geometry, matrix: m.matrixWorld.clone() }));
+      const g = D().joinGeoms(list);
+      if (!g) { toast('تعذّر الضمّ', 'error'); return; }
+      snapshot();
+      sel.forEach(i => { const f = featById(i); if (f) f.hidden = true; });
+      const nf = addFeature('import', { geometry: g });
+      nf.name = `مضموم (${sel.length})`;
+      rebuild();
+      toast(`ضُمَّ ${sel.length} مجسّمات`, 'success');
+    },
+    async twist() {
+      const id = one(); if (!id) return;
+      const r = await ask('التواء', [
+        { key: 'deg', label: 'الزاوية الكلّية (°)', def: 90 },
+        { key: 'axis', label: 'حول المحور', type: 'select', def: 'z',
+          options: [{ v: 'z', t: 'Z' }, { v: 'x', t: 'X' }, { v: 'y', t: 'Y' }] }]);
+      if (r) pushOp(id, { op: 'twist', deg: r.deg, axis: r.axis }, `التواء ${r.deg}°`);
+    },
+    async taper() {
+      const id = one(); if (!id) return;
+      const r = await ask('استدقاق', [
+        { key: 'factor', label: 'عامل النهاية (١ = بلا تغيير · ٠ = نقطة)', def: 0.5, min: 0, max: 5, step: 0.1 },
+        { key: 'axis', label: 'على المحور', type: 'select', def: 'z',
+          options: [{ v: 'z', t: 'Z' }, { v: 'x', t: 'X' }, { v: 'y', t: 'Y' }] }]);
+      if (r) pushOp(id, { op: 'taper', factor: r.factor, axis: r.axis }, `استدقاق ×${r.factor}`);
+    },
+    async bend() {
+      const id = one(); if (!id) return;
+      const r = await ask('ثني', [
+        { key: 'deg', label: 'الزاوية الكلّية (°)', def: 90 },
+        { key: 'axis', label: 'محور الامتداد', type: 'select', def: 'x',
+          options: [{ v: 'x', t: 'X' }, { v: 'y', t: 'Y' }, { v: 'z', t: 'Z' }] }]);
+      if (r) pushOp(id, { op: 'bend', deg: r.deg, axis: r.axis }, `ثني ${r.deg}°`);
+    },
+    async arrayPath() {
+      const id = one(); if (!id) return;
+      const path = selectedPath() || (() => {
+        const rings = selectedRings();
+        return rings && rings[0] ? rings[0].map(p => ({ x: p.x, y: -p.y, z: 0 })) : null;
+      })();
+      if (!path) { toast('حدّد مساراً في لوحة الرسم أوّلاً', 'warn'); return; }
+      const r = await ask('مصفوفة على مسار', [
+        { key: 'count', label: 'عدد النسخ', def: 8, min: 1, max: 400 },
+        { key: 'align', label: 'وجّهها مع المسار', type: 'check', def: true }]);
+      if (r) pushOp(id, { op: 'arrpath', path, count: r.count, align: !!r.align },
+                    `مصفوفة مسار ×${r.count}`);
+    },
+    async orient() {
+      const id = one(); if (!id) return;
+      const f = featById(id);
+      if (!f || !f.__geom) return;
+      await busy('جارٍ إيجاد أفضل وضع…');
+      let best = null;
+      try { best = D().autoOrient(f.__geom); } finally { unbusy(); }
+      if (!best) { toast('تعذّر التوجيه', 'error'); return; }
+      if (pushOp(id, { op: 'orient' }, 'توجيه تلقائيّ')) {
+        toast(`الارتفاع صار ${best.h.toFixed(1)}mm · المظروف ` +
+              best.size.map(v => v.toFixed(1)).join(' × '), 'success');
+      }
+    },
+    async slices() {
+      const e = ed();
+      if (!e) { toast('محرّر الرسم غير متاح', 'error'); return; }
+      const meshes = V().all().filter(m => m.visible);
+      if (!meshes.length) { toast('لا مجسّم', 'warn'); return; }
+      const r = await ask('شرائح للتقطيع', [
+        { key: 'axis', label: 'اتجاه التشريح', type: 'select', def: 'z',
+          options: [{ v: 'z', t: 'Z — ألواح أفقية' }, { v: 'x', t: 'X' }, { v: 'y', t: 'Y' }] },
+        { key: 'step', label: 'سماكة اللوح (mm)', def: 6, min: 0.2 },
+        { key: 'gap', label: 'تباعد الشرائح في لوحة الرسم (mm)', def: 10, min: 0 },
+      ]);
+      if (!r) return;
+      await busy('جارٍ تشريح المجسّم…');
+      let sl = [];
+      try {
+        sl = D().slices(meshes.map(m => ({ geometry: m.userData.source || m.geometry,
+                                           matrixWorld: m.matrixWorld })), r.axis, r.step);
+      } finally { unbusy(); }
+      if (!sl.length) { toast('لم أجد مقاطع', 'warn'); return; }
+      e._saveHistory?.();
+      // تُرصّ الشرائح جنباً إلى جنب كي تُقصّ على لوحٍ واحد
+      let offX = 0;
+      sl.forEach((s, i) => {
+        let w = 0;
+        s.rings.forEach(ring => ring.forEach(p => { if (Math.abs(p.x) > w) w = Math.abs(p.x); }));
+        s.rings.forEach(ring => e.shapes.push({
+          type: 'polyline', closed: true,
+          points: ring.map(p => ({ x: p.x + offX, y: -p.y })),
+        }));
+        offX += w * 2 + (+r.gap || 0);
+      });
+      e.render?.();
+      toast(`أُضيفت ${sl.length} شريحة إلى لوحة الرسم`, 'success');
+    },
+    async thin() {
+      const meshes = V().all().filter(m => m.visible);
+      if (!meshes.length) { toast('لا مجسّم', 'warn'); return; }
+      const r = await ask('كشف الجدران الرقيقة', [
+        { key: 'minT', label: 'أقلّ سماكة مقبولة (mm)', def: 2, min: 0.05 }]);
+      if (!r) return;
+      await busy('جارٍ قياس السماكات…');
+      let rep = null;
+      try {
+        const g = D().joinGeoms(meshes.map(m => ({ geometry: m.userData.source || m.geometry,
+                                                   matrix: m.matrixWorld.clone() })));
+        rep = D().thinWalls(g, r.minT);
+      } finally { unbusy(); }
+      if (!rep) return;
+      const pct = (rep.ratio * 100).toFixed(1);
+      if (infoEl) {
+        infoEl.innerHTML = `<b>الجدران الرقيقة</b><br>` +
+          `<b>الحدّ:</b> ${rep.limit} mm<br>` +
+          `<b>مواضع رقيقة:</b> ${pct}% من العيّنات<br>` +
+          `<b>أقلّ سماكة:</b> ${rep.minThickness != null ? rep.minThickness.toFixed(2) + ' mm' : '—'}<br>` +
+          `<b>عُيِّنَ:</b> ${rep.tested.toLocaleString('en')} موضعاً`;
+      }
+      toast(rep.ratio > 0.01
+        ? `${pct}% من المواضع أرقّ من ${r.minT}mm — أقلّها ${(rep.minThickness || 0).toFixed(2)}mm`
+        : `لا جدران أرقّ من ${r.minT}mm`, rep.ratio > 0.01 ? 'warn' : 'success');
+    },
+    async mass() {
+      const sel = V().getSelection();
+      const list = (sel.length ? sel.map(i => V().get(i)) : V().all()).filter(Boolean);
+      if (!list.length) { toast('لا مجسّم', 'warn'); return; }
+      const opts = Object.keys(D().DENSITY).map(k => ({ v: k, t: k }));
+      const r = await ask('الخصائص الفيزيائية', [
+        { key: 'mat', label: 'الخامة (للكتلة)', type: 'select', def: 'mdf', options: opts }]);
+      if (!r) return;
+      const g = D().joinGeoms(list.map(m => ({ geometry: m.userData.source || m.geometry,
+                                               matrix: m.matrixWorld.clone() })));
+      const mp = D().massProps(g, null, r.mat);
+      if (infoEl) {
+        infoEl.innerHTML = `<b>الخصائص الفيزيائية</b><br>` +
+          `<b>الحجم:</b> ${mp.volumeCm3.toFixed(2)} cm³<br>` +
+          `<b>السطح:</b> ${mp.areaCm2.toFixed(2)} cm²<br>` +
+          `<b>الكتلة:</b> ${mp.massG != null ? mp.massG.toFixed(1) + ' غ' : '—'}<br>` +
+          `<b>مركز الكتلة:</b> ${mp.centroid.map(v => v.toFixed(1)).join(' , ')}<br>` +
+          `<b>الكثافة:</b> ${mp.density} غ/سم³`;
+      }
+      toast(`${mp.volumeCm3.toFixed(2)} cm³ · ${mp.massG != null ? mp.massG.toFixed(1) + ' غ' : ''}`, 'success');
+    },
+  };
+
+  /* ══════════════ الإضاءة والكاميرا ══════════════ */
+
+  const VIEWFX = {
+    async lighting() {
+      const v = V(), cur = v.lighting();
+      const r = await ask('الإضاءة', [
+        { key: 'preset', label: 'الطقم', type: 'select', def: cur.preset,
+          options: [{ v: 'studio', t: 'استوديو' }, { v: 'workshop', t: 'ورشة' },
+                    { v: 'soft', t: 'ناعمة' }, { v: 'hard', t: 'حادّة' }] },
+        { key: 'az', label: 'سمت الضوء (°)', def: cur.az, min: 0, max: 360 },
+        { key: 'el', label: 'ارتفاع الضوء (°)', def: cur.el, min: 1, max: 89 },
+        { key: 'intensity', label: 'الشدّة', def: cur.intensity, min: 0, max: 3, step: 0.1 },
+        { key: 'shadows', label: 'ظلال مسقَطة', type: 'check', def: cur.shadows },
+        { key: 'bg', label: 'الخلفية', type: 'select', def: cur.bg,
+          options: [{ v: 'dark', t: 'داكنة' }, { v: 'slate', t: 'رماديّة' },
+                    { v: 'light', t: 'فاتحة' }, { v: 'black', t: 'سوداء' }] },
+      ]);
+      if (!r) return;
+      v.setLighting(r);
+      toast('حُدّثت الإضاءة', 'success');
+    },
+    async camera() {
+      const v = V();
+      const r = await ask('الكاميرا', [
+        { key: 'focal', label: 'العدسة (mm) — أصغر = أوسع', def: Math.round(v.focal()), min: 8, max: 300 },
+      ]);
+      if (!r) return;
+      v.setFocal(r.focal);
+      if (v.isOrtho()) toast('العدسة تؤثّر في الوضع المنظوريّ — أوقف «متعامد» لتراها', 'info');
+      else toast(`العدسة ${Math.round(r.focal)}mm`, 'success');
+    },
+    async saveShot() {
+      const r = await ask('حفظ لقطة كاميرا', [
+        { key: 'name', label: 'الاسم', type: 'text', def: 'لقطة ' + (V().listShots().length + 1) }]);
+      if (!r || !r.name) return;
+      V().saveShot(r.name);
+      toast(`حُفظت «${r.name}»`, 'success');
+    },
+    async recallShot() {
+      const names = V().listShots();
+      if (!names.length) { toast('لا لقطات محفوظة بعد', 'info'); return; }
+      const r = await ask('استعادة لقطة', [
+        { key: 'name', label: 'اللقطة', type: 'select', def: names[0],
+          options: names.map(n => ({ v: n, t: n })) },
+        { key: 'drop', label: 'احذفها بعد الاستعادة', type: 'check', def: false }]);
+      if (!r) return;
+      V().recallShot(r.name);
+      if (r.drop) V().dropShot(r.name);
+    },
+    turntable() {
+      const v = V(), on = !v.spinning();
+      v.setTurntable(on, 5);
+      document.getElementById('c3-spin')?.classList.toggle('on', on);
+      toast(on ? 'دوران تلقائيّ' : 'أُوقف الدوران', 'info');
+    },
+  };
+
   /* ══════════════ عرض · خامات · عزل · تفجير ══════════════ */
 
   const MATS = {
@@ -2183,18 +2533,49 @@
       { t: 'قيم دقيقة…', fn: opTransform },
     ] });
 
+    railGroup({ icon: 'smooth', name: 'معدِّلات الشبكة', items: [
+      { t: 'تقسيم السطح…', icon: 'boxes', fn: MOD.subdivide },
+      { t: 'التواء…', icon: 'rotate', fn: MOD.twist },
+      { t: 'استدقاق…', icon: 'triangle', fn: MOD.taper },
+      { t: 'ثني…', icon: 'arc-join', fn: MOD.bend },
+      { t: 'مصفوفة على مسار…', icon: 'dots-path', fn: MOD.arrayPath },
+    ] });
+
+    railGroup({ icon: 'wrench', name: 'إصلاح وتنظيف', items: [
+      { t: 'لحم الرؤوس…', icon: 'merge', fn: MOD.weld },
+      { t: 'إعادة حساب النواظم', icon: 'refresh', fn: MOD.recalc },
+      { t: 'قلب النواظم', icon: 'reverse', fn: MOD.flip },
+      { t: 'إعادة بناء بالفوكسل…', icon: 'boxes', fn: MOD.remesh },
+      { sep: true },
+      { t: 'فصل الأجزاء المنفصلة', icon: 'ungroup', fn: MOD.separate },
+      { t: 'ضمّ المحدَّد', icon: 'group', fn: MOD.join },
+    ] });
+
     railGroup({ icon: 'ruler', name: 'قياس وتحليل', items: [
       { t: 'مسافة بين نقطتين', icon: 'ruler', fn: toggleMeasure },
       { t: 'المظروف والحجم', icon: 'bbox', fn: opBBox },
       { t: 'تقرير قابلية التصنيع…', icon: 'gauge', fn: opReport },
+      { t: 'الجدران الرقيقة…', icon: 'alert', fn: MOD.thin },
+      { t: 'الخصائص الفيزيائية…', icon: 'coin', fn: MOD.mass },
     ] });
 
     railGroup({ icon: 'cpu', name: 'تصنيع CNC', items: [
       { t: 'مسار تخشين ثلاثيّ المحاور', icon: 'cpu', fn: opRoughing },
       { t: 'كتلة الخام…', icon: 'stock', fn: opStock },
+      { t: 'توجيه تلقائيّ للتصنيع', icon: 'floor', fn: MOD.orient },
+      { t: 'شرائح للتقطيع…', icon: 'layers', fn: MOD.slices },
       { sep: true },
       { t: 'إسقاط الظلّ إلى الرسم', icon: 'shapes', fn: opProject2D },
       { t: 'مقطع إلى الرسم…', icon: 'section', fn: opSectionTo2D },
+    ] });
+
+    railGroup({ icon: 'zap', name: 'إضاءة وكاميرا', items: [
+      { t: 'الإضاءة…', icon: 'zap', fn: VIEWFX.lighting },
+      { t: 'عدسة الكاميرا…', icon: 'image', fn: VIEWFX.camera },
+      { sep: true },
+      { t: 'احفظ لقطة كاميرا…', icon: 'pin', fn: VIEWFX.saveShot },
+      { t: 'استعد لقطة…', icon: 'history', fn: VIEWFX.recallShot },
+      { t: 'دوران تلقائيّ', icon: 'rotate', fn: VIEWFX.turntable },
     ] });
 
     railGroup({ icon: 'download', name: 'ملفّات', items: [
@@ -2222,6 +2603,8 @@
     topItem({ icon: 'eye', lbl: 'إخفاء', name: 'إخفاء / إظهار المحدَّد', fn: opToggleHide });
     topItem({ icon: 'isolate', lbl: 'عزل', name: 'عزل التحديد', id: 'c3-iso', fn: opIsolate });
     topItem({ icon: 'explode', lbl: 'تفجير', name: 'تفجير العرض', id: 'c3-exp', fn: opExplode });
+    topItem({ icon: 'zap', lbl: 'إضاءة', name: 'الإضاءة والظلال', fn: VIEWFX.lighting });
+    topItem({ icon: 'rotate', lbl: 'دوران', name: 'دوران تلقائيّ حول المجسّم', id: 'c3-spin', fn: VIEWFX.turntable });
     topItem({ icon: 'sidebar', lbl: 'الشجرة', name: 'طيّ / بسط شجرة الميزات', id: 'c3-side', fn: toggleSide });
     topItem({ grow: true });
     topItem({ icon: 'cpu', lbl: 'تخشين', name: 'مسار تخشين ثلاثيّ المحاور → G-Code', fn: opRoughing });
@@ -2254,6 +2637,7 @@
       const v = V();
       if (!v.mount(host)) { pane.innerHTML = '<div class="c3-empty">تعذّر تهيئة WebGL.</div>'; return; }
       v.on('select', () => { renderTree(); updateInfo(); });
+      v.on('camera', drawNav);
       v.on('change', e => {
         if (!e || !e.transform) return;
         const f = featById(e.id), m = v.get(e.id);
@@ -2361,5 +2745,13 @@
     exportSTL: opExportSTL,
     clear: () => { feats = []; rebuild(); },
     ready: () => booted,
+    // مكشوفة لزرّ «استيراد» الرئيسيّ في file-importer.js: هو يقرأ للمعاينة
+    // ثمّ يُسلّم النتيجة هنا، فلا يتكرّر منطق المحور والوحدة في مكانين
+    parseMeshFiles, importParsed: insertParsed,
+    importMesh: async files => {
+      const r = await parseMeshFiles(files);
+      r.failed.forEach(m => toast(m, 'warn'));
+      return insertParsed(r.parsed);
+    },
   };
 })();

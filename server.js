@@ -192,9 +192,28 @@ app.use(compression());
 // بالتحديث الفوري للعائدين. ملفات HTML والـ API لا تُكَش (تمرّ عبر no-store لاحقاً).
 const IMMUTABLE_DIRS = /[\\/](vendor|fonts|images|icons)[\\/]/;   // نادراً ما تتغيّر
 const ASSET_EXT      = /\.(?:js|mjs|css|woff2?|ttf|otf|eot|wasm|png|jpe?g|gif|svg|ico|webp|map)$/i;
+/**
+ * على سطح المكتب لا كاش على أصول التطبيق.
+ *
+ * الأصول هناك ملفّات على القرص المحلّي: الكاش لا يوفّر شيئاً، ويُفسد التحديث.
+ * فبعد تثبيت إصدارٍ جديد كانت نافذة Electron تُقدّم جافاسكربت الأمس من كاشها
+ * (max-age يوم كامل) مع HTML اليوم — فيبدو التحديث وكأنّه لم يصل، وتُردّ
+ * ملفّات بلندر بـ«نوع الملف غير مدعوم» رغم أنّ القارئ مثبَّت فعلاً. ولا Service
+ * Worker هناك ليدفع التحديث كما يفعل في الويب.
+ */
+const DESKTOP = process.env.DQ_DESKTOP === '1';
+
 const staticOpts = {
   index: false,   // لا تعرض index.html تلقائياً على / — مسار / يخدم landing.html
+  etag: true,
+  lastModified: true,
   setHeaders(res, filePath) {
+    if (DESKTOP) {
+      // no-cache لا no-store: يُسمح بالتخزين لكن يُلزم التحقّق من ETag في كل
+      // طلب — فالتحديث يصل فوراً والقراءة من القرص المحلّي شبه مجّانية
+      res.setHeader('Cache-Control', 'no-cache');
+      return;
+    }
     if (filePath.endsWith('sw.js')) {
       // الـ SW نفسه يجب ألا يُكَش حتى تصل التحديثات فوراً
       res.setHeader('Cache-Control', 'no-cache');
