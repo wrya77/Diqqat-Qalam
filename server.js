@@ -133,6 +133,16 @@ app.use(helmet({
         'https://cloudflareinsights.com'],  // إرسال بيانات Cloudflare RUM beacon
       imgSrc:      ["'self'", 'data:', 'blob:'],
       objectSrc:   ["'none'"],
+      /* هذه الثلاثة تزداد أهمّيةً هنا تحديداً لأنّ 'unsafe-inline' لازمٌ لنا
+         (تُعيد Cloudflare كتابة السكربتات المضمّنة فتُبطل الـnonce والـhash):
+         • base-uri  — بدونه يكفي وسم <base href="//evil"> واحدٌ مُحقَن ليُعاد
+           توجيه كلّ مسارٍ نسبيّ في الصفحة — أي كلّ سكربتات التطبيق — إلى خادم
+           المهاجم، فيسقط التطبيق كلّه لا الصفحة وحدها.
+         • frame-ancestors — يمنع تأطير الصفحة في موقعٍ آخر (اختطاف النقر).
+         • form-action — يمنع نموذجاً مُحقَناً من إرسال ما يُكتب إلى الخارج. */
+      baseUri:        ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction:     ["'self'"],
       upgradeInsecureRequests: [],
     },
   },
