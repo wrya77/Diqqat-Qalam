@@ -217,11 +217,24 @@
   function init() {
     if (!CE) { $('empty').textContent = 'فشل تحميل المحرك.'; return; }
     const sel = $('font');
-    CE.listFonts().forEach(ff => {
-      const o = document.createElement('option');
-      o.value = ff.id; o.textContent = ff.name;
-      sel.appendChild(o);
-    });
+    // تجميع حسب اللغة: القائمة صارت ٦٧ خطاً، فالمجموعتان تسهّلان الاختيار
+    const fonts = CE.listFonts();
+    const groups = [
+      ['خطوط عربية', fonts.filter(f => (f.script || 'arabic') === 'arabic')],
+      ['English fonts', fonts.filter(f => f.script === 'latin')],
+    ];
+    for (const [label, list] of groups) {
+      if (!list.length) continue;
+      const og = document.createElement('optgroup');
+      og.label = `${label} (${list.length})`;
+      for (const ff of list) {
+        const o = document.createElement('option');
+        o.value = ff.id;
+        o.textContent = ff.note ? `${ff.name} — ${ff.note}` : ff.name;
+        og.appendChild(o);
+      }
+      sel.appendChild(og);
+    }
     $('ls').addEventListener('input', () => { $('ls-val').textContent = (+$('ls').value).toFixed(2) + '×'; });
     $('gen').addEventListener('click', generate);
     $('dl').addEventListener('click', () => download(fileBase() + '.nc', state.lastGcode, 'text/plain'));

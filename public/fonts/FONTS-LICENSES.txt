@@ -1,0 +1,30 @@
+تراخيص الخطوط — دقة قلم
+=========================
+
+كل الخطوط في هذا المجلّد حرّة الاستعمال بالكامل، بما في ذلك الاستعمال التجاريّ
+والتضمين في المنتجات والقصّ على الآلات. المصدر: مشروع Google Fonts
+(github.com/google/fonts).
+
+الترخيص الافتراضيّ: SIL Open Font License 1.1 (OFL) — نصّه في OFL.txt.
+الاستثناءات أدناه مرخّصة بـ Apache License 2.0 (حرّة تجارياً أيضاً).
+
+OFL 1.1
+-------
+Amiri, Cairo, Reem Kufi, Aref Ruqaa, Aref Ruqaa Ink, Reem Kufi Fun,
+Reem Kufi Ink, Alkalami, Almarai, Baloo Bhaijaan 2, Blaka, Cairo Play,
+Changa, El Messiri, Gulzar, Harmattan, IBM Plex Sans Arabic, Jomhuria,
+Katibeh, Kufam, Lalezar, Lateef, Lemonada, Mada, Marhey, Markazi Text,
+Mirza, Noto Kufi Arabic, Noto Naskh Arabic, Qahiri, Rakkas, Readex Pro,
+Scheherazade New, Tajawal, Vazirmatn, Vibes,
+Abril Fatface, Alfa Slab One, Anton, Archivo Black, Audiowide, Bangers,
+Bebas Neue, Black Ops One, Bowlby One, Bungee, Fjalla One, Kanit, Lobster,
+Monoton, Montserrat, Orbitron, Oswald, Pacifico, Passion One, Poppins,
+Righteous, Russo One, Shrikhand, Sigmar One, Staatliches, Teko, Titan One.
+
+Apache License 2.0
+------------------
+Permanent Marker, Luckiest Guy, Chewy.
+
+كلٌّ من OFL وApache-2.0 يسمح بالاستعمال التجاريّ والتعديل والتوزيع والتضمين.
+يبقى شرط OFL: لا يُباع الخطّ وحده، ولا يُستعمل اسم الخطّ المحجوز (Reserved Font
+Name) لنسخةٍ معدّلة.

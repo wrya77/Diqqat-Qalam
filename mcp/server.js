@@ -42,9 +42,9 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        text:        { type: 'string', description: 'النصّ العربيّ (أسطرٌ متعدّدة مسموحة بفاصل سطر). إجباريّ.' },
-        font:        { type: 'string', enum: ['amiri', 'cairo', 'reem', 'ruqaa'],
-                       description: 'amiri=نسخ كلاسيكي · cairo=حديث هندسي · reem=كوفي للّافتات · ruqaa=رقعة زخرفي. افتراضي amiri.' },
+        text:        { type: 'string', description: 'النصّ (عربيّ أو لاتينيّ، أسطرٌ متعدّدة مسموحة بفاصل سطر). إجباريّ.' },
+        font:        { type: 'string',
+                       description: 'مُعرّف الخطّ (٦٧ خطاً: ٣٧ عربي + ٣٠ لاتيني). نادِ list_fonts لرؤية المتاح. افتراضي amiri.' },
         heightMM:    { type: 'number', description: 'ارتفاع الحرف بالمليمتر (مثلاً 300 لثلاثين سم). افتراضي 100.' },
         material:    { type: 'number', description: 'سماكة الخامة بالمليمتر = عمق القطع الكلّيّ. افتراضي 3.' },
         lineSpacing: { type: 'number', description: 'تباعد الأسطر كنسبةٍ من الارتفاع. افتراضي 1.5.' },
@@ -74,8 +74,16 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const { name, arguments: args = {} } = req.params;
   try {
     if (name === 'list_fonts') {
-      const lines = engine.listFonts().map(f => `• ${f.id} — ${f.name} (${f.style}): ${f.note}`);
-      return ok('الخطوط المتاحة:\n' + lines.join('\n'));
+      const fonts = engine.listFonts();
+      const fmt = f => `• ${f.id} — ${f.name} (${f.style}): ${f.note}`;
+      const ar = fonts.filter(f => (f.script || 'arabic') === 'arabic');
+      const la = fonts.filter(f => f.script === 'latin');
+      const out = [
+        `الخطوط المتاحة (${fonts.length}):`,
+        '', `── خطوط عربية (${ar.length}) ──`, ...ar.map(fmt),
+        '', `── English fonts (${la.length}) ──`, ...la.map(fmt),
+      ];
+      return ok(out.join('\n'));
     }
 
     if (name === 'make_letters') {

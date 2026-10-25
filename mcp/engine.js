@@ -193,6 +193,13 @@ async function generate(o) {
   if (!o || !o.text || !String(o.text).trim()) {
     throw new Error('النصّ مطلوب');
   }
+  // خطٌّ مجهول يُخطئ صراحةً (لا ارتدادٌ صامت كما في getFont) — كي يعرف كلاود
+  if (o.font) {
+    const ids = CE.listFonts().map(f => f.id);
+    if (!ids.includes(o.font)) {
+      throw new Error(`خطّ غير معروف: ${o.font}. استعمل list_fonts لرؤية المتاح.`);
+    }
+  }
   const opt = Object.assign({
     font: 'amiri', heightMM: 100, lineSpacing: 1.5,
     material: 3, passDepth: 1.5, toolDiameter: 3,
