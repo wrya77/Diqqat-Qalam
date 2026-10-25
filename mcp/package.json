@@ -1,0 +1,16 @@
+{
+  "name": "diqqat-qalam-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "جسر MCP محلّيّ: كلاود يعطي الفكرة، ودقة قلم يُنتج ملفّ الحروف (G-Code + SVG)",
+  "type": "commonjs",
+  "main": "server.js",
+  "bin": { "diqqat-qalam-mcp": "server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "smoke": "node smoke.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
