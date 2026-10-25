@@ -134,15 +134,26 @@ function layout(o) {
   const tolU       = (o.curveTol != null ? o.curveTol : 0.0025) * upm;
 
   // 1) تجميع الكنتورات في وحدات الخط (y لأعلى)
+  //    نحتفظ بتجميع كل حرفٍ على حدة (rawGroups): العرض الصحيح للخطّ المتّصل
+  //    يرسم كلّ حرفٍ بمسارٍ مستقلٍّ بقاعدة even-odd، فتظهر تراكبات الوصلات ملأى
+  //    (نموذج الرسّام) بدل أن تتلاشى حين تُجمع كلّ الحروف في مسارٍ واحد — وهو
+  //    حلٌّ مستقلٌّ عن اصطلاح لفّ الخطّ (يختلف بين الخطوط) وبلا أي حساب boolean.
   let penX = 0;
   const raw = [];
+  const rawGroups = [];
   for (const g of run) {
     const cmds = glyphPaths[g.glyphId];
     if (cmds && cmds.length) {
       const cs = flatten(cmds, tolU);
       const ox = penX + (g.dx || 0);
       const oy = (g.dy || 0);
-      for (const c of cs) raw.push(c.map(p => ({ x: p.x + ox, y: p.y + oy })));
+      const grp = [];
+      for (const c of cs) {
+        const cc = c.map(p => ({ x: p.x + ox, y: p.y + oy }));
+        raw.push(cc);
+        grp.push(cc);
+      }
+      if (grp.length) rawGroups.push(grp);
     }
     penX += (g.ax || 0) + spacingU;
   }
@@ -160,14 +171,14 @@ function layout(o) {
   const k  = heightMM / hU;
 
   // 3) القياس + النقل للأصل أسفل-يسار
+  const tf = c => c.map(p => ({ x: (p.x - minX) * k, y: (p.y - minY) * k }));
   let pts = 0;
-  const contours = raw.map(c => {
-    pts += c.length;
-    return c.map(p => ({ x: (p.x - minX) * k, y: (p.y - minY) * k }));
-  });
+  const contours = raw.map(c => { pts += c.length; return tf(c); });
+  const groups = rawGroups.map(grp => grp.map(tf));
 
   return {
     contours,
+    groups,
     width:  (maxX - minX) * k,
     height: (maxY - minY) * k,
     scale:  k,

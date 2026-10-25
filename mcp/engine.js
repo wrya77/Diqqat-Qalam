@@ -109,7 +109,9 @@ function composeText(text, f, heightMM, spacing) {
   laid.forEach(res => {
     const fac = res.scale ? scale0 / res.scale : 1;
     if (Math.abs(fac - 1) > 1e-9) {
-      res.contours = res.contours.map(c => c.map(p => ({ x: p.x * fac, y: p.y * fac })));
+      const sc = c => c.map(p => ({ x: p.x * fac, y: p.y * fac }));
+      res.contours = res.contours.map(sc);
+      res.groups   = (res.groups || []).map(g => g.map(sc));
       res.width  *= fac;
       res.height *= fac;
     }
@@ -118,10 +120,13 @@ function composeText(text, f, heightMM, spacing) {
   const maxW = Math.max(...laid.map(r => r.width));
   const step = heightMM * spacing;
   const contours = [];
+  const groups = [];                                 // تجميع الحروف للعرض السليم
   laid.forEach((res, i) => {
-    const xo = maxW - res.width;                    // محاذاة لليمين
-    const yo = (laid.length - 1 - i) * step;         // السطر الأوّل للأعلى
-    for (const c of res.contours) contours.push(c.map(p => ({ x: p.x + xo, y: p.y + yo })));
+    const xo = maxW - res.width;                     // محاذاة لليمين
+    const yo = (laid.length - 1 - i) * step;          // السطر الأوّل للأعلى
+    const mv = c => c.map(p => ({ x: p.x + xo, y: p.y + yo }));
+    for (const c of res.contours) contours.push(mv(c));
+    for (const g of (res.groups || [])) groups.push(g.map(mv));
   });
 
   let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
@@ -129,22 +134,35 @@ function composeText(text, f, heightMM, spacing) {
     if (p.x < mnx) mnx = p.x; if (p.x > mxx) mxx = p.x;
     if (p.y < mny) mny = p.y; if (p.y > mxy) mxy = p.y;
   }
-  const out = contours.map(c => c.map(p => ({ x: p.x - mnx, y: p.y - mny })));
-  return { contours: out, width: mxx - mnx, height: mxy - mny, lines: lines.length };
+  const nm = c => c.map(p => ({ x: p.x - mnx, y: p.y - mny }));
+  const out = contours.map(nm);
+  const outGroups = groups.map(g => g.map(nm));
+  return { contours: out, groups: outGroups, width: mxx - mnx, height: mxy - mny, lines: lines.length };
 }
 
 // ── تصدير SVG نظيف بوحدة mm (منقول من calligraphy.js) ──────────────────────
 
 function svgExport(comp) {
   const W = comp.width, H = comp.height;
-  let d = '';
-  for (const c of comp.contours) {
-    if (c.length < 2) continue;
-    d += 'M' + c.map(p => `${p.x.toFixed(3)},${(H - p.y).toFixed(3)}`).join('L') + 'Z';
-  }
+  const pathOf = (rings) => {
+    let d = '';
+    for (const c of rings) {
+      if (c.length < 2) continue;
+      d += 'M' + c.map(p => `${p.x.toFixed(3)},${(H - p.y).toFixed(3)}`).join('L') + 'Z';
+    }
+    return d;
+  };
+  // مسارٌ لكلّ حرفٍ بقاعدة even-odd: تراكبات الوصلات تظهر ملأى، والثقوب محفوظة.
+  // الارتداد إلى مسارٍ واحد لو غابت المجموعات (توافقٌ خلفيّ).
+  const groups = (comp.groups && comp.groups.length) ? comp.groups : [comp.contours];
+  const paths = groups
+    .map(g => pathOf(g))
+    .filter(Boolean)
+    .map(d => `  <path d="${d}" fill="black" fill-rule="evenodd"/>`)
+    .join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W.toFixed(2)}mm" height="${H.toFixed(2)}mm" viewBox="0 0 ${W.toFixed(2)} ${H.toFixed(2)}">\n` +
-    `  <path d="${d}" fill="black" fill-rule="evenodd"/>\n</svg>\n`;
+    `${paths}\n</svg>\n`;
 }
 
 // ── اسم ملفٍّ آمن من النصّ العربيّ ──────────────────────────────────────────

@@ -69,7 +69,9 @@
     laid.forEach(res => {
       const fac = res.scale ? scale0 / res.scale : 1;
       if (Math.abs(fac - 1) > 1e-9) {
-        res.contours = res.contours.map(c => c.map(p => ({ x: p.x * fac, y: p.y * fac })));
+        const sc = c => c.map(p => ({ x: p.x * fac, y: p.y * fac }));
+        res.contours = res.contours.map(sc);
+        res.groups   = (res.groups || []).map(g => g.map(sc));
         res.width  *= fac;
         res.height *= fac;
       }
@@ -78,10 +80,13 @@
     const maxW = Math.max(...laid.map(r => r.width));
     const step = heightMM * spacing;
     const contours = [];
+    const groups = [];                             // تجميع الحروف للعرض السليم
     laid.forEach((res, i) => {
       const xo = maxW - res.width;                 // محاذاة لليمين
       const yo = (laid.length - 1 - i) * step;      // السطر الأول للأعلى
-      for (const c of res.contours) contours.push(c.map(p => ({ x: p.x + xo, y: p.y + yo })));
+      const mv = c => c.map(p => ({ x: p.x + xo, y: p.y + yo }));
+      for (const c of res.contours) contours.push(mv(c));
+      for (const g of (res.groups || [])) groups.push(g.map(mv));
     });
 
     // محيط كلي
@@ -91,8 +96,25 @@
       if (p.y < mny) mny = p.y; if (p.y > mxy) mxy = p.y;
     }
     // النقل للأصل (0,0)
-    const out = contours.map(c => c.map(p => ({ x: p.x - mnx, y: p.y - mny })));
-    return { contours: out, width: mxx - mnx, height: mxy - mny, lines: lines.length };
+    const nm = c => c.map(p => ({ x: p.x - mnx, y: p.y - mny }));
+    const out = contours.map(nm);
+    const outGroups = groups.map(g => g.map(nm));
+    return { contours: out, groups: outGroups, width: mxx - mnx, height: mxy - mny, lines: lines.length };
+  }
+
+  // مسارٌ لكلّ حرف: الخطّ المتّصل يُرسم كلّ حرفٍ بمسارٍ مستقلٍّ بقاعدة even-odd،
+  // فتظهر تراكبات الوصلات ملأى (نموذج الرسّام) بدل أن تتلاشى في مسارٍ واحد.
+  // الارتداد إلى الكنتورات كلّها لو غابت المجموعات (توافقٌ خلفيّ).
+  function _groupsOf(comp) {
+    return (comp.groups && comp.groups.length) ? comp.groups : [comp.contours];
+  }
+  function _pathData(rings, fx, fy) {
+    let d = '';
+    for (const c of rings) {
+      if (c.length < 2) continue;
+      d += 'M' + c.map(p => `${fx(p.x).toFixed(3)},${fy(p.y).toFixed(3)}`).join('L') + 'Z';
+    }
+    return d;
   }
 
   // ── معاينة SVG ─────────────────────────────────────────────
@@ -100,28 +122,25 @@
     const W = comp.width, H = comp.height;
     const pad = Math.max(2, Math.max(W, H) * 0.04);
     const vbW = W + pad * 2, vbH = H + pad * 2;
-    let d = '';
-    for (const c of comp.contours) {
-      if (c.length < 2) continue;
-      d += 'M' + c.map(p => `${(p.x + pad).toFixed(2)},${(H - p.y + pad).toFixed(2)}`).join('L') + 'Z';
-    }
-    const svg =
-      `<svg viewBox="0 0 ${vbW.toFixed(2)} ${vbH.toFixed(2)}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">` +
-      `<path d="${d}" fill="rgba(96,165,250,0.18)" stroke="#60a5fa" stroke-width="${(Math.max(W,H)/400).toFixed(3)}" fill-rule="evenodd" stroke-linejoin="round"/>` +
-      `</svg>`;
-    return svg;
+    const sw = (Math.max(W, H) / 400).toFixed(3);
+    const paths = _groupsOf(comp)
+      .map(g => _pathData(g, x => x + pad, y => H - y + pad))
+      .filter(Boolean)
+      .map(d => `<path d="${d}" fill="rgba(96,165,250,0.18)" stroke="#60a5fa" stroke-width="${sw}" fill-rule="evenodd" stroke-linejoin="round"/>`)
+      .join('');
+    return `<svg viewBox="0 0 ${vbW.toFixed(2)} ${vbH.toFixed(2)}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">${paths}</svg>`;
   }
 
   function svgExport(comp) {
     const W = comp.width, H = comp.height;
-    let d = '';
-    for (const c of comp.contours) {
-      if (c.length < 2) continue;
-      d += 'M' + c.map(p => `${p.x.toFixed(3)},${(H - p.y).toFixed(3)}`).join('L') + 'Z';
-    }
+    const paths = _groupsOf(comp)
+      .map(g => _pathData(g, x => x, y => H - y))
+      .filter(Boolean)
+      .map(d => `  <path d="${d}" fill="black" fill-rule="evenodd"/>`)
+      .join('\n');
     return `<?xml version="1.0" encoding="UTF-8"?>\n` +
       `<svg xmlns="http://www.w3.org/2000/svg" width="${W.toFixed(2)}mm" height="${H.toFixed(2)}mm" viewBox="0 0 ${W.toFixed(2)} ${H.toFixed(2)}">\n` +
-      `  <path d="${d}" fill="black" fill-rule="evenodd"/>\n</svg>\n`;
+      `${paths}\n</svg>\n`;
   }
 
   // ── التوليد ────────────────────────────────────────────────
